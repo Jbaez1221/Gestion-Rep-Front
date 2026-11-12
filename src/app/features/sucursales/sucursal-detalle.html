@@ -1,0 +1,193 @@
+<section class="space-y-4">
+  <a routerLink="/sucursales" class="btn-enlace">← Sucursales</a>
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h1 class="titulo-pagina">
+      {{ esNueva() ? 'Nueva sucursal' : (sucursal()?.nombre ?? 'Sucursal') }}
+    </h1>
+    @if (sucursal(); as s) {
+      <div class="flex items-center gap-2">
+        <span [class]="s.activa ? 'insignia-ok' : 'insignia-neutra'">{{
+          s.activa ? 'Activa' : 'Inactiva'
+        }}</span>
+        @if (sesion.tiene(permisos.sucursalesEditar)) {
+          <button
+            type="button"
+            class="btn-secundario"
+            [disabled]="guardando()"
+            (click)="cambiarEstado()"
+          >
+            {{ s.activa ? 'Desactivar' : 'Activar' }}
+          </button>
+        }
+      </div>
+    }
+  </div>
+
+  <app-error-api [problema]="error()" />
+
+  <form
+    [formGroup]="formulario"
+    (ngSubmit)="guardar()"
+    novalidate
+    class="tarjeta grid gap-4 sm:grid-cols-2"
+  >
+    <div>
+      <label for="codigo" class="etiqueta">Código</label>
+      <input
+        id="codigo"
+        class="campo font-mono uppercase"
+        formControlName="codigo"
+        aria-describedby="ayuda-codigo"
+      />
+      <p id="ayuda-codigo" class="mt-1 text-xs text-slate-500">
+        Letras, números y guiones. No se puede cambiar después.
+      </p>
+      @if (formulario.controls.codigo.touched && formulario.controls.codigo.invalid) {
+        <p class="error-campo">Código inválido.</p>
+      }
+    </div>
+    <div>
+      <label for="nombre" class="etiqueta">Nombre</label>
+      <input id="nombre" class="campo" formControlName="nombre" />
+      @if (formulario.controls.nombre.touched && formulario.controls.nombre.invalid) {
+        <p class="error-campo">Ingrese el nombre.</p>
+      }
+    </div>
+    <div>
+      <label for="tipo" class="etiqueta">Tipo</label>
+      <select id="tipo" class="campo" formControlName="tipo">
+        <option value="TIENDA">Tienda</option>
+        <option value="ALMACEN">Almacén</option>
+        <option value="OFICINA">Oficina</option>
+      </select>
+    </div>
+    <div>
+      <label for="telefono" class="etiqueta">Teléfono</label>
+      <input id="telefono" class="campo" formControlName="telefono" />
+    </div>
+    <div class="sm:col-span-2">
+      <label for="direccion" class="etiqueta">Dirección</label>
+      <input id="direccion" class="campo" formControlName="direccion" />
+    </div>
+    <div>
+      <label for="ubigeo" class="etiqueta">Ubigeo</label>
+      <input id="ubigeo" class="campo" formControlName="ubigeo" inputmode="numeric" maxlength="6" />
+      @if (formulario.controls.ubigeo.touched && formulario.controls.ubigeo.invalid) {
+        <p class="error-campo">Debe tener 6 dígitos.</p>
+      }
+    </div>
+    <div>
+      <label for="sunat" class="etiqueta">Código de establecimiento SUNAT</label>
+      <input
+        id="sunat"
+        class="campo"
+        formControlName="codigoEstablecimientoSunat"
+        inputmode="numeric"
+        maxlength="4"
+      />
+      @if (
+        formulario.controls.codigoEstablecimientoSunat.touched &&
+        formulario.controls.codigoEstablecimientoSunat.invalid
+      ) {
+        <p class="error-campo">Debe tener 4 dígitos (0000 = domicilio fiscal).</p>
+      }
+    </div>
+    @if (puedeEditar()) {
+      <div class="sm:col-span-2">
+        <button type="submit" class="btn-primario" [disabled]="guardando()">
+          {{ esNueva() ? 'Crear sucursal' : 'Guardar cambios' }}
+        </button>
+      </div>
+    }
+  </form>
+
+  @if (!esNueva() && sesion.tiene(permisos.almacenesLeer)) {
+    <div class="tarjeta space-y-3">
+      <h2 class="text-lg font-semibold">Almacenes</h2>
+      <div class="overflow-x-auto">
+        <table class="tabla">
+          <thead>
+            <tr>
+              <th scope="col">Código</th>
+              <th scope="col">Nombre</th>
+              <th scope="col">Estado</th>
+              <th scope="col"><span class="sr-only">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            @for (a of almacenes(); track a.id) {
+              <tr>
+                <td class="font-mono">{{ a.codigo }}</td>
+                <td>
+                  @if (editandoAlmacen() === a.id) {
+                    <label class="sr-only" [for]="'nombre-' + a.id">Nombre del almacén</label>
+                    <input [id]="'nombre-' + a.id" class="campo" [formControl]="nombreAlmacen" />
+                  } @else {
+                    {{ a.nombre }}
+                    @if (a.principal) {
+                      <span class="insignia-ok ml-1">Principal</span>
+                    }
+                  }
+                </td>
+                <td>
+                  <span [class]="a.activo ? 'insignia-ok' : 'insignia-neutra'">{{
+                    a.activo ? 'Activo' : 'Inactivo'
+                  }}</span>
+                </td>
+                <td class="space-x-2 text-right whitespace-nowrap">
+                  @if (sesion.tiene(permisos.almacenesEditar)) {
+                    @if (editandoAlmacen() === a.id) {
+                      <button type="button" class="btn-enlace" (click)="renombrar(a)">
+                        Guardar
+                      </button>
+                      <button type="button" class="btn-enlace" (click)="editandoAlmacen.set(null)">
+                        Cancelar
+                      </button>
+                    } @else {
+                      <button type="button" class="btn-enlace" (click)="editar(a)">
+                        Renombrar
+                      </button>
+                      @if (!a.principal && a.activo) {
+                        <button type="button" class="btn-enlace" (click)="marcarPrincipal(a)">
+                          Hacer principal
+                        </button>
+                      }
+                      @if (!a.principal) {
+                        <button type="button" class="btn-enlace" (click)="alternarAlmacen(a)">
+                          {{ a.activo ? 'Desactivar' : 'Activar' }}
+                        </button>
+                      }
+                    }
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (sesion.tiene(permisos.almacenesCrear)) {
+        <form
+          [formGroup]="nuevoAlmacen"
+          (ngSubmit)="agregarAlmacen()"
+          novalidate
+          class="grid gap-3 border-t border-slate-100 pt-3 sm:grid-cols-3"
+        >
+          <div>
+            <label for="alm-codigo" class="etiqueta">Código del almacén</label>
+            <input id="alm-codigo" class="campo font-mono uppercase" formControlName="codigo" />
+          </div>
+          <div>
+            <label for="alm-nombre" class="etiqueta">Nombre</label>
+            <input id="alm-nombre" class="campo" formControlName="nombre" />
+          </div>
+          <div class="flex items-end">
+            <button type="submit" class="btn-secundario" [disabled]="guardando()">
+              Agregar almacén
+            </button>
+          </div>
+        </form>
+      }
+    </div>
+  }
+</section>

@@ -1,0 +1,246 @@
+<div class="flex flex-wrap items-end justify-between gap-3">
+  <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
+    <div>
+      <label for="c-almacen" class="etiqueta">Almacén</label>
+      <select id="c-almacen" class="campo" formControlName="almacenId">
+        <option value="">Todos mis almacenes</option>
+        @for (a of almacenes(); track a.id) {
+          <option [value]="a.id">{{ a.codigo }} · {{ a.nombre }}</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label for="c-estado" class="etiqueta">Estado</label>
+      <select id="c-estado" class="campo" formControlName="estado">
+        <option value="">Todos</option>
+        <option value="ABIERTO">Abiertos</option>
+        <option value="APLICADO">Aplicados</option>
+        <option value="ANULADO">Anulados</option>
+      </select>
+    </div>
+    <button type="submit" class="btn-secundario">Buscar</button>
+  </form>
+  @if (sesion.tiene(permisos.inventarioContar) && !creando()) {
+    <button type="button" class="btn-primario" (click)="iniciarNuevo()">Nuevo conteo</button>
+  }
+</div>
+
+<app-error-api [problema]="error()" />
+
+@if (creando()) {
+  <form [formGroup]="nuevo" (ngSubmit)="crear()" novalidate class="tarjeta space-y-3">
+    <h2 class="font-semibold">Nuevo conteo físico</h2>
+    <div class="grid gap-3 sm:grid-cols-3">
+      <div>
+        <label for="n-almacen" class="etiqueta">Almacén</label>
+        <select id="n-almacen" class="campo" formControlName="almacenId">
+          <option value="">Elija…</option>
+          @for (a of almacenes(); track a.id) {
+            <option [value]="a.id">{{ a.codigo }} · {{ a.nombre }}</option>
+          }
+        </select>
+      </div>
+      <div class="sm:col-span-2">
+        <label for="n-glosa" class="etiqueta">Glosa</label>
+        <input
+          id="n-glosa"
+          class="campo"
+          formControlName="glosa"
+          placeholder="Inventario de cierre, rotativo de filtros…"
+        />
+      </div>
+    </div>
+    <label class="flex items-start gap-2 text-sm">
+      <input type="checkbox" formControlName="congelar" class="mt-1" />
+      <span>
+        Congelar los artículos mientras dure el conteo
+        <span class="block text-xs text-slate-500">
+          Nadie podrá moverlos hasta aplicar o anular el conteo; la diferencia será exacta.
+        </span>
+      </span>
+    </label>
+    <div class="space-y-2">
+      <p class="text-sm text-slate-600">
+        Sin artículos elegidos se cuenta todo lo que tiene stock en el almacén.
+      </p>
+      <ul class="flex flex-wrap gap-2">
+        @for (a of seleccion(); track a.id) {
+          <li class="insignia-neutra flex items-center gap-1">
+            <span class="font-mono">{{ a.codigo }}</span>
+            <button
+              type="button"
+              class="btn-enlace"
+              [attr.aria-label]="'Quitar ' + a.codigo"
+              (click)="quitarArticulo(a.id)"
+            >
+              ×
+            </button>
+          </li>
+        }
+      </ul>
+      <app-buscador-articulo
+        etiqueta="Contar solo estos artículos"
+        [soloInventariables]="true"
+        [excluir]="idsSeleccion()"
+        (elegido)="agregarArticulo($event)"
+      />
+    </div>
+    <div class="flex gap-2">
+      <button type="submit" class="btn-primario">Abrir conteo</button>
+      <button type="button" class="btn-secundario" (click)="creando.set(false)">Cancelar</button>
+    </div>
+  </form>
+}
+
+@if (conteo(); as c) {
+  <section class="tarjeta space-y-3" aria-labelledby="titulo-conteo">
+    <div class="flex flex-wrap items-start justify-between gap-2">
+      <div>
+        <h2 id="titulo-conteo" class="font-semibold">
+          <span class="font-mono">{{ c.numero }}</span> · {{ c.almacen.codigo }}
+          <span
+            [class]="
+              c.estado === 'ABIERTO'
+                ? 'insignia-alerta'
+                : c.estado === 'APLICADO'
+                  ? 'insignia-ok'
+                  : 'insignia-neutra'
+            "
+            >{{ estados[c.estado] }}</span
+          >
+          @if (c.congelado) {
+            <span class="insignia-neutra">Congelado</span>
+          }
+        </h2>
+        <p class="text-sm text-slate-600">
+          {{ c.fecha }} · {{ c.glosa }} · abierto por {{ c.creadoPor ?? '—' }}
+          @if (c.aplicadoPor) {
+            · aplicado por {{ c.aplicadoPor }}
+          }
+        </p>
+      </div>
+      <button type="button" class="btn-secundario" (click)="conteo.set(null)">Cerrar</button>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th scope="col">Artículo</th>
+            <th scope="col" class="text-right">Al abrir</th>
+            <th scope="col" class="text-right">Stock actual</th>
+            <th scope="col" class="text-right">Contado</th>
+            <th scope="col" class="text-right">Diferencia</th>
+            <th scope="col" class="text-right">Costo (solo sobrantes sin costo)</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          @for (l of c.lineas; track l.articulo.id; let i = $index) {
+            <tr>
+              <td>
+                <span class="font-mono">{{ l.articulo.codigo }}</span> ·
+                {{ l.articulo.descripcion }}
+              </td>
+              <td class="text-right">{{ l.cantidadSistema | number: '1.0-4' }}</td>
+              <td class="text-right">{{ l.stockActual | number: '1.0-4' }}</td>
+              <td class="w-36">
+                <label [for]="'ct-cant-' + i" class="sr-only"
+                  >Contado de {{ l.articulo.codigo }}</label
+                >
+                <input
+                  [id]="'ct-cant-' + i"
+                  type="number"
+                  min="0"
+                  step="0.0001"
+                  class="campo text-right"
+                  [formControl]="conteoForm.at(i).controls.cantidadContada"
+                />
+              </td>
+              <td
+                class="text-right"
+                [class.text-red-700]="(l.diferencia ?? 0) < 0"
+                [class.text-green-700]="(l.diferencia ?? 0) > 0"
+              >
+                {{ l.diferencia === null ? '—' : (l.diferencia | number: '1.0-4') }}
+              </td>
+              <td class="w-40">
+                <label [for]="'ct-costo-' + i" class="sr-only"
+                  >Costo de {{ l.articulo.codigo }}</label
+                >
+                <input
+                  [id]="'ct-costo-' + i"
+                  type="number"
+                  min="0"
+                  step="0.000001"
+                  class="campo text-right"
+                  [formControl]="conteoForm.at(i).controls.costoUnitario"
+                />
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    @if (c.estado === 'ABIERTO') {
+      <div class="flex flex-wrap gap-2">
+        @if (sesion.tiene(permisos.inventarioContar)) {
+          <button
+            type="button"
+            class="btn-secundario"
+            [disabled]="ocupado()"
+            (click)="guardarConteo()"
+          >
+            Guardar conteo
+          </button>
+        }
+        @if (sesion.tiene(permisos.inventarioAplicarConteo)) {
+          <button type="button" class="btn-primario" [disabled]="ocupado()" (click)="aplicar()">
+            Aplicar ajustes
+          </button>
+        }
+        @if (sesion.tiene(permisos.inventarioContar)) {
+          <button type="button" class="btn-peligro" (click)="anular()">Anular conteo</button>
+        }
+      </div>
+      <p class="text-xs text-slate-500">
+        La diferencia se calcula contra el stock actual: guarde y aplique apenas termine de contar.
+        Las líneas sin contar no se ajustan.
+      </p>
+    }
+  </section>
+}
+
+<div class="tarjeta overflow-x-auto p-0 sm:p-0">
+  <table class="tabla">
+    <thead>
+      <tr>
+        <th scope="col">Número</th>
+        <th scope="col">Fecha</th>
+        <th scope="col">Almacén</th>
+        <th scope="col">Glosa</th>
+        <th scope="col" class="text-right">Contadas</th>
+        <th scope="col">Estado</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      @for (c of pagina()?.contenido ?? []; track c.id) {
+        <tr>
+          <td>
+            <button type="button" class="btn-enlace font-mono" (click)="abrir(c.id)">
+              {{ c.numero }}
+            </button>
+          </td>
+          <td class="whitespace-nowrap">{{ c.fecha }}</td>
+          <td>{{ c.almacen.codigo }}</td>
+          <td>{{ c.glosa }}</td>
+          <td class="text-right">{{ c.contadas }} / {{ c.lineas }}</td>
+          <td>{{ estados[c.estado] }}</td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="6" class="py-6 text-center text-slate-500">No hay conteos.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+<app-paginador [pagina]="pagina()" (cambiar)="buscar($event)" />

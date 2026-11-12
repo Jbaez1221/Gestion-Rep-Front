@@ -1,0 +1,391 @@
+<div class="flex flex-wrap items-end justify-between gap-3">
+  <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
+    <div>
+      <label for="m-almacen" class="etiqueta">Almacén</label>
+      <select id="m-almacen" class="campo" formControlName="almacenId">
+        <option value="">Todos mis almacenes</option>
+        @for (a of almacenes(); track a.id) {
+          <option [value]="a.id">{{ a.codigo }} · {{ a.nombre }}</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label for="m-tipo" class="etiqueta">Tipo</label>
+      <select id="m-tipo" class="campo" formControlName="tipo">
+        <option value="">Todos</option>
+        @for (t of tipos | keyvalue: sinOrden; track t.key) {
+          <option [value]="t.key">{{ t.value }}</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label for="m-desde" class="etiqueta">Desde</label>
+      <input id="m-desde" type="date" class="campo" formControlName="desde" />
+    </div>
+    <div>
+      <label for="m-hasta" class="etiqueta">Hasta</label>
+      <input id="m-hasta" type="date" class="campo" formControlName="hasta" />
+    </div>
+    <button type="submit" class="btn-secundario">Buscar</button>
+  </form>
+  <div class="flex gap-2">
+    @if (sesion.tiene(permisos.inventarioMover)) {
+      <button type="button" class="btn-primario" (click)="abrir('movimiento')">
+        Nuevo movimiento
+      </button>
+    }
+    @if (sesion.tiene(permisos.inventarioRevalorizar)) {
+      <button type="button" class="btn-secundario" (click)="abrir('revalorizacion')">
+        Revalorizar
+      </button>
+    }
+    @if (sesion.tiene(permisos.inventarioTransferir)) {
+      <button type="button" class="btn-secundario" (click)="abrir('transferencia')">
+        Transferencia
+      </button>
+    }
+  </div>
+</div>
+
+<app-error-api [problema]="error()" />
+
+@if (modo() !== 'lista') {
+  <form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate class="tarjeta space-y-3">
+    <h2 class="font-semibold">
+      @switch (modo()) {
+        @case ('transferencia') {
+          Transferencia directa entre almacenes
+        }
+        @case ('revalorizacion') {
+          Revalorización (nuevo costo unitario, sin mover cantidades)
+        }
+        @default {
+          Nuevo movimiento
+        }
+      }
+    </h2>
+    <div class="grid gap-3 sm:grid-cols-3">
+      @if (modo() === 'movimiento' || modo() === 'revalorizacion') {
+        @if (modo() === 'movimiento') {
+          <div>
+            <label for="f-tipo" class="etiqueta">Tipo (tabla 12)</label>
+            <select id="f-tipo" class="campo" formControlName="tipo">
+              @for (t of manuales; track t.tipo) {
+                <option [value]="t.tipo">
+                  {{ tipos[t.tipo] }} ({{ t.entrada ? 'entrada' : 'salida' }})
+                </option>
+              }
+            </select>
+          </div>
+        }
+        <div>
+          <label for="f-almacen" class="etiqueta">Almacén</label>
+          <select id="f-almacen" class="campo" formControlName="almacenId">
+            <option value="">Elija…</option>
+            @for (a of almacenes(); track a.id) {
+              <option [value]="a.id">{{ a.codigo }} · {{ a.nombre }}</option>
+            }
+          </select>
+          @if (formulario.controls.almacenId.touched && !formulario.controls.almacenId.value) {
+            <p class="error-campo">Elija el almacén.</p>
+          }
+        </div>
+      } @else {
+        <div>
+          <label for="f-origen" class="etiqueta">Almacén de origen</label>
+          <select id="f-origen" class="campo" formControlName="origenId">
+            <option value="">Elija…</option>
+            @for (a of almacenes(); track a.id) {
+              <option [value]="a.id">{{ a.codigo }} · {{ a.nombre }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label for="f-destino" class="etiqueta">Almacén de destino</label>
+          <select id="f-destino" class="campo" formControlName="destinoId">
+            <option value="">Elija…</option>
+            @for (a of destinos(); track a.id) {
+              @if (a.id !== formulario.controls.origenId.value) {
+                <option [value]="a.id">
+                  {{ a.codigo }} · {{ a.nombre }} ({{ a.sucursalNombre }})
+                </option>
+              }
+            }
+          </select>
+        </div>
+      }
+      <div>
+        <label for="f-fecha" class="etiqueta">Fecha</label>
+        <input id="f-fecha" type="date" class="campo" formControlName="fecha" />
+      </div>
+      <div class="sm:col-span-2">
+        <label for="f-glosa" class="etiqueta">Glosa</label>
+        <input id="f-glosa" class="campo" formControlName="glosa" />
+        @if (formulario.controls.glosa.touched && formulario.controls.glosa.invalid) {
+          <p class="error-campo">Describa el motivo.</p>
+        }
+      </div>
+      <div>
+        <label for="f-referencia" class="etiqueta">Documento de respaldo</label>
+        <input
+          id="f-referencia"
+          class="campo"
+          formControlName="referencia"
+          placeholder="Guía, acta, informe…"
+        />
+      </div>
+      @if (modo() === 'movimiento' && esConsumo()) {
+        <div>
+          <label for="f-centro" class="etiqueta">Centro de costo que consume</label>
+          <select id="f-centro" class="campo" formControlName="centroCostoId">
+            <option value="">Elija…</option>
+            @for (c of centros(); track c.id) {
+              <option [value]="c.id">{{ c.codigo }} · {{ c.nombre }}</option>
+            }
+          </select>
+          @if (centros().length === 0) {
+            <p class="text-xs text-slate-500">Necesita permiso para ver centros de costo.</p>
+          }
+        </div>
+      }
+    </div>
+
+    <fieldset formArrayName="lineas" class="space-y-2">
+      <legend class="font-semibold">Artículos</legend>
+      @if (formulario.controls.lineas.length > 0) {
+        <table class="tabla">
+          <thead>
+            <tr>
+              <th scope="col">Artículo</th>
+              @if (esRevalorizacion()) {
+                <th scope="col" class="text-right">Nuevo costo unitario (S/)</th>
+              } @else {
+                <th scope="col" class="text-right">Cantidad</th>
+              }
+              @if (esEntrada()) {
+                <th scope="col" class="text-right">Costo unitario (S/)</th>
+              }
+              <th scope="col"><span class="sr-only">Quitar</span></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            @for (l of formulario.controls.lineas.controls; track l; let i = $index) {
+              <tr [formGroupName]="i">
+                <td>
+                  <span class="font-mono">{{ l.controls.codigo.value }}</span> ·
+                  {{ l.controls.descripcion.value }}
+                  @if (!esRevalorizacion()) {
+                    <app-detalle-stock
+                      class="mt-1 block"
+                      [grupo]="l"
+                      [control]="l.controls.control.value"
+                      [entrada]="esEntrada()"
+                      [codigo]="l.controls.codigo.value"
+                      [prefijo]="'f-' + i"
+                    />
+                  }
+                </td>
+                @if (esRevalorizacion()) {
+                  <td class="w-44">
+                    <label [for]="'f-nuevo-' + i" class="sr-only"
+                      >Nuevo costo de {{ l.controls.codigo.value }}</label
+                    >
+                    <input
+                      [id]="'f-nuevo-' + i"
+                      type="number"
+                      min="0"
+                      step="0.000001"
+                      class="campo text-right"
+                      formControlName="costoUnitario"
+                    />
+                  </td>
+                } @else {
+                  <td class="w-40">
+                    <label [for]="'f-cant-' + i" class="sr-only"
+                      >Cantidad de {{ l.controls.codigo.value }}</label
+                    >
+                    <input
+                      [id]="'f-cant-' + i"
+                      type="number"
+                      min="0.0001"
+                      step="0.0001"
+                      class="campo text-right"
+                      formControlName="cantidad"
+                    />
+                  </td>
+                }
+                @if (esEntrada()) {
+                  <td class="w-44">
+                    <label [for]="'f-costo-' + i" class="sr-only"
+                      >Costo unitario de {{ l.controls.codigo.value }}</label
+                    >
+                    <input
+                      [id]="'f-costo-' + i"
+                      type="number"
+                      min="0"
+                      step="0.000001"
+                      class="campo text-right"
+                      formControlName="costoUnitario"
+                      [placeholder]="
+                        formulario.controls.tipo.value === 'SALDO_INICIAL'
+                          ? 'Obligatorio'
+                          : 'Promedio actual'
+                      "
+                    />
+                  </td>
+                }
+                <td class="text-right">
+                  <button type="button" class="btn-enlace" (click)="quitar(i)">Quitar</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+      <app-buscador-articulo
+        etiqueta="Agregar artículo"
+        [soloInventariables]="true"
+        [excluir]="idsEnLineas()"
+        (elegido)="agregar($event)"
+      />
+    </fieldset>
+
+    <div class="flex gap-2">
+      <button type="submit" class="btn-primario" [disabled]="guardando()">Registrar</button>
+      <button type="button" class="btn-secundario" (click)="modo.set('lista')">Cancelar</button>
+    </div>
+  </form>
+}
+
+@if (detalle(); as d) {
+  <section class="tarjeta space-y-3" aria-labelledby="titulo-movimiento">
+    <div class="flex flex-wrap items-start justify-between gap-2">
+      <div>
+        <h2 id="titulo-movimiento" class="font-semibold">
+          <span class="font-mono">{{ d.numero }}</span> · {{ tipos[d.tipo] }}
+          <span class="insignia-neutra"
+            >{{ d.entrada ? 'Entrada' : 'Salida' }} · tabla 12: {{ d.codigoSunat }}</span
+          >
+          @if (d.anulaA) {
+            <span class="insignia-alerta">Anulación</span>
+          }
+          @if (d.anuladoPor) {
+            <span class="insignia-alerta">Anulado</span>
+          }
+        </h2>
+        <p class="text-sm text-slate-600">
+          {{ d.fecha }} · {{ d.almacen.codigo }} · {{ d.glosa }}
+          @if (d.referencia) {
+            · {{ d.referencia }}
+          }
+          · registrado por {{ d.usuario }}
+        </p>
+      </div>
+      <div class="flex gap-2">
+        @if (!d.anulaA && !d.anuladoPor && sesion.tiene(permisos.inventarioAnular)) {
+          <button type="button" class="btn-peligro" (click)="anular(d)">Anular</button>
+        }
+        <button type="button" class="btn-secundario" (click)="detalle.set(null)">Cerrar</button>
+      </div>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th scope="col">Artículo</th>
+            <th scope="col" class="text-right">Cantidad</th>
+            <th scope="col" class="text-right">Costo unit.</th>
+            <th scope="col" class="text-right">Total (S/)</th>
+            <th scope="col" class="text-right">Saldo</th>
+            <th scope="col" class="text-right">Saldo valor (S/)</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          @for (l of d.lineas; track l.linea) {
+            <tr>
+              <td>
+                <span class="font-mono">{{ l.articulo.codigo }}</span> ·
+                {{ l.articulo.descripcion }}
+                @for (lote of l.lotes; track lote.codigo) {
+                  <span class="block text-xs text-slate-500">
+                    Lote {{ lote.codigo
+                    }}{{ lote.fechaVencimiento ? ' · vence ' + lote.fechaVencimiento : '' }}:
+                    {{ lote.cantidad | number: '1.0-4' }}
+                  </span>
+                }
+                @if (l.series.length > 0) {
+                  <span class="block font-mono text-xs text-slate-500"
+                    >Series: {{ l.series.join(', ') }}</span
+                  >
+                }
+              </td>
+              <td class="text-right">{{ l.cantidad | number: '1.0-4' }}</td>
+              <td class="text-right">{{ l.costoUnitario | number: '1.2-6' }}</td>
+              <td class="text-right">{{ l.costoTotal | number: '1.2-2' }}</td>
+              <td class="text-right">{{ l.saldoCantidad | number: '1.0-4' }}</td>
+              <td class="text-right">{{ l.saldoValor | number: '1.2-2' }}</td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr>
+            <th scope="row" colspan="3" class="text-right">Total</th>
+            <td class="text-right font-semibold">{{ d.total | number: '1.2-2' }}</td>
+            <td colspan="2"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </section>
+}
+
+<div class="tarjeta overflow-x-auto p-0 sm:p-0">
+  <table class="tabla">
+    <thead>
+      <tr>
+        <th scope="col">Número</th>
+        <th scope="col">Fecha</th>
+        <th scope="col">Tipo</th>
+        <th scope="col">Almacén</th>
+        <th scope="col">Glosa</th>
+        <th scope="col" class="text-right">Total (S/)</th>
+        <th scope="col">Usuario</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      @for (m of pagina()?.contenido ?? []; track m.id) {
+        <tr [class.text-slate-400]="m.anulado">
+          <td class="font-mono whitespace-nowrap">
+            <button type="button" class="btn-enlace font-mono" (click)="ver(m.id)">
+              {{ m.numero }}
+            </button>
+          </td>
+          <td class="whitespace-nowrap">{{ m.fecha }}</td>
+          <td>
+            {{ tipos[m.tipo] }}
+            <span class="block text-xs text-slate-500">
+              {{ m.entrada ? 'Entrada' : 'Salida' }} · {{ m.codigoSunat }}
+              @if (m.anulaA) {
+                · anulación
+              }
+              @if (m.anulado) {
+                · anulado
+              }
+            </span>
+          </td>
+          <td class="whitespace-nowrap">{{ m.almacen.codigo }}</td>
+          <td>{{ m.glosa }}</td>
+          <td class="text-right">{{ m.total | number: '1.2-2' }}</td>
+          <td>{{ m.usuario }}</td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="7" class="py-6 text-center text-slate-500">
+            No hay movimientos con esos filtros.
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+<app-paginador [pagina]="pagina()" (cambiar)="buscar($event)" />

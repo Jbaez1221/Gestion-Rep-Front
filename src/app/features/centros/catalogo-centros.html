@@ -1,0 +1,192 @@
+<div class="flex flex-wrap items-center justify-between gap-2">
+  <p class="text-sm text-slate-600">
+    @if (esCosto()) {
+      Dónde se gasta. Cada centro imputable tiene su función PCGE y suma sus costos a un centro de
+      beneficio.
+    } @else {
+      Qué línea de negocio genera resultado: ingresos menos los costos de sus centros de costo.
+    }
+  </p>
+  @if (sesion.tiene(permisos.centrosCrear)) {
+    <button type="button" class="btn-primario" (click)="nuevo()">Nuevo centro</button>
+  }
+</div>
+
+<app-error-api [problema]="error()" />
+
+<div class="grid gap-4 xl:grid-cols-[1fr_26rem]">
+  <div class="tarjeta overflow-x-auto p-0 sm:p-0">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th scope="col">Código</th>
+          <th scope="col">Nombre</th>
+          @if (esCosto()) {
+            <th scope="col">Función (cuenta)</th>
+            <th scope="col">Centro de beneficio</th>
+          }
+          <th scope="col">Responsable</th>
+          <th scope="col">Estado</th>
+          <th scope="col"><span class="sr-only">Acciones</span></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        @for (n of arbol(); track n.centro.id) {
+          <tr [class.bg-slate-50]="!n.centro.imputable">
+            <td class="font-mono whitespace-nowrap" [class]="indentar(n.nivel)">
+              {{ n.centro.codigo }}
+            </td>
+            <td [class.font-semibold]="!n.centro.imputable">
+              {{ n.centro.nombre }}
+              @if (!n.centro.imputable) {
+                <span class="insignia-neutra ml-1">Agrupador</span>
+              }
+            </td>
+            @if (esCosto()) {
+              <td>
+                {{
+                  n.centro.funcion ? n.centro.funcion + ' (' + n.centro.cuentaDestino + ')' : '—'
+                }}
+              </td>
+              <td>
+                {{
+                  n.centro.centroBeneficioId
+                    ? nombreBeneficio().get(n.centro.centroBeneficioId)
+                    : '—'
+                }}
+              </td>
+            }
+            <td>{{ n.centro.responsable?.nombre ?? '—' }}</td>
+            <td>
+              <span [class]="n.centro.activo ? 'insignia-ok' : 'insignia-neutra'">{{
+                n.centro.activo ? 'Activo' : 'Inactivo'
+              }}</span>
+            </td>
+            <td class="text-right">
+              <button type="button" class="btn-enlace" (click)="editar(n.centro)">Ver</button>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="7" class="py-6 text-center text-slate-500">Aún no hay centros.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (editando(); as actual) {
+    <form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate class="tarjeta space-y-3">
+      <h2 class="text-lg font-semibold">
+        {{ esNuevo() ? 'Nuevo centro' : 'Centro ' + formulario.controls.codigo.value }}
+      </h2>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label for="c-codigo" class="etiqueta">Código</label>
+          <input id="c-codigo" class="campo font-mono uppercase" formControlName="codigo" />
+          @if (formulario.controls.codigo.touched && formulario.controls.codigo.invalid) {
+            <p class="error-campo">2 a 20 caracteres: letras, números y guiones.</p>
+          }
+        </div>
+        <label class="flex items-end gap-2 pb-2 text-sm">
+          <input type="checkbox" formControlName="imputable" /> Imputable (recibe gastos o ingresos)
+        </label>
+      </div>
+      <div>
+        <label for="c-nombre" class="etiqueta">Nombre</label>
+        <input id="c-nombre" class="campo" formControlName="nombre" />
+        @if (formulario.controls.nombre.touched && formulario.controls.nombre.invalid) {
+          <p class="error-campo">Ingrese el nombre.</p>
+        }
+      </div>
+      <div>
+        <label for="c-desc" class="etiqueta">Descripción</label>
+        <input id="c-desc" class="campo" formControlName="descripcion" />
+      </div>
+      <div>
+        <label for="c-padre" class="etiqueta">Depende de</label>
+        <select id="c-padre" class="campo" formControlName="padreId">
+          <option value="">(Raíz)</option>
+          @for (p of padresPosibles(); track p.id) {
+            <option [value]="p.id">{{ p.codigo }} · {{ p.nombre }}</option>
+          }
+        </select>
+      </div>
+      @if (esCosto() && formulario.controls.imputable.value) {
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label for="c-funcion" class="etiqueta">Función (PCGE)</label>
+            <select id="c-funcion" class="campo" formControlName="funcion">
+              <option value="">Elija…</option>
+              @for (f of funciones(); track f.funcion) {
+                <option [value]="f.funcion">{{ f.descripcion }} ({{ f.cuentaDestino }})</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label for="c-cuenta" class="etiqueta">Cuenta de destino</label>
+            <input
+              id="c-cuenta"
+              class="campo font-mono"
+              formControlName="cuentaDestino"
+              inputmode="numeric"
+            />
+            @if (
+              formulario.controls.cuentaDestino.touched && formulario.controls.cuentaDestino.invalid
+            ) {
+              <p class="error-campo">Cuenta del elemento 9 (p. ej. 94 o 9411).</p>
+            }
+          </div>
+        </div>
+        <div>
+          <label for="c-beneficio" class="etiqueta">Suma sus costos al centro de beneficio</label>
+          <select id="c-beneficio" class="campo" formControlName="centroBeneficioId">
+            <option value="">Elija…</option>
+            @for (b of beneficiosImputables(); track b.id) {
+              <option [value]="b.id">{{ b.codigo }} · {{ b.nombre }}</option>
+            }
+          </select>
+        </div>
+      }
+      @if (usuarios().length > 0) {
+        <div>
+          <label for="c-responsable" class="etiqueta">Responsable</label>
+          <select id="c-responsable" class="campo" formControlName="responsableId">
+            <option value="">Sin responsable</option>
+            @for (u of usuarios(); track u.id) {
+              <option [value]="u.id">{{ u.nombre }}</option>
+            }
+          </select>
+        </div>
+      }
+      <div class="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label for="c-desde" class="etiqueta">Vigente desde</label>
+          <input id="c-desde" type="date" class="campo" formControlName="vigenteDesde" />
+        </div>
+        <div>
+          <label for="c-hasta" class="etiqueta">Vigente hasta</label>
+          <input id="c-hasta" type="date" class="campo" formControlName="vigenteHasta" />
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        @if (formulario.enabled || esNuevo()) {
+          <button type="submit" class="btn-primario" [disabled]="guardando()">
+            {{ esNuevo() ? 'Crear' : 'Guardar' }}
+          </button>
+        }
+        @if (actual !== 'nuevo' && sesion.tiene(permisos.centrosEditar)) {
+          <button
+            type="button"
+            class="btn-secundario"
+            [disabled]="guardando()"
+            (click)="cambiarEstado(actual)"
+          >
+            {{ actual.activo ? 'Desactivar' : 'Activar' }}
+          </button>
+        }
+        <button type="button" class="btn-secundario" (click)="editando.set(null)">Cerrar</button>
+      </div>
+    </form>
+  }
+</div>

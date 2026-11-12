@@ -1,0 +1,133 @@
+<section class="space-y-4">
+  <h1 class="titulo-pagina">Roles y permisos</h1>
+  <app-error-api [problema]="error()" />
+
+  <div class="grid gap-4 lg:grid-cols-[16rem_1fr]">
+    <div class="space-y-4">
+      <nav class="tarjeta p-2 sm:p-2" aria-label="Roles">
+        <ul class="space-y-1">
+          @for (r of roles(); track r.id) {
+            <li>
+              <button
+                type="button"
+                class="w-full rounded-md px-3 py-2 text-left text-sm hover:bg-slate-100"
+                [class.bg-marca-50]="r.id === seleccionadoId()"
+                [attr.aria-current]="r.id === seleccionadoId() ? 'true' : null"
+                (click)="seleccionar(r.id)"
+              >
+                <span class="font-medium">{{ r.nombre }}</span>
+                @if (r.sistema) {
+                  <span class="insignia-neutra ml-1">Sistema</span>
+                }
+              </button>
+            </li>
+          }
+        </ul>
+      </nav>
+
+      @if (sesion.tiene(permisosApp.rolesCrear)) {
+        <form [formGroup]="nuevo" (ngSubmit)="crear()" novalidate class="tarjeta space-y-3">
+          <h2 class="font-semibold">Nuevo rol</h2>
+          <div>
+            <label for="nuevo-nombre" class="etiqueta">Nombre</label>
+            <input id="nuevo-nombre" class="campo uppercase" formControlName="nombre" />
+            @if (nuevo.controls.nombre.touched && nuevo.controls.nombre.invalid) {
+              <p class="error-campo">3 a 50 caracteres: letras, números, espacios o guion bajo.</p>
+            }
+          </div>
+          <div>
+            <label for="nuevo-desc" class="etiqueta">Descripción</label>
+            <input id="nuevo-desc" class="campo" formControlName="descripcion" />
+          </div>
+          <button type="submit" class="btn-secundario" [disabled]="guardando()">Crear rol</button>
+        </form>
+      }
+    </div>
+
+    @if (seleccionado(); as r) {
+      <div class="space-y-4">
+        <form
+          [formGroup]="datos"
+          (ngSubmit)="guardarDatos()"
+          novalidate
+          class="tarjeta grid gap-3 sm:grid-cols-2"
+        >
+          <div>
+            <label for="rol-nombre" class="etiqueta">Nombre</label>
+            <input id="rol-nombre" class="campo uppercase" formControlName="nombre" />
+          </div>
+          <div>
+            <label for="rol-desc" class="etiqueta">Descripción</label>
+            <input id="rol-desc" class="campo" formControlName="descripcion" />
+          </div>
+          @if (r.sistema) {
+            <p class="text-sm text-slate-600 sm:col-span-2">
+              Rol del sistema: sus permisos se actualizan solos y no se editan a mano.
+            </p>
+          }
+          @if (editable()) {
+            <div class="flex gap-2 sm:col-span-2">
+              <button type="submit" class="btn-secundario" [disabled]="guardando()">
+                Guardar datos
+              </button>
+              @if (sesion.tiene(permisosApp.rolesEliminar)) {
+                <button
+                  type="button"
+                  class="btn-peligro"
+                  [disabled]="guardando()"
+                  (click)="eliminar()"
+                >
+                  Eliminar rol
+                </button>
+              }
+            </div>
+          }
+        </form>
+
+        <div class="tarjeta space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-semibold">Permisos ({{ marcados().size }})</h2>
+            @if (editable()) {
+              <button
+                type="button"
+                class="btn-primario"
+                [disabled]="guardando()"
+                (click)="guardarPermisos()"
+              >
+                Guardar permisos
+              </button>
+            }
+          </div>
+          @for (g of grupos(); track g.modulo) {
+            <fieldset [disabled]="!editable()">
+              <legend class="mb-2 text-sm font-semibold text-slate-800 capitalize">
+                {{ g.modulo }}
+              </legend>
+              <div class="grid gap-2 sm:grid-cols-2">
+                @for (p of g.permisos; track p.codigo) {
+                  <label class="flex items-start gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      class="mt-1"
+                      [checked]="marcados().has(p.codigo)"
+                      (change)="alternar(p.codigo)"
+                    />
+                    <span>
+                      {{ p.descripcion }}
+                      <span class="block font-mono text-xs text-slate-500">{{ p.codigo }}</span>
+                      @if (p.seguridad) {
+                        <span class="insignia-alerta">Seguridad</span>
+                      }
+                    </span>
+                  </label>
+                }
+              </div>
+            </fieldset>
+          } @empty {
+            <p class="text-sm text-slate-500">No tiene permiso para ver el catálogo de permisos.</p>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</section>

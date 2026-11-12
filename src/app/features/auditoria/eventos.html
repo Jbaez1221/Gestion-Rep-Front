@@ -1,0 +1,62 @@
+<form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="tarjeta grid gap-3 sm:grid-cols-4">
+  <div>
+    <label for="e-tipo" class="etiqueta">Tipo</label>
+    <select id="e-tipo" class="campo" formControlName="tipo">
+      <option value="">Todos</option>
+      @for (t of tipos; track t) {
+        <option [value]="t">{{ t }}</option>
+      }
+    </select>
+  </div>
+  <div>
+    <label for="e-usuario" class="etiqueta">Usuario</label>
+    <input id="e-usuario" class="campo" formControlName="usuario" />
+  </div>
+  <div>
+    <label for="e-desde" class="etiqueta">Desde</label>
+    <input id="e-desde" type="date" class="campo" formControlName="desde" />
+  </div>
+  <div>
+    <label for="e-hasta" class="etiqueta">Hasta</label>
+    <input id="e-hasta" type="date" class="campo" formControlName="hasta" />
+  </div>
+  <div class="sm:col-span-4">
+    <button type="submit" class="btn-secundario">Buscar</button>
+  </div>
+</form>
+
+<app-error-api [problema]="error()" />
+
+<div class="tarjeta overflow-x-auto p-0 sm:p-0">
+  <table class="tabla">
+    <thead>
+      <tr>
+        <th scope="col">Fecha</th>
+        <th scope="col">Tipo</th>
+        <th scope="col">Usuario</th>
+        <th scope="col">IP</th>
+        <th scope="col">Detalle</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      @for (e of pagina()?.contenido ?? []; track e.id) {
+        <tr>
+          <td class="whitespace-nowrap">{{ e.fecha | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
+          <td>
+            <span class="insignia-neutra">{{ e.tipo }}</span>
+          </td>
+          <td>{{ e.usuario }}</td>
+          <td class="font-mono text-xs">{{ e.ip ?? '—' }}</td>
+          <td class="font-mono text-xs">{{ e.detalle | json }}</td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="5" class="py-6 text-center text-slate-500">
+            No hay eventos con esos filtros.
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+<app-paginador [pagina]="pagina()" (cambiar)="buscar($event)" />

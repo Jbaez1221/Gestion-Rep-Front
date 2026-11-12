@@ -1,0 +1,103 @@
+<div class="flex flex-wrap items-end justify-between gap-3">
+  <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
+    <div class="min-w-64">
+      <label for="a-texto" class="etiqueta">Buscar</label>
+      <input
+        id="a-texto"
+        type="search"
+        class="campo"
+        formControlName="texto"
+        placeholder="Código, descripción, N.° de parte o barras"
+      />
+    </div>
+    <div>
+      <label for="a-categoria" class="etiqueta">Categoría</label>
+      <select id="a-categoria" class="campo" formControlName="categoriaId">
+        <option value="">Todas</option>
+        @for (n of arbol(); track n.categoria.id) {
+          <option [value]="n.categoria.id">{{ etiquetaCategoria(n) }}</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label for="a-marca" class="etiqueta">Marca</label>
+      <select id="a-marca" class="campo" formControlName="marcaId">
+        <option value="">Todas</option>
+        @for (m of marcas(); track m.id) {
+          <option [value]="m.id">{{ m.nombre }}</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label for="a-tipo" class="etiqueta">Tipo</label>
+      <select id="a-tipo" class="campo" formControlName="tipo">
+        <option value="">Todos</option>
+        <option value="INVENTARIABLE">Inventariable</option>
+        <option value="SERVICIO">Servicio</option>
+        <option value="NO_INVENTARIABLE">No inventariable</option>
+      </select>
+    </div>
+    <div>
+      <label for="a-estado" class="etiqueta">Estado</label>
+      <select id="a-estado" class="campo" formControlName="estado">
+        <option value="activos">Activos</option>
+        <option value="inactivos">Inactivos</option>
+        <option value="todos">Todos</option>
+      </select>
+    </div>
+    <button type="submit" class="btn-secundario">Buscar</button>
+  </form>
+  @if (sesion.tiene(permisos.articulosCrear)) {
+    <a routerLink="../nuevo" class="btn-primario">Nuevo artículo</a>
+  }
+</div>
+
+<app-error-api [problema]="error()" />
+
+<div class="tarjeta overflow-x-auto p-0 sm:p-0">
+  <table class="tabla">
+    <thead>
+      <tr>
+        <th scope="col">Código</th>
+        <th scope="col">Descripción</th>
+        <th scope="col">N.° de parte</th>
+        <th scope="col">Marca</th>
+        <th scope="col">Categoría</th>
+        <th scope="col">Tipo</th>
+        <th scope="col">Unidad</th>
+        <th scope="col">Estado</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      @for (a of pagina()?.contenido ?? []; track a.id) {
+        <tr>
+          <td class="font-mono whitespace-nowrap">
+            <a [routerLink]="['..', a.id]" class="text-marca-700 hover:underline">{{ a.codigo }}</a>
+          </td>
+          <td>{{ a.descripcion }}</td>
+          <td class="font-mono">{{ a.numeroParte ?? '—' }}</td>
+          <td>{{ a.marca ?? '—' }}</td>
+          <td>{{ a.categoria }}</td>
+          <td>{{ tipos[a.tipo] }}</td>
+          <td class="font-mono">{{ a.unidad }}</td>
+          <td class="space-x-1 whitespace-nowrap">
+            <span [class]="a.activo ? 'insignia-ok' : 'insignia-neutra'">{{
+              a.activo ? 'Activo' : 'Inactivo'
+            }}</span>
+            @if (a.bloqueadoCompra) {
+              <span class="insignia-alerta">Sin compra</span>
+            }
+            @if (a.bloqueadoVenta) {
+              <span class="insignia-alerta">Sin venta</span>
+            }
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="8" class="py-6 text-center text-slate-500">No hay artículos.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+<app-paginador [pagina]="pagina()" (cambiar)="buscar($event)" />

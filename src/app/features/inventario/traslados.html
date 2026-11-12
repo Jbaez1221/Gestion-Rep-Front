@@ -1,0 +1,327 @@
+<div class="flex flex-wrap items-end justify-between gap-3">
+  <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
+    <div>
+      <label for="t-almacen" class="etiqueta">Almacén</label>
+      <select id="t-almacen" class="campo" formControlName="almacenId">
+        <option value="">Todos mis almacenes</option>
+        @for (a of almacenes(); track a.id) {
+          <option [value]="a.id">{{ a.codigo }} · {{ a.nombre }}</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label for="t-estado" class="etiqueta">Estado</label>
+      <select id="t-estado" class="campo" formControlName="estado">
+        <option value="">Todos</option>
+        <option value="SOLICITADO">Solicitados</option>
+        <option value="EN_TRANSITO">En tránsito</option>
+        <option value="RECIBIDO">Recibidos</option>
+        <option value="ANULADO">Anulados</option>
+      </select>
+    </div>
+    <button type="submit" class="btn-secundario">Buscar</button>
+  </form>
+  @if (sesion.tiene(permisos.inventarioTrasladoSolicitar) && !creando()) {
+    <button type="button" class="btn-primario" (click)="iniciarSolicitud()">
+      Solicitar traslado
+    </button>
+  }
+</div>
+
+<app-error-api [problema]="error()" />
+
+@if (creando()) {
+  <form [formGroup]="solicitud" (ngSubmit)="solicitar()" novalidate class="tarjeta space-y-3">
+    <h2 class="font-semibold">Solicitud de traslado</h2>
+    <div class="grid gap-3 sm:grid-cols-3">
+      <div>
+        <label for="s-origen" class="etiqueta">Desde (origen)</label>
+        <select id="s-origen" class="campo" formControlName="origenId">
+          <option value="">Elija…</option>
+          @for (a of todos(); track a.id) {
+            <option [value]="a.id">{{ a.codigo }} · {{ a.nombre }} ({{ a.sucursalNombre }})</option>
+          }
+        </select>
+      </div>
+      <div>
+        <label for="s-destino" class="etiqueta">Hacia (destino)</label>
+        <select id="s-destino" class="campo" formControlName="destinoId">
+          <option value="">Elija…</option>
+          @for (a of todos(); track a.id) {
+            @if (a.id !== solicitud.controls.origenId.value) {
+              <option [value]="a.id">
+                {{ a.codigo }} · {{ a.nombre }} ({{ a.sucursalNombre }})
+              </option>
+            }
+          }
+        </select>
+      </div>
+      <div>
+        <label for="s-glosa" class="etiqueta">Motivo</label>
+        <input id="s-glosa" class="campo" formControlName="glosa" />
+      </div>
+    </div>
+    <fieldset formArrayName="lineas" class="space-y-2">
+      <legend class="font-semibold">Artículos</legend>
+      @for (l of solicitud.controls.lineas.controls; track l; let i = $index) {
+        <div [formGroupName]="i" class="flex flex-wrap items-center gap-2">
+          <span class="min-w-64 flex-1">
+            <span class="font-mono">{{ l.controls.codigo.value }}</span> ·
+            {{ l.controls.descripcion.value }}
+          </span>
+          <label [for]="'s-cant-' + i" class="sr-only"
+            >Cantidad de {{ l.controls.codigo.value }}</label
+          >
+          <input
+            [id]="'s-cant-' + i"
+            type="number"
+            min="0.0001"
+            step="0.0001"
+            class="campo w-32 text-right"
+            formControlName="cantidad"
+          />
+          <button type="button" class="btn-enlace" (click)="quitar(i)">Quitar</button>
+        </div>
+      }
+      <app-buscador-articulo
+        etiqueta="Agregar artículo"
+        [soloInventariables]="true"
+        [excluir]="idsSolicitud()"
+        (elegido)="agregar($event)"
+      />
+    </fieldset>
+    <div class="flex gap-2">
+      <button type="submit" class="btn-primario">Solicitar</button>
+      <button type="button" class="btn-secundario" (click)="creando.set(false)">Cancelar</button>
+    </div>
+  </form>
+}
+
+@if (traslado(); as t) {
+  <section class="tarjeta space-y-3" aria-labelledby="titulo-traslado">
+    <div class="flex flex-wrap items-start justify-between gap-2">
+      <div>
+        <h2 id="titulo-traslado" class="font-semibold">
+          <span class="font-mono">{{ t.numero }}</span> · {{ t.origen.codigo }} →
+          {{ t.destino.codigo }}
+          <span
+            [class]="
+              t.estado === 'RECIBIDO'
+                ? 'insignia-ok'
+                : t.estado === 'ANULADO'
+                  ? 'insignia-neutra'
+                  : 'insignia-alerta'
+            "
+            >{{ estados[t.estado] }}</span
+          >
+          @if (t.conDiferencias) {
+            <span class="insignia-alerta">Con diferencias</span>
+          }
+        </h2>
+        <p class="text-sm text-slate-600">
+          {{ t.glosa }} · solicitado por {{ t.creadoPor ?? '—' }}
+          @if (t.fechaEnvio) {
+            · enviado el {{ t.fechaEnvio }} por {{ t.enviadoPor }}
+          }
+          @if (t.fechaRecepcion) {
+            · recibido el {{ t.fechaRecepcion }} por {{ t.recibidoPor }}
+          }
+        </p>
+        @if (t.estado === 'EN_TRANSITO') {
+          <p class="text-sm">
+            En tránsito: <strong>S/ {{ t.valorEnTransito | number: '1.2-2' }}</strong>
+          </p>
+        }
+        @if (t.valorFaltante > 0) {
+          <p class="text-sm text-red-700">
+            Faltante no devuelto: <strong>S/ {{ t.valorFaltante | number: '1.2-2' }}</strong>
+          </p>
+        }
+        @if (t.observacionRecepcion) {
+          <p class="text-sm text-slate-600">Observación: {{ t.observacionRecepcion }}</p>
+        }
+      </div>
+      <div class="flex flex-wrap gap-2">
+        @if (
+          t.puedeEnviar && sesion.tiene(permisos.inventarioTrasladoEnviar) && accion() === null
+        ) {
+          <button type="button" class="btn-primario" (click)="prepararEnvio()">Enviar</button>
+        }
+        @if (
+          t.puedeRecibir && sesion.tiene(permisos.inventarioTrasladoRecibir) && accion() === null
+        ) {
+          <button type="button" class="btn-primario" (click)="prepararRecepcion()">Recibir</button>
+        }
+        @if (
+          (t.estado === 'SOLICITADO' && sesion.tiene(permisos.inventarioTrasladoSolicitar)) ||
+          (t.estado === 'EN_TRANSITO' && sesion.tiene(permisos.inventarioTrasladoEnviar))
+        ) {
+          <button type="button" class="btn-peligro" (click)="anular()">Anular</button>
+        }
+        <button type="button" class="btn-secundario" (click)="traslado.set(null)">Cerrar</button>
+      </div>
+    </div>
+
+    @if (accion(); as a) {
+      <form
+        [formGroup]="paso"
+        (ngSubmit)="confirmar()"
+        novalidate
+        class="space-y-3 rounded-md border border-slate-200 p-3"
+      >
+        <h3 class="font-semibold">
+          {{ a === 'enviar' ? 'Despacho desde el origen' : 'Recepción en el destino' }}
+        </h3>
+        <div class="grid gap-3 sm:grid-cols-3">
+          <div>
+            <label for="p-fecha" class="etiqueta">Fecha</label>
+            <input id="p-fecha" type="date" class="campo" formControlName="fecha" />
+          </div>
+          @if (a === 'recibir') {
+            <div class="sm:col-span-2">
+              <label for="p-observacion" class="etiqueta">Observación</label>
+              <input
+                id="p-observacion"
+                class="campo"
+                formControlName="observacion"
+                placeholder="Opcional"
+              />
+            </div>
+            <label class="flex items-center gap-2 text-sm sm:col-span-3">
+              <input type="checkbox" formControlName="devolverDiferencia" />
+              Lo que no llegó vuelve al almacén de origen (si no, queda como faltante del traslado)
+            </label>
+          }
+        </div>
+        <div formArrayName="lineas" class="space-y-2">
+          @for (l of paso.controls.lineas.controls; track l; let i = $index) {
+            <div [formGroupName]="i" class="space-y-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="min-w-48 flex-1 font-mono">{{ l.controls.codigo.value }}</span>
+                <label [for]="'p-cant-' + i" class="text-sm">
+                  {{ a === 'enviar' ? 'Enviar' : 'Recibido' }}
+                </label>
+                <input
+                  [id]="'p-cant-' + i"
+                  type="number"
+                  min="0"
+                  step="0.0001"
+                  class="campo w-32 text-right"
+                  formControlName="cantidad"
+                />
+              </div>
+              <app-detalle-stock
+                [grupo]="l"
+                [control]="l.controls.control.value"
+                [entrada]="false"
+                [codigo]="l.controls.codigo.value"
+                [prefijo]="'p-' + i"
+              />
+            </div>
+          }
+        </div>
+        @if (a === 'recibir') {
+          <p class="text-xs text-slate-500">
+            Si un artículo con lotes o series llega incompleto, indique cuáles llegaron; si llega
+            completo, no hace falta.
+          </p>
+        }
+        <div class="flex gap-2">
+          <button type="submit" class="btn-primario" [disabled]="ocupado()">
+            {{ a === 'enviar' ? 'Confirmar envío' : 'Confirmar recepción' }}
+          </button>
+          <button type="button" class="btn-secundario" (click)="accion.set(null)">Cancelar</button>
+        </div>
+      </form>
+    }
+
+    <div class="overflow-x-auto">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th scope="col">Artículo</th>
+            <th scope="col" class="text-right">Solicitado</th>
+            <th scope="col" class="text-right">Enviado</th>
+            <th scope="col" class="text-right">Recibido</th>
+            <th scope="col" class="text-right">Diferencia</th>
+            <th scope="col" class="text-right">Valor enviado (S/)</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          @for (l of t.lineas; track l.articulo.id) {
+            <tr>
+              <td>
+                <span class="font-mono">{{ l.articulo.codigo }}</span> ·
+                {{ l.articulo.descripcion }}
+                @for (lote of l.lotesEnviados; track lote.codigo) {
+                  <span class="block text-xs text-slate-500"
+                    >Lote {{ lote.codigo }}: {{ lote.cantidad | number: '1.0-4' }}</span
+                  >
+                }
+                @if (l.seriesEnviadas.length > 0) {
+                  <span class="block font-mono text-xs text-slate-500">{{
+                    l.seriesEnviadas.join(', ')
+                  }}</span>
+                }
+              </td>
+              <td class="text-right">{{ l.cantidadSolicitada | number: '1.0-4' }}</td>
+              <td class="text-right">
+                {{ l.cantidadEnviada === null ? '—' : (l.cantidadEnviada | number: '1.0-4') }}
+              </td>
+              <td class="text-right">
+                {{ l.cantidadRecibida === null ? '—' : (l.cantidadRecibida | number: '1.0-4') }}
+              </td>
+              <td class="text-right" [class.text-red-700]="(l.diferencia ?? 0) > 0">
+                {{ l.diferencia === null ? '—' : (l.diferencia | number: '1.0-4') }}
+              </td>
+              <td class="text-right">
+                {{ l.costoEnviado === null ? '—' : (l.costoEnviado | number: '1.2-2') }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+}
+
+<div class="tarjeta overflow-x-auto p-0 sm:p-0">
+  <table class="tabla">
+    <thead>
+      <tr>
+        <th scope="col">Número</th>
+        <th scope="col">Origen → destino</th>
+        <th scope="col">Motivo</th>
+        <th scope="col">Estado</th>
+        <th scope="col">Envío</th>
+        <th scope="col">Recepción</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      @for (t of pagina()?.contenido ?? []; track t.id) {
+        <tr>
+          <td>
+            <button type="button" class="btn-enlace font-mono" (click)="abrir(t.id)">
+              {{ t.numero }}
+            </button>
+          </td>
+          <td class="whitespace-nowrap">{{ t.origen.codigo }} → {{ t.destino.codigo }}</td>
+          <td>{{ t.glosa }}</td>
+          <td>
+            {{ estados[t.estado] }}
+            @if (t.conDiferencias) {
+              <span class="insignia-alerta">Diferencias</span>
+            }
+          </td>
+          <td class="whitespace-nowrap">{{ t.fechaEnvio ?? '—' }}</td>
+          <td class="whitespace-nowrap">{{ t.fechaRecepcion ?? '—' }}</td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="6" class="py-6 text-center text-slate-500">No hay traslados.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+<app-paginador [pagina]="pagina()" (cambiar)="buscar($event)" />

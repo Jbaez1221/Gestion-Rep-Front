@@ -1,0 +1,106 @@
+<form [formGroup]="filtro" (ngSubmit)="cargar()" class="tarjeta flex flex-wrap items-end gap-3">
+  <div>
+    <label for="p-anio" class="etiqueta">Año</label>
+    <input
+      id="p-anio"
+      type="number"
+      class="campo w-28"
+      formControlName="anio"
+      min="2000"
+      max="2100"
+    />
+  </div>
+  <div>
+    <label for="p-mes" class="etiqueta">Mes</label>
+    <select id="p-mes" class="campo" formControlName="mes">
+      @for (m of meses; track m; let i = $index) {
+        <option [ngValue]="i + 1">{{ m }}</option>
+      }
+    </select>
+  </div>
+  <button type="submit" class="btn-secundario">Ver</button>
+  @if (periodo(); as p) {
+    <span [class]="p.estado === 'ABIERTO' ? 'insignia-ok' : 'insignia-alerta'"
+      >Período {{ p.estado.toLowerCase() }}</span
+    >
+  }
+</form>
+
+<app-error-api [problema]="error()" />
+
+<div class="grid gap-4 lg:grid-cols-2">
+  <div class="tarjeta">
+    <h2 class="font-semibold">Gasto presupuestado por centro de costo</h2>
+    <table class="tabla mt-2">
+      <tbody class="divide-y divide-slate-100">
+        @for (c of costos(); track c.id) {
+          <tr>
+            <td>
+              <label [for]="'pc-' + c.id"
+                ><span class="font-mono">{{ c.codigo }}</span> · {{ c.nombre }}</label
+              >
+            </td>
+            <td class="w-40">
+              <input
+                [id]="'pc-' + c.id"
+                type="number"
+                min="0"
+                step="0.01"
+                class="campo text-right"
+                [value]="monto('COSTO', c.id)"
+                [disabled]="!editable()"
+                (input)="escribir('COSTO', c.id, $event)"
+              />
+            </td>
+          </tr>
+        }
+      </tbody>
+      <tfoot>
+        <tr>
+          <th scope="row">Total</th>
+          <td class="text-right font-semibold">{{ totalCostos() | currency }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  <div class="tarjeta">
+    <h2 class="font-semibold">Ingreso presupuestado por centro de beneficio</h2>
+    <table class="tabla mt-2">
+      <tbody class="divide-y divide-slate-100">
+        @for (c of beneficios(); track c.id) {
+          <tr>
+            <td>
+              <label [for]="'pb-' + c.id"
+                ><span class="font-mono">{{ c.codigo }}</span> · {{ c.nombre }}</label
+              >
+            </td>
+            <td class="w-40">
+              <input
+                [id]="'pb-' + c.id"
+                type="number"
+                min="0"
+                step="0.01"
+                class="campo text-right"
+                [value]="monto('BENEFICIO', c.id)"
+                [disabled]="!editable()"
+                (input)="escribir('BENEFICIO', c.id, $event)"
+              />
+            </td>
+          </tr>
+        }
+      </tbody>
+      <tfoot>
+        <tr>
+          <th scope="row">Total</th>
+          <td class="text-right font-semibold">{{ totalIngresos() | currency }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+@if (editable()) {
+  <button type="button" class="btn-primario" [disabled]="guardando()" (click)="guardar()">
+    Guardar presupuesto
+  </button>
+}
