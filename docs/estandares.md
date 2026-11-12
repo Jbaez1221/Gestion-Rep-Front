@@ -1,0 +1,15 @@
+# Estándares de referencia
+
+Qué se toma de cada estándar y dónde se aplica. "Referencia" significa que guía las decisiones, no
+que el proyecto esté certificado.
+
+| Estándar                                                              | Qué se aplica                                                                                                                                                  | Dónde                                               |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| **OWASP Top 10 (2021)**                                               | Controles por riesgo                                                                                                                                           | [seguridad-owasp.md](seguridad-owasp.md)            |
+| **OWASP ASVS 4.0 (referencia, nivel 2)**                              | V14 (configuración: cabeceras, CSP, SRI), V5.3 (codificación de salida: sanitización de Angular)                                                               | `nginx/`, `eslint.config.js`                        |
+| **W3C Content Security Policy Level 3 y Trusted Types**               | CSP estricta con nonce y Trusted Types obligatorio                                                                                                             | `nginx/cabeceras-seguridad.conf`, `core/seguridad/` |
+| **W3C WCAG 2.2, nivel AA** (la versión 2.0 es la norma ISO/IEC 40500) | Reglas de accesibilidad en plantillas, foco visible, enlace para saltar al contenido, `lang`, movimiento reducido                                              | `eslint.config.js`, `styles.css`, `app.html`, e2e   |
+| **ISO/IEC 25010 (modelo de calidad)**                                 | Mantenibilidad: TypeScript estricto, lint, cobertura mínima. Seguridad: tabla OWASP. Usabilidad: WCAG. Eficiencia: presupuestos de bundle y carga bajo demanda | `tsconfig.json`, `angular.json`, CI                 |
+| **ISO/IEC/IEEE 29119 (referencia)**                                   | Niveles de prueba: unitarias (Vitest) y de sistema/e2e (Playwright) contra la imagen de producción                                                             | `src/**/*.spec.ts`, `e2e/`                          |
+| **Conventional Commits 1.0 / SemVer 2.0**                             | Formato de commits validado en cada commit; versión del paquete                                                                                                | `commitlint.config.mjs`, `package.json`             |
+| **The Twelve-Factor App**                                             | Misma imagen en todos los entornos; dependencias declaradas y congeladas                                                                                       | `Containerfile`, `pnpm-lock.yaml`                   |
