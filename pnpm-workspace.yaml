@@ -1,0 +1,20 @@
+packages:
+  - '.'
+
+# Cadena de suministro (OWASP A06/A08)
+# Las dependencias no ejecutan scripts de instalación salvo que se aprueben aquí una por una.
+allowBuilds:
+  '@parcel/watcher': false
+  esbuild: false
+  lefthook: false
+  lmdb: false
+  msgpackr-extract: false
+# Solo se instalan versiones publicadas hace al menos 3 días: los paquetes comprometidos suelen
+# detectarse y retirarse antes de ese plazo.
+minimumReleaseAge: 4320
+# Ninguna dependencia transitiva puede venir de git o de un tarball suelto.
+blockExoticSubdeps: true
+# Rechaza una versión nueva que llegue con menos garantías de procedencia que la anterior.
+trustPolicy: no-downgrade
+# Falla si la versión de Node no es la declarada en package.json (engines).
+engineStrict: true

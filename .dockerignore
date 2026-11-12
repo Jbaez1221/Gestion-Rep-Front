@@ -1,0 +1,13 @@
+*
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!angular.json
+!tsconfig.json
+!tsconfig.app.json
+!.postcssrc.json
+!ngsw-config.json
+!public/
+!src/
+!nginx/
+src/**/*.spec.ts
