@@ -1,0 +1,73 @@
+<section class="space-y-4">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h1 class="titulo-pagina">Sucursales</h1>
+    @if (sesion.tiene(permisos.sucursalesCrear)) {
+      <a routerLink="nueva" class="btn-primario">Nueva sucursal</a>
+    }
+  </div>
+
+  <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="tarjeta grid gap-3 sm:grid-cols-4">
+    <div class="sm:col-span-2">
+      <label for="f-texto" class="etiqueta">Código o nombre</label>
+      <input id="f-texto" class="campo" formControlName="texto" />
+    </div>
+    <div>
+      <label for="f-tipo" class="etiqueta">Tipo</label>
+      <select id="f-tipo" class="campo" formControlName="tipo">
+        <option value="">Todos</option>
+        <option value="TIENDA">Tienda</option>
+        <option value="ALMACEN">Almacén</option>
+        <option value="OFICINA">Oficina</option>
+      </select>
+    </div>
+    <div>
+      <label for="f-activa" class="etiqueta">Estado</label>
+      <select id="f-activa" class="campo" formControlName="activa">
+        <option value="">Todas</option>
+        <option value="true">Activas</option>
+        <option value="false">Inactivas</option>
+      </select>
+    </div>
+    <div class="sm:col-span-4">
+      <button type="submit" class="btn-secundario">Buscar</button>
+    </div>
+  </form>
+
+  <app-error-api [problema]="error()" />
+
+  <div class="tarjeta overflow-x-auto p-0 sm:p-0">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th scope="col">Código</th>
+          <th scope="col">Nombre</th>
+          <th scope="col">Tipo</th>
+          <th scope="col">Estado</th>
+          <th scope="col"><span class="sr-only">Acciones</span></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        @for (s of pagina()?.contenido ?? []; track s.id) {
+          <tr>
+            <td class="font-mono">{{ s.codigo }}</td>
+            <td>{{ s.nombre }}</td>
+            <td>{{ s.tipo }}</td>
+            <td>
+              <span [class]="s.activa ? 'insignia-ok' : 'insignia-neutra'">{{
+                s.activa ? 'Activa' : 'Inactiva'
+              }}</span>
+            </td>
+            <td class="text-right"><a [routerLink]="s.id" class="btn-enlace">Ver</a></td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="5" class="py-6 text-center text-slate-500">
+              No hay sucursales con esos filtros.
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <app-paginador [pagina]="pagina()" (cambiar)="buscar($event)" />
+</section>

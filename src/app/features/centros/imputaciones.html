@@ -1,0 +1,203 @@
+<div class="flex flex-wrap items-end justify-between gap-3">
+  <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
+    <div>
+      <label for="i-anio" class="etiqueta">Año</label>
+      <input id="i-anio" type="number" class="campo w-28" formControlName="anio" />
+    </div>
+    <div>
+      <label for="i-mes" class="etiqueta">Mes</label>
+      <select id="i-mes" class="campo" formControlName="mes">
+        @for (m of meses; track m; let i = $index) {
+          <option [ngValue]="i + 1">{{ m }}</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label for="i-tipo" class="etiqueta">Tipo</label>
+      <select id="i-tipo" class="campo" formControlName="tipo">
+        <option value="">Todos</option>
+        <option value="COSTO">Costos</option>
+        <option value="INGRESO">Ingresos</option>
+      </select>
+    </div>
+    <button type="submit" class="btn-secundario">Buscar</button>
+  </form>
+  @if (sesion.tiene(permisos.centrosImputar) && !creando()) {
+    <button type="button" class="btn-primario" (click)="creando.set(true)">
+      Imputación manual
+    </button>
+  }
+</div>
+
+<app-error-api [problema]="error()" />
+
+@if (creando()) {
+  <form [formGroup]="formulario" (ngSubmit)="registrar()" novalidate class="tarjeta space-y-3">
+    <h2 class="font-semibold">Imputación manual (ajuste)</h2>
+    <p class="text-sm text-slate-600">
+      Los documentos (compras, caja, ventas) imputarán solos cuando existan sus módulos; esto es
+      para ajustes.
+    </p>
+    <div class="grid gap-3 sm:grid-cols-3">
+      <div>
+        <label for="n-tipo" class="etiqueta">Tipo</label>
+        <select id="n-tipo" class="campo" formControlName="tipo" (change)="cambiarTipo()">
+          <option value="COSTO">Costo (a centros de costo)</option>
+          <option value="INGRESO">Ingreso (a centros de beneficio)</option>
+        </select>
+      </div>
+      <div>
+        <label for="n-fecha" class="etiqueta">Fecha contable</label>
+        <input id="n-fecha" type="date" class="campo" formControlName="fecha" />
+      </div>
+      <div>
+        <label for="n-ref" class="etiqueta">Referencia</label>
+        <input id="n-ref" class="campo" formControlName="referencia" placeholder="Opcional" />
+      </div>
+      <div class="sm:col-span-2">
+        <label for="n-glosa" class="etiqueta">Glosa</label>
+        <input id="n-glosa" class="campo" formControlName="glosa" />
+        @if (formulario.controls.glosa.touched && formulario.controls.glosa.invalid) {
+          <p class="error-campo">Describa el motivo.</p>
+        }
+      </div>
+      <div>
+        <label for="n-naturaleza" class="etiqueta">Cuenta por naturaleza</label>
+        <input
+          id="n-naturaleza"
+          class="campo font-mono"
+          formControlName="naturaleza"
+          placeholder="63, 65, 70…"
+        />
+        @if (formulario.controls.naturaleza.touched && formulario.controls.naturaleza.invalid) {
+          <p class="error-campo">Elemento 6 (gastos) o 7 (ingresos).</p>
+        }
+      </div>
+      <div>
+        <label for="n-moneda" class="etiqueta">Moneda</label>
+        <select id="n-moneda" class="campo" formControlName="moneda">
+          <option value="PEN">Soles (PEN)</option>
+          <option value="USD">Dólares (USD)</option>
+        </select>
+      </div>
+      <div>
+        <label for="n-monto" class="etiqueta">Monto</label>
+        <input
+          id="n-monto"
+          type="number"
+          min="0.01"
+          step="0.01"
+          class="campo text-right"
+          formControlName="montoOriginal"
+        />
+      </div>
+      @if (formulario.controls.moneda.value === 'USD') {
+        <div>
+          <label for="n-tc" class="etiqueta">Tipo de cambio</label>
+          <input
+            id="n-tc"
+            type="number"
+            min="0.0001"
+            step="0.0001"
+            class="campo text-right"
+            formControlName="tipoCambio"
+          />
+        </div>
+      }
+    </div>
+
+    <fieldset formArrayName="lineas" class="space-y-2">
+      <legend class="etiqueta">
+        Reparto entre centros (suma: {{ sumaPorcentajes() | number: '1.0-4' }} %)
+      </legend>
+      @for (l of formulario.controls.lineas.controls; track l; let i = $index) {
+        <div [formGroupName]="i" class="flex flex-wrap items-end gap-2">
+          <div class="min-w-48 flex-1">
+            <label [for]="'l-centro-' + i" class="sr-only">Centro {{ i + 1 }}</label>
+            <select [id]="'l-centro-' + i" class="campo" formControlName="centroId">
+              <option value="">Elija un centro…</option>
+              @for (c of destinos(); track c.id) {
+                <option [value]="c.id">{{ c.codigo }} · {{ c.nombre }}</option>
+              }
+            </select>
+          </div>
+          <div class="w-32">
+            <label [for]="'l-porc-' + i" class="sr-only">Porcentaje del centro {{ i + 1 }}</label>
+            <input
+              [id]="'l-porc-' + i"
+              type="number"
+              min="0"
+              max="100"
+              step="0.0001"
+              class="campo text-right"
+              formControlName="porcentaje"
+            />
+          </div>
+          @if (formulario.controls.lineas.length > 1) {
+            <button type="button" class="btn-enlace" (click)="quitarLinea(i)">Quitar</button>
+          }
+        </div>
+      }
+      <button type="button" class="btn-enlace" (click)="agregarLinea()">+ Agregar centro</button>
+    </fieldset>
+
+    <div class="flex gap-2">
+      <button type="submit" class="btn-primario" [disabled]="guardando()">Registrar</button>
+      <button type="button" class="btn-secundario" (click)="creando.set(false)">Cancelar</button>
+    </div>
+  </form>
+}
+
+<div class="tarjeta overflow-x-auto p-0 sm:p-0">
+  <table class="tabla">
+    <thead>
+      <tr>
+        <th scope="col">Fecha</th>
+        <th scope="col">Origen</th>
+        <th scope="col">Centro</th>
+        <th scope="col" class="text-right">%</th>
+        <th scope="col" class="text-right">Monto (S/)</th>
+        <th scope="col">Glosa</th>
+        <th scope="col"><span class="sr-only">Acciones</span></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      @for (i of pagina()?.contenido ?? []; track i.id; let idx = $index) {
+        <tr [class.text-red-700]="i.monto < 0">
+          <td class="whitespace-nowrap">{{ i.fecha }}</td>
+          <td>
+            <span class="insignia-neutra">{{ i.tipo }}</span>
+            <span class="block text-xs text-slate-500">{{ i.origenTipo }} {{ i.origenId }}</span>
+          </td>
+          <td class="font-mono">{{ i.centroCostoCodigo ?? i.centroBeneficioCodigo }}</td>
+          <td class="text-right">{{ i.porcentaje | number: '1.0-4' }}</td>
+          <td class="text-right">
+            {{ i.monto | currency }}
+            @if (i.moneda !== 'PEN') {
+              <span class="block text-xs text-slate-500"
+                >{{ i.montoOriginal | number: '1.2-2' }} {{ i.moneda }} × {{ i.tipoCambio }}</span
+              >
+            }
+          </td>
+          <td>{{ i.glosa ?? '—' }}</td>
+          <td class="text-right">
+            @if (
+              primeraDelGrupo(pagina()?.contenido ?? [], idx) &&
+              !i.extornoDe &&
+              sesion.tiene(permisos.centrosImputar)
+            ) {
+              <button type="button" class="btn-enlace" (click)="extornar(i)">Extornar</button>
+            }
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="7" class="py-6 text-center text-slate-500">
+            No hay imputaciones en el período.
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+<app-paginador [pagina]="pagina()" (cambiar)="buscar($event)" />

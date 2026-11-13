@@ -1,0 +1,44 @@
+<div class="tarjeta flex flex-wrap items-end gap-3">
+  <div>
+    <label for="per-anio" class="etiqueta">Año</label>
+    <input
+      id="per-anio"
+      type="number"
+      class="campo w-28"
+      [formControl]="anio"
+      min="2000"
+      max="2100"
+    />
+  </div>
+  <button type="button" class="btn-secundario" (click)="cargar()">Ver</button>
+  <p class="text-sm text-slate-600">
+    Un mes cerrado no admite imputaciones ni cambios de presupuesto: se corrige en el período
+    abierto.
+  </p>
+</div>
+
+<app-error-api [problema]="error()" />
+
+<ul class="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
+  @for (p of periodos(); track p.mes) {
+    <li class="tarjeta space-y-2">
+      <div class="flex items-center justify-between">
+        <h2 class="font-semibold">{{ meses[p.mes - 1] }}</h2>
+        <span [class]="p.estado === 'ABIERTO' ? 'insignia-ok' : 'insignia-alerta'">{{
+          p.estado === 'ABIERTO' ? 'Abierto' : 'Cerrado'
+        }}</span>
+      </div>
+      @if (p.cerradoPor) {
+        <p class="text-xs text-slate-500">
+          Por {{ p.cerradoPor }} el {{ p.fechaCierre | date: 'dd/MM/yyyy HH:mm' }}
+        </p>
+      }
+      @if (p.estado === 'ABIERTO' && sesion.tiene(permisos.centrosCerrarPeriodo)) {
+        <button type="button" class="btn-secundario w-full" (click)="cerrar(p)">Cerrar</button>
+      }
+      @if (p.estado === 'CERRADO' && sesion.tiene(permisos.centrosReabrirPeriodo)) {
+        <button type="button" class="btn-secundario w-full" (click)="reabrir(p)">Reabrir</button>
+      }
+    </li>
+  }
+</ul>

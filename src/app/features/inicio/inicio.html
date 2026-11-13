@@ -1,0 +1,58 @@
+<section class="space-y-6">
+  <div>
+    <h1 class="titulo-pagina">Repuestos</h1>
+    @if (sesion.perfil(); as p) {
+      <p class="mt-1 text-slate-600">Hola, {{ p.nombres }}. Rol: {{ p.rol }}.</p>
+    }
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    @if (sesion.tiene(permisos.sucursalesLeer)) {
+      <a routerLink="/sucursales" class="tarjeta hover:border-marca-500">
+        <h2 class="font-semibold">Sucursales</h2>
+        <p class="mt-1 text-sm text-slate-600">Tiendas, almacenes y oficinas</p>
+      </a>
+    }
+    @if (sesion.tiene(permisos.usuariosLeer)) {
+      <a routerLink="/usuarios" class="tarjeta hover:border-marca-500">
+        <h2 class="font-semibold">Usuarios</h2>
+        <p class="mt-1 text-sm text-slate-600">Accesos, roles y sucursales</p>
+      </a>
+    }
+    @if (sesion.tiene(permisos.articulosLeer)) {
+      <a routerLink="/articulos" class="tarjeta hover:border-marca-500">
+        <h2 class="font-semibold">Artículos</h2>
+        <p class="mt-1 text-sm text-slate-600">Maestro, códigos, equivalencias y catálogos SUNAT</p>
+      </a>
+    }
+    @if (sesion.tiene(permisos.inventarioLeer)) {
+      <a routerLink="/inventario" class="tarjeta hover:border-marca-500">
+        <h2 class="font-semibold">Inventario</h2>
+        <p class="mt-1 text-sm text-slate-600">Stock, movimientos, kardex y conteos físicos</p>
+      </a>
+    }
+    @if (sesion.tiene(permisos.centrosLeer)) {
+      <a routerLink="/centros" class="tarjeta hover:border-marca-500">
+        <h2 class="font-semibold">Centros de costo</h2>
+        <p class="mt-1 text-sm text-slate-600">Gastos por área y resultado por negocio</p>
+      </a>
+    }
+    @if (sesion.tiene(permisos.rolesLeer)) {
+      <a routerLink="/roles" class="tarjeta hover:border-marca-500">
+        <h2 class="font-semibold">Roles y permisos</h2>
+        <p class="mt-1 text-sm text-slate-600">Qué puede hacer cada rol</p>
+      </a>
+    }
+    @if (sesion.tieneAlguno(permisos.auditoriaLeer, permisos.auditoriaEventos)) {
+      <a routerLink="/auditoria" class="tarjeta hover:border-marca-500">
+        <h2 class="font-semibold">Auditoría</h2>
+        <p class="mt-1 text-sm text-slate-600">Quién, qué y cuándo</p>
+      </a>
+    }
+  </div>
+
+  <div class="tarjeta">
+    <h2 class="font-semibold">Mi cuenta</h2>
+    <a routerLink="/cambiar-password" class="btn-enlace mt-2 inline-block">Cambiar mi contraseña</a>
+  </div>
+</section>

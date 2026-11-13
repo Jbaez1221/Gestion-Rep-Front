@@ -1,0 +1,45 @@
+<section class="flex min-h-screen items-center justify-center px-4">
+  <div class="tarjeta w-full max-w-sm">
+    <h1 class="text-center text-2xl font-semibold text-marca-900">Repuestos</h1>
+    <p class="mt-1 mb-6 text-center text-sm text-slate-600">Ingrese con su usuario</p>
+
+    <form [formGroup]="formulario" (ngSubmit)="ingresar()" novalidate class="space-y-4">
+      <div>
+        <label for="username" class="etiqueta">Usuario</label>
+        <input
+          id="username"
+          class="campo"
+          formControlName="username"
+          autocomplete="username"
+          autocapitalize="none"
+          [attr.aria-invalid]="
+            formulario.controls.username.touched && formulario.controls.username.invalid
+          "
+        />
+        @if (formulario.controls.username.touched && formulario.controls.username.invalid) {
+          <p class="error-campo">Ingrese su usuario.</p>
+        }
+      </div>
+      <div>
+        <label for="password" class="etiqueta">Contraseña</label>
+        <input
+          id="password"
+          type="password"
+          class="campo"
+          formControlName="password"
+          autocomplete="current-password"
+          [attr.aria-invalid]="
+            formulario.controls.password.touched && formulario.controls.password.invalid
+          "
+        />
+        @if (formulario.controls.password.touched && formulario.controls.password.invalid) {
+          <p class="error-campo">Ingrese su contraseña.</p>
+        }
+      </div>
+      <app-error-api [problema]="error()" />
+      <button type="submit" class="btn-primario w-full" [disabled]="enviando()">
+        {{ enviando() ? 'Ingresando…' : 'Ingresar' }}
+      </button>
+    </form>
+  </div>
+</section>

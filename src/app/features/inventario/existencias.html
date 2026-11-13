@@ -1,0 +1,153 @@
+<form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
+  <div>
+    <label for="e-almacen" class="etiqueta">Almacén</label>
+    <select id="e-almacen" class="campo" formControlName="almacenId">
+      <option value="">Todos mis almacenes</option>
+      @for (a of almacenes(); track a.id) {
+        <option [value]="a.id">{{ a.codigo }} · {{ a.nombre }} ({{ a.sucursalNombre }})</option>
+      }
+    </select>
+  </div>
+  <div class="min-w-64">
+    <label for="e-texto" class="etiqueta">Artículo</label>
+    <input
+      id="e-texto"
+      type="search"
+      class="campo"
+      formControlName="texto"
+      placeholder="Código, descripción o N.° de parte"
+    />
+  </div>
+  <label class="flex items-center gap-2 pb-2 text-sm">
+    <input type="checkbox" formControlName="soloConStock" /> Solo con stock
+  </label>
+  <label class="flex items-center gap-2 pb-2 text-sm">
+    <input type="checkbox" formControlName="bajoReposicion" /> Por reponer
+  </label>
+  <button type="submit" class="btn-secundario">Buscar</button>
+  <a [href]="excel()" class="btn-secundario" download>Exportar a Excel</a>
+</form>
+
+<app-error-api [problema]="error()" />
+
+@if (editando(); as e) {
+  <form
+    [formGroup]="parametros"
+    (ngSubmit)="guardarParametros()"
+    novalidate
+    class="tarjeta space-y-3"
+  >
+    <h2 class="font-semibold">
+      Reposición de <span class="font-mono">{{ e.articulo.codigo }}</span> en {{ e.almacen.codigo }}
+    </h2>
+    <div class="grid gap-3 sm:grid-cols-4">
+      <div>
+        <label for="p-minimo" class="etiqueta">Mínimo</label>
+        <input
+          id="p-minimo"
+          type="number"
+          min="0"
+          step="0.0001"
+          class="campo text-right"
+          formControlName="minimo"
+        />
+      </div>
+      <div>
+        <label for="p-reorden" class="etiqueta">Punto de reorden</label>
+        <input
+          id="p-reorden"
+          type="number"
+          min="0"
+          step="0.0001"
+          class="campo text-right"
+          formControlName="puntoReorden"
+        />
+      </div>
+      <div>
+        <label for="p-maximo" class="etiqueta">Máximo</label>
+        <input
+          id="p-maximo"
+          type="number"
+          min="0"
+          step="0.0001"
+          class="campo text-right"
+          formControlName="maximo"
+        />
+      </div>
+      <div>
+        <label for="p-ubicacion" class="etiqueta">Ubicación</label>
+        <input
+          id="p-ubicacion"
+          class="campo font-mono uppercase"
+          formControlName="ubicacion"
+          placeholder="A-01-3"
+        />
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <button type="submit" class="btn-primario">Guardar</button>
+      <button type="button" class="btn-secundario" (click)="editando.set(null)">Cancelar</button>
+    </div>
+  </form>
+}
+
+<div class="tarjeta overflow-x-auto p-0 sm:p-0">
+  <table class="tabla">
+    <thead>
+      <tr>
+        <th scope="col">Artículo</th>
+        <th scope="col">Almacén</th>
+        <th scope="col">Ubicación</th>
+        <th scope="col" class="text-right">Cantidad</th>
+        <th scope="col" class="text-right">Costo prom. (S/)</th>
+        <th scope="col" class="text-right">Valor (S/)</th>
+        <th scope="col" class="text-right">Mín. / Reorden / Máx.</th>
+        <th scope="col"><span class="sr-only">Acciones</span></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      @for (e of pagina()?.contenido ?? []; track e.id) {
+        <tr>
+          <td>
+            <a
+              routerLink="../kardex"
+              [queryParams]="{ articuloId: e.articulo.id, almacenId: e.almacen.id }"
+              class="font-mono text-marca-700 hover:underline"
+              >{{ e.articulo.codigo }}</a
+            >
+            <span class="block text-xs text-slate-500">{{ e.articulo.descripcion }}</span>
+          </td>
+          <td class="whitespace-nowrap">{{ e.almacen.codigo }}</td>
+          <td class="font-mono">{{ e.ubicacion ?? '—' }}</td>
+          <td class="text-right whitespace-nowrap">
+            {{ e.cantidad | number: '1.0-4' }} {{ e.articulo.unidad }}
+            @if (e.bajoReposicion) {
+              <span class="insignia-alerta block">
+                Reponer{{
+                  e.sugeridoReponer !== null ? ' ' + (e.sugeridoReponer | number: '1.0-4') : ''
+                }}
+              </span>
+            }
+          </td>
+          <td class="text-right">{{ e.costoPromedio | number: '1.2-6' }}</td>
+          <td class="text-right">{{ e.valor | number: '1.2-2' }}</td>
+          <td class="text-right whitespace-nowrap text-slate-600">
+            {{ e.minimo ?? '—' }} / {{ e.puntoReorden ?? '—' }} / {{ e.maximo ?? '—' }}
+          </td>
+          <td class="text-right">
+            @if (sesion.tiene(permisos.inventarioParametros)) {
+              <button type="button" class="btn-enlace" (click)="editar(e)">Reposición</button>
+            }
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="8" class="py-6 text-center text-slate-500">
+            No hay existencias con esos filtros.
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+<app-paginador [pagina]="pagina()" (cambiar)="buscar($event)" />

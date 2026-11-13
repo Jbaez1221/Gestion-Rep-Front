@@ -1,0 +1,76 @@
+<section class="space-y-4">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h1 class="titulo-pagina">Usuarios</h1>
+    @if (sesion.tiene(permisos.usuariosCrear)) {
+      <a routerLink="nuevo" class="btn-primario">Nuevo usuario</a>
+    }
+  </div>
+
+  <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="tarjeta grid gap-3 sm:grid-cols-3">
+    <div class="sm:col-span-2">
+      <label for="f-texto" class="etiqueta">Usuario, nombre, correo o documento</label>
+      <input id="f-texto" class="campo" formControlName="texto" />
+    </div>
+    <div>
+      <label for="f-activo" class="etiqueta">Estado</label>
+      <select id="f-activo" class="campo" formControlName="activo">
+        <option value="">Todos</option>
+        <option value="true">Activos</option>
+        <option value="false">Inactivos</option>
+      </select>
+    </div>
+    <div class="sm:col-span-3">
+      <button type="submit" class="btn-secundario">Buscar</button>
+    </div>
+  </form>
+
+  <app-error-api [problema]="error()" />
+
+  <div class="tarjeta overflow-x-auto p-0 sm:p-0">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th scope="col">Usuario</th>
+          <th scope="col">Nombre</th>
+          <th scope="col">Rol</th>
+          <th scope="col">Estado</th>
+          <th scope="col">Último acceso</th>
+          <th scope="col"><span class="sr-only">Acciones</span></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        @for (u of pagina()?.contenido ?? []; track u.id) {
+          <tr>
+            <td class="font-mono">{{ u.username }}</td>
+            <td>
+              {{ u.nombres }} {{ u.apellidos }}<br /><span class="text-xs text-slate-500">{{
+                u.email
+              }}</span>
+            </td>
+            <td>{{ u.rol.nombre }}</td>
+            <td class="space-x-1">
+              <span [class]="u.activo ? 'insignia-ok' : 'insignia-neutra'">{{
+                u.activo ? 'Activo' : 'Inactivo'
+              }}</span>
+              @if (u.bloqueado) {
+                <span class="insignia-alerta">Bloqueado</span>
+              }
+              @if (u.requiereCambioPassword) {
+                <span class="insignia-alerta">Clave provisional</span>
+              }
+            </td>
+            <td>{{ u.ultimoAcceso ? (u.ultimoAcceso | date: 'dd/MM/yyyy HH:mm') : '—' }}</td>
+            <td class="text-right"><a [routerLink]="u.id" class="btn-enlace">Ver</a></td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="6" class="py-6 text-center text-slate-500">
+              No hay usuarios con esos filtros.
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <app-paginador [pagina]="pagina()" (cambiar)="buscar($event)" />
+</section>

@@ -1,0 +1,100 @@
+<form
+  [formGroup]="filtros"
+  (ngSubmit)="buscar(0)"
+  class="tarjeta grid gap-3 sm:grid-cols-3 lg:grid-cols-6"
+>
+  <div>
+    <label for="c-entidad" class="etiqueta">Entidad</label>
+    <input
+      id="c-entidad"
+      class="campo"
+      formControlName="entidad"
+      placeholder="Usuario, Sucursal…"
+    />
+  </div>
+  <div>
+    <label for="c-id" class="etiqueta">Id del registro</label>
+    <input id="c-id" class="campo" formControlName="entidadId" />
+  </div>
+  <div>
+    <label for="c-usuario" class="etiqueta">Hecho por</label>
+    <input id="c-usuario" class="campo" formControlName="usuario" />
+  </div>
+  <div>
+    <label for="c-op" class="etiqueta">Operación</label>
+    <select id="c-op" class="campo" formControlName="operacion">
+      <option value="">Todas</option>
+      <option value="CREACION">Creación</option>
+      <option value="MODIFICACION">Modificación</option>
+      <option value="ELIMINACION">Eliminación</option>
+    </select>
+  </div>
+  <div>
+    <label for="c-desde" class="etiqueta">Desde</label>
+    <input id="c-desde" type="date" class="campo" formControlName="desde" />
+  </div>
+  <div>
+    <label for="c-hasta" class="etiqueta">Hasta</label>
+    <input id="c-hasta" type="date" class="campo" formControlName="hasta" />
+  </div>
+  <div class="sm:col-span-3 lg:col-span-6">
+    <button type="submit" class="btn-secundario">Buscar</button>
+  </div>
+</form>
+
+<app-error-api [problema]="error()" />
+
+<ul class="space-y-2">
+  @for (c of pagina()?.contenido ?? []; track c.id) {
+    <li class="tarjeta p-0 sm:p-0">
+      <details>
+        <summary
+          class="flex cursor-pointer flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 text-sm"
+        >
+          <span class="text-slate-500">{{ c.fecha | date: 'dd/MM/yyyy HH:mm:ss' }}</span>
+          <span
+            [class]="
+              c.operacion === 'ELIMINACION'
+                ? 'insignia-alerta'
+                : c.operacion === 'CREACION'
+                  ? 'insignia-ok'
+                  : 'insignia-neutra'
+            "
+          >
+            {{ c.operacion }}
+          </span>
+          <span class="font-medium">{{ c.entidad }}</span>
+          <span class="font-mono text-xs text-slate-500">{{ c.entidadId }}</span>
+          <span class="ml-auto text-slate-600">por {{ c.usuario }}</span>
+        </summary>
+        <div class="overflow-x-auto border-t border-slate-100 px-4 py-3">
+          <table class="tabla">
+            <thead>
+              <tr>
+                <th scope="col">Campo</th>
+                <th scope="col">Antes</th>
+                <th scope="col">Después</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (campo of c.cambios | keyvalue; track campo.key) {
+                <tr>
+                  <td class="font-medium">{{ campo.key }}</td>
+                  <td class="text-red-700">{{ campo.value.antes | valor }}</td>
+                  <td class="text-emerald-700">{{ campo.value.despues | valor }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          <p class="mt-2 text-xs text-slate-500">
+            IP {{ c.ip ?? '—' }} · petición {{ c.requestId ?? '—' }} · transacción
+            {{ c.transaccionId }}
+          </p>
+        </div>
+      </details>
+    </li>
+  } @empty {
+    <li class="py-6 text-center text-slate-500">No hay cambios con esos filtros.</li>
+  }
+</ul>
+<app-paginador [pagina]="pagina()" (cambiar)="buscar($event)" />

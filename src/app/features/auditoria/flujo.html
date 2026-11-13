@@ -1,0 +1,61 @@
+<form
+  [formGroup]="formulario"
+  (ngSubmit)="consultar()"
+  novalidate
+  class="tarjeta grid gap-3 sm:grid-cols-3"
+>
+  <div>
+    <label for="f-tipo" class="etiqueta">Tipo de documento</label>
+    <input id="f-tipo" class="campo uppercase" formControlName="tipo" placeholder="FACTURA" />
+  </div>
+  <div>
+    <label for="f-id" class="etiqueta">Número o id</label>
+    <input id="f-id" class="campo" formControlName="id" />
+  </div>
+  <div class="flex items-end">
+    <button type="submit" class="btn-secundario">Ver flujo</button>
+  </div>
+  <p class="text-xs text-slate-500 sm:col-span-3">
+    Muestra de dónde salió el documento y qué se generó a partir de él (pedido → factura → nota de
+    crédito…). Se llenará a medida que existan los módulos de ventas, compras y traslados.
+  </p>
+</form>
+
+<app-error-api [problema]="error()" />
+
+@if (flujo(); as f) {
+  <div class="tarjeta space-y-3">
+    <h2 class="font-semibold">Documentos relacionados ({{ f.documentos.length }})</h2>
+    <ul class="flex flex-wrap gap-2">
+      @for (d of f.documentos; track d.tipo + d.id) {
+        <li class="insignia-neutra">{{ d.tipo }} {{ d.id }}</li>
+      }
+    </ul>
+    @if (f.relaciones.length > 0) {
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th scope="col">Origen</th>
+            <th scope="col">Relación</th>
+            <th scope="col">Destino</th>
+            <th scope="col">Fecha</th>
+            <th scope="col">Usuario</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of f.relaciones; track r.origen.id + r.destino.id + r.tipoRelacion) {
+            <tr>
+              <td>{{ r.origen.tipo }} {{ r.origen.id }}</td>
+              <td>{{ r.tipoRelacion }}</td>
+              <td>{{ r.destino.tipo }} {{ r.destino.id }}</td>
+              <td>{{ r.fecha | date: 'dd/MM/yyyy HH:mm' }}</td>
+              <td>{{ r.usuario }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <p class="text-sm text-slate-500">El documento no tiene relaciones registradas.</p>
+    }
+  </div>
+}

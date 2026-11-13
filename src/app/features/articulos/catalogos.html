@@ -1,0 +1,277 @@
+<app-error-api [problema]="error()" />
+
+<div class="grid gap-4 lg:grid-cols-3">
+  <section class="tarjeta space-y-3" aria-labelledby="titulo-categorias">
+    <div class="flex items-center justify-between">
+      <h2 id="titulo-categorias" class="font-semibold">Categorías</h2>
+      @if (puedeEditar()) {
+        <button type="button" class="btn-enlace" (click)="editarCategoria('nueva')">
+          + Nueva categoría
+        </button>
+      }
+    </div>
+    <p class="text-xs text-slate-500">
+      El prefijo arma los códigos automáticos (FIL-000123); una subcategoría sin prefijo usa el de
+      su padre.
+    </p>
+    @if (editandoCategoria(); as actual) {
+      <form
+        [formGroup]="categoria"
+        (ngSubmit)="guardarCategoria()"
+        novalidate
+        class="space-y-2 rounded-md bg-slate-50 p-3"
+      >
+        <div>
+          <label for="cat-nombre" class="etiqueta">Nombre</label>
+          <input id="cat-nombre" class="campo" formControlName="nombre" />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label for="cat-prefijo" class="etiqueta">Prefijo</label>
+            <input id="cat-prefijo" class="campo font-mono uppercase" formControlName="prefijo" />
+            @if (categoria.controls.prefijo.touched && categoria.controls.prefijo.invalid) {
+              <p class="error-campo">2 a 5 letras.</p>
+            }
+          </div>
+          <div>
+            <label for="cat-padre" class="etiqueta">Depende de</label>
+            <select id="cat-padre" class="campo" formControlName="padreId">
+              <option value="">(raíz)</option>
+              @for (n of arbol(); track n.categoria.id) {
+                @if (actual === 'nueva' || n.categoria.id !== actual.id) {
+                  <option [value]="n.categoria.id">{{ etiquetaCategoria(n) }}</option>
+                }
+              }
+            </select>
+          </div>
+        </div>
+        <p class="text-xs text-slate-500">
+          Valores que se proponen al crear artículos de esta categoría (vacío: los de la categoría
+          superior).
+        </p>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label for="cat-tipo" class="etiqueta">Tipo</label>
+            <select id="cat-tipo" class="campo" formControlName="tipoDefecto">
+              <option value="">—</option>
+              <option value="INVENTARIABLE">Inventariable</option>
+              <option value="SERVICIO">Servicio</option>
+              <option value="NO_INVENTARIABLE">No inventariable</option>
+            </select>
+          </div>
+          <div>
+            <label for="cat-unidad" class="etiqueta">Unidad</label>
+            <select id="cat-unidad" class="campo" formControlName="unidadDefectoId">
+              <option value="">—</option>
+              @for (u of unidades(); track u.id) {
+                @if (u.activo) {
+                  <option [value]="u.id">{{ u.codigoSunat }} · {{ u.nombre }}</option>
+                }
+              }
+            </select>
+          </div>
+          <div>
+            <label for="cat-existencia" class="etiqueta">Tipo de existencia</label>
+            <select id="cat-existencia" class="campo" formControlName="tipoExistenciaDefecto">
+              <option value="">—</option>
+              @for (t of sunat()?.tiposExistencia ?? []; track t.valor) {
+                <option [value]="t.valor">{{ t.codigo }} · {{ t.descripcion }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label for="cat-igv" class="etiqueta">Afectación IGV</label>
+            <select id="cat-igv" class="campo" formControlName="afectacionIgvDefecto">
+              <option value="">—</option>
+              @for (t of sunat()?.afectacionesIgv ?? []; track t.valor) {
+                <option [value]="t.valor">{{ t.codigo }} · {{ t.descripcion }}</option>
+              }
+            </select>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button type="submit" class="btn-primario">
+            {{ actual === 'nueva' ? 'Crear' : 'Guardar' }}
+          </button>
+          <button type="button" class="btn-secundario" (click)="editandoCategoria.set(null)">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    }
+    @if (editandoCategoria(); as actual) {
+      @if (actual !== 'nueva') {
+        <div class="space-y-2 rounded-md border border-slate-200 p-3">
+          <h3 class="text-sm font-semibold">Propiedades de {{ actual.nombre }}</h3>
+          <ul class="text-sm">
+            @for (p of propiedades(); track p.id) {
+              <li class="flex items-center justify-between gap-2 py-0.5">
+                <span [class.text-slate-400]="!p.activo">
+                  {{ p.etiqueta }}
+                  <span class="font-mono text-xs">({{ p.clave }}, {{ p.tipo }})</span>
+                  @if (p.obligatoria) {
+                    <span class="insignia-neutra">Obligatoria</span>
+                  }
+                  @if (p.opciones.length > 0) {
+                    <span class="block text-xs text-slate-500">{{ p.opciones.join(', ') }}</span>
+                  }
+                </span>
+                @if (puedeEditar()) {
+                  <button type="button" class="btn-enlace" (click)="alternarPropiedad(p)">
+                    {{ p.activo ? 'Desactivar' : 'Activar' }}
+                  </button>
+                }
+              </li>
+            } @empty {
+              <li class="text-slate-500">Sin propiedades propias.</li>
+            }
+          </ul>
+          @if (puedeEditar()) {
+            <form
+              [formGroup]="propiedad"
+              (ngSubmit)="crearPropiedad()"
+              novalidate
+              class="grid grid-cols-2 gap-2"
+            >
+              <div>
+                <label for="pr-clave" class="etiqueta">Clave</label>
+                <input
+                  id="pr-clave"
+                  class="campo font-mono"
+                  formControlName="clave"
+                  placeholder="viscosidad"
+                />
+              </div>
+              <div>
+                <label for="pr-etiqueta" class="etiqueta">Etiqueta</label>
+                <input
+                  id="pr-etiqueta"
+                  class="campo"
+                  formControlName="etiqueta"
+                  placeholder="Viscosidad"
+                />
+              </div>
+              <div>
+                <label for="pr-tipo" class="etiqueta">Tipo</label>
+                <select id="pr-tipo" class="campo" formControlName="tipo">
+                  <option value="TEXTO">Texto</option>
+                  <option value="NUMERO">Número</option>
+                  <option value="LISTA">Lista</option>
+                  <option value="SI_NO">Sí / No</option>
+                </select>
+              </div>
+              <div>
+                <label for="pr-orden" class="etiqueta">Orden</label>
+                <input id="pr-orden" type="number" min="0" class="campo" formControlName="orden" />
+              </div>
+              @if (propiedad.controls.tipo.value === 'LISTA') {
+                <div class="col-span-2">
+                  <label for="pr-opciones" class="etiqueta">Opciones (separadas por coma)</label>
+                  <input id="pr-opciones" class="campo" formControlName="opciones" />
+                </div>
+              }
+              <label class="col-span-2 flex items-center gap-2 text-sm">
+                <input type="checkbox" formControlName="obligatoria" /> Obligatoria
+              </label>
+              <button type="submit" class="btn-secundario col-span-2">Agregar propiedad</button>
+            </form>
+          }
+        </div>
+      }
+    }
+    <ul class="divide-y divide-slate-100 text-sm">
+      @for (n of arbol(); track n.categoria.id) {
+        <li class="flex items-center justify-between gap-2 py-1" [class]="indentar(n.nivel)">
+          <span [class.text-slate-400]="!n.categoria.activo">
+            {{ n.categoria.nombre }}
+            @if (n.categoria.prefijo) {
+              <span class="insignia-neutra font-mono">{{ n.categoria.prefijo }}</span>
+            }
+          </span>
+          @if (puedeEditar()) {
+            <span class="flex gap-2 whitespace-nowrap">
+              <button type="button" class="btn-enlace" (click)="editarCategoria(n.categoria)">
+                Editar
+              </button>
+              <button type="button" class="btn-enlace" (click)="alternarCategoria(n.categoria)">
+                {{ n.categoria.activo ? 'Desactivar' : 'Activar' }}
+              </button>
+            </span>
+          }
+        </li>
+      }
+    </ul>
+  </section>
+
+  <section class="tarjeta space-y-3" aria-labelledby="titulo-marcas">
+    <h2 id="titulo-marcas" class="font-semibold">Marcas</h2>
+    @if (puedeEditar()) {
+      <form (submit)="$event.preventDefault(); crearMarca()" class="flex items-end gap-2">
+        <div class="flex-1">
+          <label for="marca-nueva" class="etiqueta">Nueva marca</label>
+          <input id="marca-nueva" class="campo" [formControl]="nuevaMarca" />
+        </div>
+        <button type="submit" class="btn-primario">Agregar</button>
+      </form>
+    }
+    <ul class="divide-y divide-slate-100 text-sm">
+      @for (m of marcas(); track m.id) {
+        <li class="flex items-center justify-between gap-2 py-1">
+          <span [class.text-slate-400]="!m.activo">{{ m.nombre }}</span>
+          @if (puedeEditar()) {
+            <span class="flex gap-2">
+              <button type="button" class="btn-enlace" (click)="renombrarMarca(m)">
+                Renombrar
+              </button>
+              <button type="button" class="btn-enlace" (click)="alternarMarca(m)">
+                {{ m.activo ? 'Desactivar' : 'Activar' }}
+              </button>
+            </span>
+          }
+        </li>
+      } @empty {
+        <li class="py-1 text-slate-500">Aún no hay marcas.</li>
+      }
+    </ul>
+  </section>
+
+  <section class="tarjeta space-y-3" aria-labelledby="titulo-unidades">
+    <h2 id="titulo-unidades" class="font-semibold">Unidades de medida (catálogo 03 de SUNAT)</h2>
+    @if (puedeEditar()) {
+      <form
+        [formGroup]="unidad"
+        (ngSubmit)="crearUnidad()"
+        novalidate
+        class="flex flex-wrap items-end gap-2"
+      >
+        <div class="w-24">
+          <label for="unidad-codigo" class="etiqueta">Código</label>
+          <input
+            id="unidad-codigo"
+            class="campo font-mono uppercase"
+            formControlName="codigoSunat"
+          />
+        </div>
+        <div class="flex-1">
+          <label for="unidad-nombre" class="etiqueta">Nombre</label>
+          <input id="unidad-nombre" class="campo" formControlName="nombre" />
+        </div>
+        <button type="submit" class="btn-primario">Agregar</button>
+      </form>
+    }
+    <ul class="divide-y divide-slate-100 text-sm">
+      @for (u of unidades(); track u.id) {
+        <li class="flex items-center justify-between gap-2 py-1">
+          <span [class.text-slate-400]="!u.activo"
+            ><span class="font-mono">{{ u.codigoSunat }}</span> · {{ u.nombre }}</span
+          >
+          @if (puedeEditar()) {
+            <button type="button" class="btn-enlace" (click)="alternarUnidad(u)">
+              {{ u.activo ? 'Desactivar' : 'Activar' }}
+            </button>
+          }
+        </li>
+      }
+    </ul>
+  </section>
+</div>

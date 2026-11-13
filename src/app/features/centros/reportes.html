@@ -1,0 +1,114 @@
+<form [formGroup]="filtro" (ngSubmit)="cargar()" class="tarjeta flex flex-wrap items-end gap-3">
+  <div>
+    <label for="r-anio" class="etiqueta">Año</label>
+    <input id="r-anio" type="number" class="campo w-28" formControlName="anio" />
+  </div>
+  <div>
+    <label for="r-mes" class="etiqueta">Mes</label>
+    <select id="r-mes" class="campo" formControlName="mes">
+      @for (m of meses; track m; let i = $index) {
+        <option [ngValue]="i + 1">{{ m }}</option>
+      }
+    </select>
+  </div>
+  <button type="submit" class="btn-secundario">Ver</button>
+</form>
+
+<app-error-api [problema]="error()" />
+
+<div class="tarjeta overflow-x-auto">
+  <h2 class="font-semibold">Gasto real contra presupuesto por centro de costo</h2>
+  <table class="tabla mt-2">
+    <thead>
+      <tr>
+        <th scope="col">Centro</th>
+        <th scope="col" class="text-right">Presupuesto</th>
+        <th scope="col" class="text-right">Real</th>
+        <th scope="col" class="text-right">Diferencia</th>
+        <th scope="col" class="text-right">Ejecución</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      @for (f of costos(); track f.id) {
+        <tr [class.font-semibold]="!f.imputable">
+          <td [class]="indentar(f.nivel)">{{ f.codigo }} · {{ f.nombre }}</td>
+          <td class="text-right">{{ f.presupuesto | currency }}</td>
+          <td class="text-right">{{ f.real | currency }}</td>
+          <td class="text-right" [class.text-red-700]="f.diferencia < 0">
+            {{ f.diferencia | currency }}
+          </td>
+          <td class="text-right">
+            @if (f.ejecucion !== null) {
+              <span [class]="f.ejecucion > 100 ? 'insignia-alerta' : 'insignia-ok'"
+                >{{ f.ejecucion | number: '1.1-1' }} %</span
+              >
+            } @else {
+              —
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<div class="tarjeta overflow-x-auto">
+  <h2 class="font-semibold">Resultado por centro de beneficio</h2>
+  <table class="tabla mt-2">
+    <thead>
+      <tr>
+        <th scope="col">Centro</th>
+        <th scope="col" class="text-right">Ingreso presupuestado</th>
+        <th scope="col" class="text-right">Ingresos</th>
+        <th scope="col" class="text-right">Costos</th>
+        <th scope="col" class="text-right">Resultado</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      @for (f of resultado(); track f.id) {
+        <tr [class.font-semibold]="!f.imputable">
+          <td [class]="indentar(f.nivel)">{{ f.codigo }} · {{ f.nombre }}</td>
+          <td class="text-right">{{ f.presupuestoIngresos | currency }}</td>
+          <td class="text-right">{{ f.ingresos | currency }}</td>
+          <td class="text-right">{{ f.costos | currency }}</td>
+          <td class="text-right" [class.text-red-700]="f.resultado < 0">
+            {{ f.resultado | currency }}
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+@if (funcion(); as e) {
+  <div class="tarjeta max-w-2xl">
+    <h2 class="font-semibold">
+      Estado de resultados por función · enero a {{ meses[e.mesHasta - 1].toLowerCase() }}
+      {{ e.anio }}
+    </h2>
+    <table class="tabla mt-2">
+      <tbody class="divide-y divide-slate-100">
+        <tr>
+          <th scope="row">Ingresos</th>
+          <td class="text-right">{{ e.ingresos | currency }}</td>
+        </tr>
+        @for (g of e.gastos; track g.funcion) {
+          <tr>
+            <td>({{ g.cuentaDestino }}) {{ g.descripcion }}</td>
+            <td class="text-right">({{ g.monto | currency }})</td>
+          </tr>
+        }
+        <tr>
+          <th scope="row">Total gastos</th>
+          <td class="text-right">({{ e.totalGastos | currency }})</td>
+        </tr>
+        <tr class="text-base">
+          <th scope="row">Resultado</th>
+          <td class="text-right font-semibold" [class.text-red-700]="e.resultado < 0">
+            {{ e.resultado | currency }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+}

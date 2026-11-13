@@ -30,3 +30,7 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    # Node se sube de versión mayor a propósito, junto con engines y .nvmrc.
+    ignore:
+      - dependency-name: library/node
+        update-types: ['version-update:semver-major']

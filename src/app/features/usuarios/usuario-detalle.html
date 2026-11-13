@@ -1,0 +1,146 @@
+<section class="space-y-4">
+  <a routerLink="/usuarios" class="btn-enlace">← Usuarios</a>
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h1 class="titulo-pagina">
+      {{ esNuevo() ? 'Nuevo usuario' : (usuario()?.username ?? 'Usuario') }}
+    </h1>
+    @if (usuario() && !esUnoMismo()) {
+      <div class="flex gap-2">
+        @if (sesion.tiene(permisos.usuariosRestablecer)) {
+          <button
+            type="button"
+            class="btn-secundario"
+            [disabled]="guardando()"
+            (click)="restablecer()"
+          >
+            Restablecer contraseña
+          </button>
+        }
+        @if (sesion.tiene(permisos.usuariosDesactivar) && usuario()?.activo) {
+          <button type="button" class="btn-peligro" [disabled]="guardando()" (click)="desactivar()">
+            Desactivar
+          </button>
+        }
+      </div>
+    }
+  </div>
+
+  @if (passwordProvisional(); as clave) {
+    <div
+      role="alert"
+      class="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
+    >
+      <p class="font-semibold">Contraseña provisional (se muestra una sola vez)</p>
+      <p class="mt-2 font-mono text-lg select-all">{{ clave }}</p>
+      <p class="mt-2">Entréguela al usuario por un canal seguro. Deberá cambiarla al ingresar.</p>
+      @if (creado(); as u) {
+        <a [routerLink]="['/usuarios', u.id]" class="btn-enlace mt-2 inline-block"
+          >Ir a la ficha de {{ u.username }}</a
+        >
+      }
+    </div>
+  }
+
+  @if (esUnoMismo()) {
+    <p class="rounded-md bg-slate-100 p-3 text-sm text-slate-700">
+      Este es su propio usuario: su rol, estado y sucursales los cambia otro administrador.
+    </p>
+  }
+
+  <app-error-api [problema]="error()" />
+
+  <form
+    [formGroup]="formulario"
+    (ngSubmit)="guardar()"
+    novalidate
+    class="tarjeta grid gap-4 sm:grid-cols-2"
+  >
+    <div>
+      <label for="username" class="etiqueta">Usuario</label>
+      <input
+        id="username"
+        class="campo font-mono"
+        formControlName="username"
+        autocapitalize="none"
+      />
+      @if (formulario.controls.username.touched && formulario.controls.username.invalid) {
+        <p class="error-campo">3 a 50 caracteres: letras, números, punto, guion o guion bajo.</p>
+      }
+    </div>
+    <div>
+      <label for="email" class="etiqueta">Correo</label>
+      <input id="email" type="email" class="campo" formControlName="email" />
+      @if (formulario.controls.email.touched && formulario.controls.email.invalid) {
+        <p class="error-campo">Ingrese un correo válido.</p>
+      }
+    </div>
+    <div>
+      <label for="nombres" class="etiqueta">Nombres</label>
+      <input id="nombres" class="campo" formControlName="nombres" />
+    </div>
+    <div>
+      <label for="apellidos" class="etiqueta">Apellidos</label>
+      <input id="apellidos" class="campo" formControlName="apellidos" />
+    </div>
+    <div>
+      <label for="tipo-doc" class="etiqueta">Tipo de documento</label>
+      <select id="tipo-doc" class="campo" formControlName="tipoDocumento">
+        <option value="">Sin documento</option>
+        <option value="DNI">DNI</option>
+        <option value="CARNET_EXTRANJERIA">Carnet de extranjería</option>
+        <option value="PASAPORTE">Pasaporte</option>
+      </select>
+    </div>
+    <div>
+      <label for="num-doc" class="etiqueta">Número de documento</label>
+      <input id="num-doc" class="campo" formControlName="numeroDocumento" />
+    </div>
+    <div>
+      <label for="rol" class="etiqueta">Rol</label>
+      <select id="rol" class="campo" formControlName="rolId">
+        <option value="" disabled>Elija un rol</option>
+        @for (r of roles(); track r.id) {
+          <option [value]="r.id">{{ r.nombre }}</option>
+        }
+      </select>
+      @if (formulario.controls.rolId.touched && formulario.controls.rolId.invalid) {
+        <p class="error-campo">Elija un rol.</p>
+      }
+    </div>
+    @if (!esNuevo()) {
+      <fieldset class="flex items-end gap-6">
+        <legend class="sr-only">Estado</legend>
+        <label class="flex items-center gap-2 text-sm"
+          ><input type="checkbox" formControlName="activo" /> Activo</label
+        >
+        <label class="flex items-center gap-2 text-sm"
+          ><input type="checkbox" formControlName="bloqueado" /> Bloqueado</label
+        >
+      </fieldset>
+    }
+    <fieldset class="sm:col-span-2" [disabled]="formulario.disabled">
+      <legend class="etiqueta">Sucursales donde puede operar</legend>
+      <div class="grid gap-2 sm:grid-cols-3">
+        @for (s of sucursales(); track s.id) {
+          <label class="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              [checked]="seleccionadas().has(s.id)"
+              (change)="alternarSucursal(s.id)"
+            />
+            {{ s.codigo }} · {{ s.nombre }}
+          </label>
+        } @empty {
+          <p class="text-sm text-slate-500">No hay sucursales disponibles.</p>
+        }
+      </div>
+    </fieldset>
+    @if (formulario.enabled) {
+      <div class="sm:col-span-2">
+        <button type="submit" class="btn-primario" [disabled]="guardando()">
+          {{ esNuevo() ? 'Crear usuario' : 'Guardar cambios' }}
+        </button>
+      </div>
+    }
+  </form>
+</section>

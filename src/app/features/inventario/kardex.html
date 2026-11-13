@@ -1,0 +1,145 @@
+<form
+  [formGroup]="formulario"
+  (ngSubmit)="consultar()"
+  novalidate
+  class="tarjeta space-y-3 print:hidden"
+>
+  <div class="grid gap-3 sm:grid-cols-4">
+    <div class="sm:col-span-2">
+      <app-buscador-articulo
+        etiqueta="Artículo"
+        [soloInventariables]="true"
+        (elegido)="elegir($event)"
+      />
+      @if (articulo(); as a) {
+        @if (a.codigo) {
+          <p class="mt-1 text-sm">
+            Elegido: <span class="font-mono">{{ a.codigo }}</span> · {{ a.descripcion }}
+          </p>
+        }
+      }
+    </div>
+    <div>
+      <label for="k-almacen" class="etiqueta">Almacén</label>
+      <select id="k-almacen" class="campo" formControlName="almacenId">
+        <option value="">Elija…</option>
+        @for (a of almacenes(); track a.id) {
+          <option [value]="a.id">{{ a.codigo }} · {{ a.nombre }}</option>
+        }
+      </select>
+    </div>
+    <div class="grid grid-cols-2 gap-2">
+      <div>
+        <label for="k-desde" class="etiqueta">Desde</label>
+        <input id="k-desde" type="date" class="campo" formControlName="desde" />
+      </div>
+      <div>
+        <label for="k-hasta" class="etiqueta">Hasta</label>
+        <input id="k-hasta" type="date" class="campo" formControlName="hasta" />
+      </div>
+    </div>
+  </div>
+  <button type="submit" class="btn-primario">Consultar</button>
+</form>
+
+<app-error-api [problema]="error()" />
+
+@if (kardex(); as k) {
+  <section class="tarjeta space-y-3" aria-labelledby="titulo-kardex">
+    <div class="flex flex-wrap items-start justify-between gap-2">
+      <div>
+        <h2 id="titulo-kardex" class="font-semibold">
+          Registro de inventario permanente valorizado (formato 13.1)
+        </h2>
+        <p class="text-sm text-slate-600">
+          <span class="font-mono">{{ k.articulo.codigo }}</span> · {{ k.articulo.descripcion }} ·
+          unidad {{ k.articulo.unidad }} · tipo de existencia {{ k.tipoExistencia ?? '—' }} ·
+          {{ k.almacen.codigo }} ({{ k.almacen.sucursal }}) · del {{ k.desde }} al {{ k.hasta }} ·
+          método: promedio ponderado
+        </p>
+      </div>
+      <div class="flex gap-2 print:hidden">
+        <a [href]="excel(k)" class="btn-secundario" download>Excel</a>
+        <button type="button" class="btn-secundario print:hidden" (click)="imprimir()">
+          Imprimir
+        </button>
+      </div>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="tabla text-xs">
+        <thead>
+          <tr>
+            <th scope="col" rowspan="2">Fecha</th>
+            <th scope="col" rowspan="2">Documento</th>
+            <th scope="col" rowspan="2">Operación (tabla 12)</th>
+            <th scope="colgroup" colspan="3" class="text-center">Entradas</th>
+            <th scope="colgroup" colspan="3" class="text-center">Salidas</th>
+            <th scope="colgroup" colspan="3" class="text-center">Saldo final</th>
+          </tr>
+          <tr>
+            <th scope="col" class="text-right">Cant.</th>
+            <th scope="col" class="text-right">C. unit.</th>
+            <th scope="col" class="text-right">Total</th>
+            <th scope="col" class="text-right">Cant.</th>
+            <th scope="col" class="text-right">C. unit.</th>
+            <th scope="col" class="text-right">Total</th>
+            <th scope="col" class="text-right">Cant.</th>
+            <th scope="col" class="text-right">C. unit.</th>
+            <th scope="col" class="text-right">Total</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          <tr class="bg-slate-50">
+            <td colspan="9">Saldo inicial</td>
+            <td class="text-right">{{ k.saldoInicial.cantidad | number: '1.0-4' }}</td>
+            <td class="text-right">{{ k.saldoInicial.costoUnitario | number: '1.2-6' }}</td>
+            <td class="text-right">{{ k.saldoInicial.valor | number: '1.2-2' }}</td>
+          </tr>
+          @for (f of k.filas; track $index) {
+            <tr [class.text-red-700]="f.anulacion">
+              <td class="whitespace-nowrap">{{ f.fecha }}</td>
+              <td class="font-mono whitespace-nowrap">
+                {{ f.numero }}
+                @if (f.referencia) {
+                  <span class="block font-sans text-slate-500">{{ f.referencia }}</span>
+                }
+              </td>
+              <td>
+                {{ f.codigoSunat }} · {{ tipos[f.tipo] }}{{ f.anulacion ? ' (anulación)' : '' }}
+              </td>
+              <td class="text-right">{{ f.entradaCantidad | number: '1.0-4' }}</td>
+              <td class="text-right">{{ f.entradaCostoUnitario | number: '1.2-6' }}</td>
+              <td class="text-right">{{ f.entradaTotal | number: '1.2-2' }}</td>
+              <td class="text-right">{{ f.salidaCantidad | number: '1.0-4' }}</td>
+              <td class="text-right">{{ f.salidaCostoUnitario | number: '1.2-6' }}</td>
+              <td class="text-right">{{ f.salidaTotal | number: '1.2-2' }}</td>
+              <td class="text-right">{{ f.saldo.cantidad | number: '1.0-4' }}</td>
+              <td class="text-right">{{ f.saldo.costoUnitario | number: '1.2-6' }}</td>
+              <td class="text-right">{{ f.saldo.valor | number: '1.2-2' }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="12" class="py-4 text-center text-slate-500">
+                Sin movimientos en el período.
+              </td>
+            </tr>
+          }
+        </tbody>
+        <tfoot class="font-semibold">
+          <tr>
+            <th scope="row" colspan="3" class="text-right">Totales</th>
+            <td class="text-right">{{ k.totalEntradasCantidad | number: '1.0-4' }}</td>
+            <td></td>
+            <td class="text-right">{{ k.totalEntradasValor | number: '1.2-2' }}</td>
+            <td class="text-right">{{ k.totalSalidasCantidad | number: '1.0-4' }}</td>
+            <td></td>
+            <td class="text-right">{{ k.totalSalidasValor | number: '1.2-2' }}</td>
+            <td class="text-right">{{ k.saldoFinal.cantidad | number: '1.0-4' }}</td>
+            <td class="text-right">{{ k.saldoFinal.costoUnitario | number: '1.2-6' }}</td>
+            <td class="text-right">{{ k.saldoFinal.valor | number: '1.2-2' }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </section>
+}

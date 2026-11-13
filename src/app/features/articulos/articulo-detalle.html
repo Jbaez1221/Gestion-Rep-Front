@@ -1,0 +1,510 @@
+<div class="flex flex-wrap items-center justify-between gap-2">
+  <h2 class="text-lg font-semibold">
+    @if (articulo(); as a) {
+      <span class="font-mono">{{ a.codigo }}</span> · {{ a.descripcion }}
+    } @else {
+      Nuevo artículo
+    }
+  </h2>
+  <a routerLink="/articulos/lista" class="btn-enlace">Volver a la lista</a>
+</div>
+
+<app-error-api [problema]="error()" />
+
+<div class="grid gap-4 xl:grid-cols-[1fr_24rem]">
+  <form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate class="tarjeta space-y-4">
+    <fieldset class="grid gap-3 sm:grid-cols-3">
+      <legend class="mb-2 font-semibold">Identificación</legend>
+      <div>
+        <label for="ar-categoria" class="etiqueta">Categoría</label>
+        <select
+          id="ar-categoria"
+          class="campo"
+          formControlName="categoriaId"
+          (change)="cambiarCategoria()"
+        >
+          <option value="">Elija…</option>
+          @for (n of arbol(); track n.categoria.id) {
+            <option [value]="n.categoria.id">
+              {{ etiquetaCategoria(n)
+              }}{{ n.prefijoEfectivo ? ' (' + n.prefijoEfectivo + ')' : '' }}
+            </option>
+          }
+        </select>
+        @if (formulario.controls.categoriaId.touched && formulario.controls.categoriaId.invalid) {
+          <p class="error-campo">Elija una categoría.</p>
+        }
+      </div>
+      <div>
+        <label for="ar-codigo" class="etiqueta">Código</label>
+        <input
+          id="ar-codigo"
+          class="campo font-mono uppercase"
+          formControlName="codigo"
+          [placeholder]="esNuevo() ? 'Automático: ' + (prefijo() ?? 'ART') + '-000000' : ''"
+        />
+        @if (formulario.controls.codigo.touched && formulario.controls.codigo.invalid) {
+          <p class="error-campo">2 a 30 caracteres: letras, números, punto o guion.</p>
+        }
+      </div>
+      <div>
+        <label for="ar-tipo" class="etiqueta">Tipo</label>
+        <select id="ar-tipo" class="campo" formControlName="tipo">
+          <option value="INVENTARIABLE">Inventariable (lleva stock)</option>
+          <option value="SERVICIO">Servicio</option>
+          <option value="NO_INVENTARIABLE">No inventariable</option>
+        </select>
+      </div>
+      <div class="sm:col-span-2">
+        <label for="ar-descripcion" class="etiqueta">Descripción</label>
+        <input id="ar-descripcion" class="campo" formControlName="descripcion" />
+        @if (formulario.controls.descripcion.touched && formulario.controls.descripcion.invalid) {
+          <p class="error-campo">Indique la descripción (máx. 200).</p>
+        }
+      </div>
+      @if (tipoActual() === 'INVENTARIABLE') {
+        <div>
+          <label for="ar-control" class="etiqueta">Control</label>
+          <select id="ar-control" class="campo" formControlName="control">
+            <option value="NINGUNO">Solo cantidad</option>
+            <option value="LOTE">Por lote (con vencimiento)</option>
+            <option value="SERIE">Por número de serie</option>
+          </select>
+        </div>
+      }
+      <div>
+        <label for="ar-corta" class="etiqueta">Descripción corta (ticket)</label>
+        <input id="ar-corta" class="campo" formControlName="descripcionCorta" />
+      </div>
+      <div>
+        <label for="ar-parte" class="etiqueta">N.° de parte (OEM)</label>
+        <input id="ar-parte" class="campo font-mono uppercase" formControlName="numeroParte" />
+      </div>
+      <div>
+        <label for="ar-marca" class="etiqueta">Marca</label>
+        <select id="ar-marca" class="campo" formControlName="marcaId">
+          <option value="">Sin marca</option>
+          @for (m of marcas(); track m.id) {
+            @if (m.activo || m.id === articulo()?.marca?.id) {
+              <option [value]="m.id">{{ m.nombre }}</option>
+            }
+          }
+        </select>
+      </div>
+      <div>
+        <label for="ar-origen" class="etiqueta">Origen</label>
+        <select id="ar-origen" class="campo" formControlName="origen">
+          <option value="">—</option>
+          <option value="ORIGINAL">Original</option>
+          <option value="ALTERNATIVO">Alternativo</option>
+        </select>
+      </div>
+    </fieldset>
+
+    @if (propiedades().length > 0) {
+      <fieldset formGroupName="propiedades" class="grid gap-3 sm:grid-cols-3">
+        <legend class="mb-2 font-semibold">Propiedades de la categoría</legend>
+        @for (p of propiedades(); track p.id) {
+          <div>
+            <label [for]="'ar-prop-' + p.clave" class="etiqueta">
+              {{ p.etiqueta }}{{ p.obligatoria ? ' *' : '' }}
+            </label>
+            @switch (p.tipo) {
+              @case ('LISTA') {
+                <select [id]="'ar-prop-' + p.clave" class="campo" [formControlName]="p.clave">
+                  <option value="">—</option>
+                  @for (o of p.opciones; track o) {
+                    <option [value]="o">{{ o }}</option>
+                  }
+                </select>
+              }
+              @case ('SI_NO') {
+                <select [id]="'ar-prop-' + p.clave" class="campo" [formControlName]="p.clave">
+                  <option value="">—</option>
+                  <option value="SI">Sí</option>
+                  <option value="NO">No</option>
+                </select>
+              }
+              @default {
+                <input
+                  [id]="'ar-prop-' + p.clave"
+                  class="campo"
+                  [attr.inputmode]="p.tipo === 'NUMERO' ? 'decimal' : null"
+                  [formControlName]="p.clave"
+                />
+              }
+            }
+          </div>
+        }
+      </fieldset>
+    }
+
+    <fieldset class="grid gap-3 sm:grid-cols-3">
+      <legend class="mb-2 font-semibold">Unidades y tributación (SUNAT)</legend>
+      <div>
+        <label for="ar-unidad" class="etiqueta">Unidad base (catálogo 03)</label>
+        <select id="ar-unidad" class="campo" formControlName="unidadBaseId">
+          <option value="">Elija…</option>
+          @for (u of unidades(); track u.id) {
+            @if (u.activo || u.id === articulo()?.unidadBase?.id) {
+              <option [value]="u.id">{{ u.codigoSunat }} · {{ u.nombre }}</option>
+            }
+          }
+        </select>
+        @if (formulario.controls.unidadBaseId.touched && formulario.controls.unidadBaseId.invalid) {
+          <p class="error-campo">Elija la unidad base.</p>
+        }
+      </div>
+      <div>
+        <label for="ar-ucompra" class="etiqueta">Unidad de compra</label>
+        <select id="ar-ucompra" class="campo" formControlName="unidadCompra">
+          <option value="">La base</option>
+          @for (u of unidadesDelArticulo(); track u) {
+            <option [value]="u">{{ u }}</option>
+          }
+        </select>
+      </div>
+      <div>
+        <label for="ar-uventa" class="etiqueta">Unidad de venta</label>
+        <select id="ar-uventa" class="campo" formControlName="unidadVenta">
+          <option value="">La base</option>
+          @for (u of unidadesDelArticulo(); track u) {
+            <option [value]="u">{{ u }}</option>
+          }
+        </select>
+      </div>
+      @if (!esServicio()) {
+        <div>
+          <label for="ar-existencia" class="etiqueta">Tipo de existencia (tabla 5)</label>
+          <select id="ar-existencia" class="campo" formControlName="tipoExistencia">
+            <option value="">—</option>
+            @for (t of sunat()?.tiposExistencia ?? []; track t.valor) {
+              <option [value]="t.valor">{{ t.codigo }} · {{ t.descripcion }}</option>
+            }
+          </select>
+        </div>
+      }
+      <div>
+        <label for="ar-igv" class="etiqueta">Afectación del IGV (catálogo 07)</label>
+        <select id="ar-igv" class="campo" formControlName="afectacionIgv">
+          @for (t of sunat()?.afectacionesIgv ?? []; track t.valor) {
+            <option [value]="t.valor">{{ t.codigo }} · {{ t.descripcion }}</option>
+          }
+        </select>
+      </div>
+      <div>
+        <label for="ar-sunat" class="etiqueta">Código de producto (catálogo 25)</label>
+        <input
+          id="ar-sunat"
+          class="campo font-mono"
+          inputmode="numeric"
+          formControlName="codigoProductoSunat"
+        />
+        @if (
+          formulario.controls.codigoProductoSunat.touched &&
+          formulario.controls.codigoProductoSunat.invalid
+        ) {
+          <p class="error-campo">8 dígitos.</p>
+        }
+      </div>
+      @if (beneficios().length > 0) {
+        <div>
+          <label for="ar-beneficio" class="etiqueta">Centro de beneficio de sus ventas</label>
+          <select id="ar-beneficio" class="campo" formControlName="centroBeneficioId">
+            <option value="">Sin asignar</option>
+            @for (c of beneficios(); track c.id) {
+              <option [value]="c.id">{{ c.codigo }} · {{ c.nombre }}</option>
+            }
+          </select>
+        </div>
+      }
+      <div>
+        <label for="ar-peso" class="etiqueta">Peso (kg)</label>
+        <input
+          id="ar-peso"
+          type="number"
+          min="0"
+          step="0.001"
+          class="campo text-right"
+          formControlName="pesoKg"
+        />
+      </div>
+      <div>
+        <label for="ar-volumen" class="etiqueta">Volumen (m³)</label>
+        <input
+          id="ar-volumen"
+          type="number"
+          min="0"
+          step="0.0001"
+          class="campo text-right"
+          formControlName="volumenM3"
+        />
+      </div>
+    </fieldset>
+
+    <fieldset formArrayName="unidadesAlternas" class="space-y-2">
+      <legend class="font-semibold">Unidades alternas</legend>
+      @for (g of formulario.controls.unidadesAlternas.controls; track g; let i = $index) {
+        <div [formGroupName]="i" class="flex flex-wrap items-center gap-2">
+          <span class="text-sm">1</span>
+          <label [for]="'ar-ua-' + i" class="sr-only">Unidad alterna {{ i + 1 }}</label>
+          <select [id]="'ar-ua-' + i" class="campo w-48" formControlName="unidadSunat">
+            <option value="">Elija…</option>
+            @for (u of unidadesActivas(); track u.id) {
+              <option [value]="u.codigoSunat">{{ u.codigoSunat }} · {{ u.nombre }}</option>
+            }
+          </select>
+          <span class="text-sm">=</span>
+          <label [for]="'ar-uaf-' + i" class="sr-only">Factor de la unidad {{ i + 1 }}</label>
+          <input
+            [id]="'ar-uaf-' + i"
+            type="number"
+            min="0.0001"
+            step="0.0001"
+            class="campo w-32 text-right"
+            formControlName="factor"
+          />
+          <span class="text-sm">unidades base</span>
+          @if (puedeEditar()) {
+            <button
+              type="button"
+              class="btn-enlace"
+              (click)="formulario.controls.unidadesAlternas.removeAt(i)"
+            >
+              Quitar
+            </button>
+          }
+        </div>
+      }
+      @if (puedeEditar()) {
+        <button type="button" class="btn-enlace" (click)="agregarUnidad()">+ Unidad alterna</button>
+      }
+    </fieldset>
+
+    <fieldset formArrayName="codigosBarras" class="space-y-2">
+      <legend class="font-semibold">Códigos de barras</legend>
+      @for (g of formulario.controls.codigosBarras.controls; track g; let i = $index) {
+        <div [formGroupName]="i" class="flex flex-wrap items-center gap-2">
+          <label [for]="'ar-barra-' + i" class="sr-only">Código de barras {{ i + 1 }}</label>
+          <input [id]="'ar-barra-' + i" class="campo w-56 font-mono" formControlName="codigo" />
+          <label [for]="'ar-barra-u-' + i" class="sr-only"
+            >Presentación del código {{ i + 1 }}</label
+          >
+          <select [id]="'ar-barra-u-' + i" class="campo w-36" formControlName="unidadSunat">
+            <option value="">Unidad base</option>
+            @for (u of unidadesDelArticulo(); track u) {
+              <option [value]="u">{{ u }}</option>
+            }
+          </select>
+          @if (puedeEditar()) {
+            <button
+              type="button"
+              class="btn-enlace"
+              (click)="formulario.controls.codigosBarras.removeAt(i)"
+            >
+              Quitar
+            </button>
+          }
+          @if (g.controls.codigo.touched && g.controls.codigo.invalid) {
+            <p class="error-campo w-full">4 a 30 letras, números o guiones.</p>
+          }
+        </div>
+      }
+      @if (puedeEditar()) {
+        <button type="button" class="btn-enlace" (click)="agregarBarra()">
+          + Código de barras
+        </button>
+      }
+    </fieldset>
+
+    <fieldset formArrayName="codigosAlternos" class="space-y-2">
+      <legend class="font-semibold">Códigos alternos (proveedor, catálogo)</legend>
+      @for (g of formulario.controls.codigosAlternos.controls; track g; let i = $index) {
+        <div [formGroupName]="i" class="flex flex-wrap items-center gap-2">
+          <label [for]="'ar-alt-' + i" class="sr-only">Código alterno {{ i + 1 }}</label>
+          <input
+            [id]="'ar-alt-' + i"
+            class="campo w-48 font-mono"
+            formControlName="codigo"
+            placeholder="Código"
+          />
+          <label [for]="'ar-altref-' + i" class="sr-only">Referencia del código {{ i + 1 }}</label>
+          <input
+            [id]="'ar-altref-' + i"
+            class="campo flex-1"
+            formControlName="referencia"
+            placeholder="De quién (p. ej. proveedor)"
+          />
+          @if (puedeEditar()) {
+            <button
+              type="button"
+              class="btn-enlace"
+              (click)="formulario.controls.codigosAlternos.removeAt(i)"
+            >
+              Quitar
+            </button>
+          }
+        </div>
+      }
+      @if (puedeEditar()) {
+        <button type="button" class="btn-enlace" (click)="agregarAlterno()">
+          + Código alterno
+        </button>
+      }
+    </fieldset>
+
+    @if (puedeEditar()) {
+      <button type="submit" class="btn-primario" [disabled]="guardando()">
+        {{ esNuevo() ? 'Crear artículo' : 'Guardar cambios' }}
+      </button>
+    }
+    @if (articulo(); as a) {
+      <p class="text-xs text-slate-500">
+        Creado por {{ a.creadoPor ?? '—' }} · modificado por {{ a.modificadoPor ?? '—' }}
+      </p>
+    }
+  </form>
+
+  @if (articulo(); as a) {
+    <div class="space-y-4">
+      @if (a.imagenPrincipalId) {
+        <img
+          [src]="urlAdjunto(a.id, a.imagenPrincipalId)"
+          [alt]="'Imagen de ' + a.descripcion"
+          class="tarjeta max-h-64 w-full object-contain p-2"
+        />
+      }
+
+      <form [formGroup]="estado" (ngSubmit)="guardarEstado()" class="tarjeta space-y-2">
+        <h3 class="font-semibold">Estado</h3>
+        <label class="flex items-center gap-2 text-sm"
+          ><input type="checkbox" formControlName="activo" /> Activo</label
+        >
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" formControlName="bloqueadoCompra" /> Bloqueado para compra
+        </label>
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" formControlName="bloqueadoVenta" /> Bloqueado para venta
+        </label>
+        @if (puedeEditar()) {
+          <button type="submit" class="btn-secundario">Guardar estado</button>
+        }
+      </form>
+
+      <section class="tarjeta space-y-2" aria-labelledby="titulo-adjuntos">
+        <h3 id="titulo-adjuntos" class="font-semibold">Imágenes y documentos</h3>
+        <ul class="divide-y divide-slate-100 text-sm">
+          @for (ad of adjuntos(); track ad.id) {
+            <li class="flex items-center justify-between gap-2 py-1">
+              <a
+                [href]="urlAdjunto(a.id, ad.id)"
+                target="_blank"
+                rel="noopener"
+                class="text-marca-700 hover:underline"
+              >
+                {{ ad.nombre }}
+              </a>
+              <span class="flex items-center gap-2 whitespace-nowrap">
+                @if (ad.principal) {
+                  <span class="insignia-ok">Principal</span>
+                } @else if (puedeEditar() && ad.tipoContenido.startsWith('image/')) {
+                  <button type="button" class="btn-enlace" (click)="principal(ad)">
+                    Principal
+                  </button>
+                }
+                @if (puedeEditar()) {
+                  <button type="button" class="btn-enlace" (click)="eliminarAdjunto(ad)">
+                    Eliminar
+                  </button>
+                }
+              </span>
+            </li>
+          } @empty {
+            <li class="py-1 text-slate-500">Sin adjuntos.</li>
+          }
+        </ul>
+        @if (puedeEditar()) {
+          <label for="ar-adjunto" class="etiqueta"
+            >Agregar imagen (JPG, PNG, WebP) o PDF, hasta 2 MB</label
+          >
+          <input
+            id="ar-adjunto"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,application/pdf"
+            class="block text-sm"
+            [disabled]="subiendo()"
+            (change)="subir($event)"
+          />
+        }
+      </section>
+
+      <section class="tarjeta space-y-2" aria-labelledby="titulo-equivalentes">
+        <h3 id="titulo-equivalentes" class="font-semibold">Equivalentes</h3>
+        <p class="text-xs text-slate-500">
+          Se ofrecen cuando este no tiene stock. La relación vale en ambos sentidos.
+        </p>
+        <ul class="divide-y divide-slate-100 text-sm">
+          @for (e of equivalentes(); track e.id) {
+            <li class="flex items-center justify-between gap-2 py-1">
+              <a [routerLink]="['/articulos', e.id]" class="text-marca-700 hover:underline">
+                <span class="font-mono">{{ e.codigo }}</span> · {{ e.descripcion }}
+              </a>
+              @if (puedeEditar()) {
+                <button type="button" class="btn-enlace" (click)="quitarEquivalente(e.id)">
+                  Quitar
+                </button>
+              }
+            </li>
+          } @empty {
+            <li class="py-1 text-slate-500">Sin equivalentes.</li>
+          }
+        </ul>
+        @if (puedeEditar()) {
+          <app-buscador-articulo
+            etiqueta="Agregar equivalente"
+            [excluir]="idsEquivalentes()"
+            (elegido)="agregarEquivalente($event)"
+          />
+          <button type="button" class="btn-secundario" (click)="guardarEquivalencias()">
+            Guardar equivalencias
+          </button>
+        }
+      </section>
+
+      @if (sesion.tiene(permisos.inventarioLeer) && a.tipo === 'INVENTARIABLE') {
+        <section class="tarjeta space-y-2" aria-labelledby="titulo-stock">
+          <h3 id="titulo-stock" class="font-semibold">Stock por almacén</h3>
+          <table class="tabla">
+            <thead>
+              <tr>
+                <th scope="col">Almacén</th>
+                <th scope="col" class="text-right">Cantidad</th>
+                <th scope="col" class="text-right">Costo prom.</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              @for (s of stock(); track s.id) {
+                <tr>
+                  <td>
+                    <a
+                      routerLink="/inventario/kardex"
+                      [queryParams]="{ articuloId: a.id, almacenId: s.almacen.id }"
+                      class="text-marca-700 hover:underline"
+                      >{{ s.almacen.codigo }}</a
+                    >
+                  </td>
+                  <td class="text-right">{{ s.cantidad | number: '1.0-4' }}</td>
+                  <td class="text-right">{{ s.costoPromedio | number: '1.2-6' }}</td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="3" class="py-2 text-slate-500">Sin stock registrado.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </section>
+      }
+    </div>
+  }
+</div>

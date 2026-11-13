@@ -1,0 +1,150 @@
+<app-error-api [problema]="error()" />
+
+<div class="grid gap-4 xl:grid-cols-2">
+  <section class="space-y-3" aria-labelledby="titulo-lotes">
+    <h2 id="titulo-lotes" class="font-semibold">Lotes con stock</h2>
+    <form [formGroup]="filtros" (ngSubmit)="buscarLotes(0)" class="flex flex-wrap items-end gap-3">
+      <div>
+        <label for="l-almacen" class="etiqueta">Almacén</label>
+        <select id="l-almacen" class="campo" formControlName="almacenId">
+          <option value="">Todos mis almacenes</option>
+          @for (a of almacenes(); track a.id) {
+            <option [value]="a.id">{{ a.codigo }} · {{ a.nombre }}</option>
+          }
+        </select>
+      </div>
+      <div>
+        <label for="l-dias" class="etiqueta">Vencen en</label>
+        <select id="l-dias" class="campo" formControlName="dias">
+          <option value="30">30 días</option>
+          <option value="90">90 días</option>
+          <option value="180">180 días</option>
+          <option value="">Todos</option>
+        </select>
+      </div>
+      <button type="submit" class="btn-secundario">Buscar</button>
+      <a [href]="excel()" class="btn-secundario" download>Excel</a>
+    </form>
+    <div class="tarjeta overflow-x-auto p-0 sm:p-0">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th scope="col">Artículo</th>
+            <th scope="col">Almacén</th>
+            <th scope="col">Lote</th>
+            <th scope="col">Vence</th>
+            <th scope="col" class="text-right">Cantidad</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          @for (l of lotes()?.contenido ?? []; track l.id) {
+            <tr [class.text-red-700]="(l.diasParaVencer ?? 1) < 0">
+              <td>
+                <span class="font-mono">{{ l.articulo.codigo }}</span> ·
+                {{ l.articulo.descripcion }}
+              </td>
+              <td>{{ l.almacen.codigo }}</td>
+              <td class="font-mono">{{ l.codigo }}</td>
+              <td class="whitespace-nowrap">
+                {{ l.fechaVencimiento ?? '—' }}
+                @if (l.diasParaVencer !== null) {
+                  <span class="block text-xs">
+                    {{
+                      l.diasParaVencer < 0
+                        ? 'vencido hace ' + -l.diasParaVencer + ' d'
+                        : 'en ' + l.diasParaVencer + ' d'
+                    }}
+                  </span>
+                }
+              </td>
+              <td class="text-right">{{ l.cantidad | number: '1.0-4' }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5" class="py-6 text-center text-slate-500">
+                No hay lotes con esos filtros.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-paginador [pagina]="lotes()" (cambiar)="buscarLotes($event)" />
+  </section>
+
+  <section class="space-y-3" aria-labelledby="titulo-series">
+    <h2 id="titulo-series" class="font-semibold">Series</h2>
+    <div class="flex flex-wrap items-end gap-3">
+      <div class="min-w-64 flex-1">
+        <app-buscador-articulo
+          etiqueta="Artículo con series"
+          [soloInventariables]="true"
+          (elegido)="elegirArticulo($event)"
+        />
+        @if (articuloSerie(); as a) {
+          <p class="mt-1 text-sm">
+            <span class="font-mono">{{ a.codigo }}</span> · {{ a.descripcion }}
+            <button type="button" class="btn-enlace" (click)="articuloSerie.set(null)">
+              Quitar
+            </button>
+          </p>
+        }
+      </div>
+      <form (submit)="$event.preventDefault(); buscarSeries()" class="flex items-end gap-2">
+        <div>
+          <label for="s-numero" class="etiqueta">N.° de serie</label>
+          <input id="s-numero" class="campo font-mono uppercase" [formControl]="numero" />
+        </div>
+        <button type="submit" class="btn-secundario">Buscar</button>
+      </form>
+    </div>
+    @if (series(); as lista) {
+      <div class="tarjeta overflow-x-auto p-0 sm:p-0">
+        <table class="tabla">
+          <thead>
+            <tr>
+              <th scope="col">Serie</th>
+              <th scope="col">Artículo</th>
+              <th scope="col">Dónde está</th>
+              <th scope="col"><span class="sr-only">Historia</span></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            @for (s of lista; track s.id) {
+              <tr>
+                <td class="font-mono">{{ s.numero }}</td>
+                <td>{{ s.articulo.codigo }}</td>
+                <td>{{ s.almacen ? s.almacen.codigo : 'Fuera del inventario' }}</td>
+                <td class="text-right">
+                  <button type="button" class="btn-enlace" (click)="verHistoria(s)">
+                    Historia
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="4" class="py-6 text-center text-slate-500">Sin series.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+    @if (traza(); as t) {
+      <div class="tarjeta space-y-2">
+        <h3 class="font-semibold">
+          Historia de la serie <span class="font-mono">{{ t.serie.numero }}</span>
+        </h3>
+        <ol class="space-y-1 text-sm">
+          @for (m of t.movimientos; track m.movimientoId) {
+            <li>
+              {{ m.fecha }} · <span class="font-mono">{{ m.numero }}</span> ·
+              {{ tipos[m.tipo] }} ({{ m.entrada ? 'entrada' : 'salida' }}) ·
+              {{ m.almacen.codigo }} · {{ m.glosa }}
+            </li>
+          }
+        </ol>
+      </div>
+    }
+  </section>
+</div>
