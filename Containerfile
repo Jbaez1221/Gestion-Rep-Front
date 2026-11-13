@@ -16,7 +16,7 @@ COPY public public
 COPY src src
 RUN pnpm exec ng build --configuration production
 
-FROM docker.io/nginxinc/nginx-unprivileged:1.30.6-alpine
+FROM docker.io/nginxinc/nginx-unprivileged:1.31.7-alpine
 COPY nginx/cabeceras-seguridad.conf /etc/nginx/snippets/cabeceras-seguridad.conf
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist/repuestos-front/browser /usr/share/nginx/html
