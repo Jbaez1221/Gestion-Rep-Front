@@ -19,6 +19,12 @@
         <p class="mt-1 text-sm text-slate-600">Accesos, roles y sucursales</p>
       </a>
     }
+    @if (sesion.tiene(permisos.sociosLeer)) {
+      <a routerLink="/socios" class="tarjeta hover:border-marca-500">
+        <h2 class="font-semibold">Socios comerciales</h2>
+        <p class="mt-1 text-sm text-slate-600">Clientes y proveedores con datos de SUNAT</p>
+      </a>
+    }
     @if (sesion.tiene(permisos.articulosLeer)) {
       <a routerLink="/articulos" class="tarjeta hover:border-marca-500">
         <h2 class="font-semibold">Artículos</h2>

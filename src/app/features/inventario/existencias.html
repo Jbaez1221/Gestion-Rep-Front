@@ -99,6 +99,7 @@
         <th scope="col">Almacén</th>
         <th scope="col">Ubicación</th>
         <th scope="col" class="text-right">Cantidad</th>
+        <th scope="col" class="text-right">Pedido</th>
         <th scope="col" class="text-right">Costo prom. (S/)</th>
         <th scope="col" class="text-right">Valor (S/)</th>
         <th scope="col" class="text-right">Mín. / Reorden / Máx.</th>
@@ -128,6 +129,9 @@
                 }}
               </span>
             }
+          </td>
+          <td class="text-right text-slate-600">
+            {{ e.cantidadPedida ? (e.cantidadPedida | number: '1.0-4') : '—' }}
           </td>
           <td class="text-right">{{ e.costoPromedio | number: '1.2-6' }}</td>
           <td class="text-right">{{ e.valor | number: '1.2-2' }}</td>

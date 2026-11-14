@@ -88,6 +88,21 @@
               }
             </select>
           </div>
+          <div class="col-span-2">
+            <label for="cat-sunat" class="etiqueta">Código de producto SUNAT (catálogo 25)</label>
+            <input
+              id="cat-sunat"
+              class="campo font-mono"
+              inputmode="numeric"
+              formControlName="codigoProductoSunatDefecto"
+            />
+            @if (
+              categoria.controls.codigoProductoSunatDefecto.touched &&
+              categoria.controls.codigoProductoSunatDefecto.invalid
+            ) {
+              <p class="error-campo">8 dígitos.</p>
+            }
+          </div>
         </div>
         <div class="flex gap-2">
           <button type="submit" class="btn-primario">
