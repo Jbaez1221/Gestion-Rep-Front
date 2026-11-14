@@ -6,10 +6,37 @@
       Nuevo artículo
     }
   </h2>
-  <a routerLink="/articulos/lista" class="btn-enlace">Volver a la lista</a>
+  <div class="flex gap-3">
+    @if (articulo(); as a) {
+      @if (sesion.tiene(permisos.articulosCrear)) {
+        <a routerLink="/articulos/nuevo" [queryParams]="{ copiarDe: a.id }" class="btn-enlace"
+          >Duplicar</a
+        >
+      }
+    }
+    <a routerLink="/articulos/lista" class="btn-enlace">Volver a la lista</a>
+  </div>
 </div>
 
+@if (copiadoDe()) {
+  <p class="rounded-md border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900" role="status">
+    Copia de {{ copiadoDe() }}: cambie la descripción y el N.° de parte, y agregue sus códigos de
+    barras.
+  </p>
+}
+
 <app-error-api [problema]="error()" />
+
+@if (articulo()?.avisos?.length) {
+  <ul
+    class="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
+    role="status"
+  >
+    @for (aviso of articulo()?.avisos ?? []; track aviso) {
+      <li>{{ aviso }}</li>
+    }
+  </ul>
+}
 
 <div class="grid gap-4 xl:grid-cols-[1fr_24rem]">
   <form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate class="tarjeta space-y-4">
@@ -140,7 +167,7 @@
     }
 
     <fieldset class="grid gap-3 sm:grid-cols-3">
-      <legend class="mb-2 font-semibold">Unidades y tributación (SUNAT)</legend>
+      <legend class="mb-2 font-semibold">Unidades</legend>
       <div>
         <label for="ar-unidad" class="etiqueta">Unidad base (catálogo 03)</label>
         <select id="ar-unidad" class="campo" formControlName="unidadBaseId">
@@ -158,89 +185,137 @@
       <div>
         <label for="ar-ucompra" class="etiqueta">Unidad de compra</label>
         <select id="ar-ucompra" class="campo" formControlName="unidadCompra">
-          <option value="">La base</option>
-          @for (u of unidadesDelArticulo(); track u) {
+          <option value="">
+            Igual a la unidad base{{
+              unidadesDelArticulo()[0] ? ' (' + unidadesDelArticulo()[0] + ')' : ''
+            }}
+          </option>
+          @for (u of unidadesAlternasDelArticulo(); track u) {
             <option [value]="u">{{ u }}</option>
           }
         </select>
+        @if (unidadesDelArticulo().length < 2) {
+          <p class="mt-1 text-xs text-slate-500">
+            Para otra presentación (caja, juego…), agréguela en Unidades alternas.
+          </p>
+        }
       </div>
       <div>
         <label for="ar-uventa" class="etiqueta">Unidad de venta</label>
         <select id="ar-uventa" class="campo" formControlName="unidadVenta">
-          <option value="">La base</option>
-          @for (u of unidadesDelArticulo(); track u) {
+          <option value="">
+            Igual a la unidad base{{
+              unidadesDelArticulo()[0] ? ' (' + unidadesDelArticulo()[0] + ')' : ''
+            }}
+          </option>
+          @for (u of unidadesAlternasDelArticulo(); track u) {
             <option [value]="u">{{ u }}</option>
           }
         </select>
-      </div>
-      @if (!esServicio()) {
-        <div>
-          <label for="ar-existencia" class="etiqueta">Tipo de existencia (tabla 5)</label>
-          <select id="ar-existencia" class="campo" formControlName="tipoExistencia">
-            <option value="">—</option>
-            @for (t of sunat()?.tiposExistencia ?? []; track t.valor) {
-              <option [value]="t.valor">{{ t.codigo }} · {{ t.descripcion }}</option>
-            }
-          </select>
-        </div>
-      }
-      <div>
-        <label for="ar-igv" class="etiqueta">Afectación del IGV (catálogo 07)</label>
-        <select id="ar-igv" class="campo" formControlName="afectacionIgv">
-          @for (t of sunat()?.afectacionesIgv ?? []; track t.valor) {
-            <option [value]="t.valor">{{ t.codigo }} · {{ t.descripcion }}</option>
-          }
-        </select>
-      </div>
-      <div>
-        <label for="ar-sunat" class="etiqueta">Código de producto (catálogo 25)</label>
-        <input
-          id="ar-sunat"
-          class="campo font-mono"
-          inputmode="numeric"
-          formControlName="codigoProductoSunat"
-        />
-        @if (
-          formulario.controls.codigoProductoSunat.touched &&
-          formulario.controls.codigoProductoSunat.invalid
-        ) {
-          <p class="error-campo">8 dígitos.</p>
+        @if (unidadesDelArticulo().length < 2) {
+          <p class="mt-1 text-xs text-slate-500">
+            Para otra presentación (caja, juego…), agréguela en Unidades alternas.
+          </p>
         }
       </div>
-      @if (beneficios().length > 0) {
+    </fieldset>
+
+    <section
+      class="space-y-2 rounded-md border border-slate-200 p-3"
+      aria-labelledby="titulo-tributario"
+    >
+      <div class="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <label for="ar-beneficio" class="etiqueta">Centro de beneficio de sus ventas</label>
-          <select id="ar-beneficio" class="campo" formControlName="centroBeneficioId">
-            <option value="">Sin asignar</option>
-            @for (c of beneficios(); track c.id) {
-              <option [value]="c.id">{{ c.codigo }} · {{ c.nombre }}</option>
+          <h3 id="titulo-tributario" class="font-semibold">Datos tributarios y adicionales</h3>
+          <p class="text-sm text-slate-600">{{ resumenTributario() }}</p>
+        </div>
+        <button
+          type="button"
+          class="btn-enlace"
+          [attr.aria-expanded]="verTributario()"
+          (click)="verTributario.set(!verTributario())"
+        >
+          {{ verTributario() ? 'Ocultar' : 'Ver o cambiar' }}
+        </button>
+      </div>
+      @if (verTributario()) {
+        @if (!puedeTributario()) {
+          <p class="text-xs text-slate-500">
+            El tipo de existencia, el IGV y el código SUNAT los define la categoría; cambiarlos
+            requiere el permiso de datos tributarios.
+          </p>
+        }
+        <div class="grid gap-3 sm:grid-cols-3">
+          @if (!esServicio()) {
+            <div>
+              <label for="ar-existencia" class="etiqueta">Tipo de existencia (tabla 5)</label>
+              <select id="ar-existencia" class="campo" formControlName="tipoExistencia">
+                <option value="">—</option>
+                @for (t of sunat()?.tiposExistencia ?? []; track t.valor) {
+                  <option [value]="t.valor">{{ t.codigo }} · {{ t.descripcion }}</option>
+                }
+              </select>
+            </div>
+          }
+          <div>
+            <label for="ar-igv" class="etiqueta">Afectación del IGV (catálogo 07)</label>
+            <select id="ar-igv" class="campo" formControlName="afectacionIgv">
+              @for (t of sunat()?.afectacionesIgv ?? []; track t.valor) {
+                <option [value]="t.valor">{{ t.codigo }} · {{ t.descripcion }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label for="ar-sunat" class="etiqueta">Código de producto (catálogo 25)</label>
+            <input
+              id="ar-sunat"
+              class="campo font-mono"
+              inputmode="numeric"
+              formControlName="codigoProductoSunat"
+            />
+            @if (
+              formulario.controls.codigoProductoSunat.touched &&
+              formulario.controls.codigoProductoSunat.invalid
+            ) {
+              <p class="error-campo">8 dígitos.</p>
             }
-          </select>
+          </div>
+          @if (beneficios().length > 0) {
+            <div>
+              <label for="ar-beneficio" class="etiqueta">Centro de beneficio de sus ventas</label>
+              <select id="ar-beneficio" class="campo" formControlName="centroBeneficioId">
+                <option value="">Sin asignar</option>
+                @for (c of beneficios(); track c.id) {
+                  <option [value]="c.id">{{ c.codigo }} · {{ c.nombre }}</option>
+                }
+              </select>
+            </div>
+          }
+          <div>
+            <label for="ar-peso" class="etiqueta">Peso (kg)</label>
+            <input
+              id="ar-peso"
+              type="number"
+              min="0"
+              step="0.001"
+              class="campo text-right"
+              formControlName="pesoKg"
+            />
+          </div>
+          <div>
+            <label for="ar-volumen" class="etiqueta">Volumen (m³)</label>
+            <input
+              id="ar-volumen"
+              type="number"
+              min="0"
+              step="0.0001"
+              class="campo text-right"
+              formControlName="volumenM3"
+            />
+          </div>
         </div>
       }
-      <div>
-        <label for="ar-peso" class="etiqueta">Peso (kg)</label>
-        <input
-          id="ar-peso"
-          type="number"
-          min="0"
-          step="0.001"
-          class="campo text-right"
-          formControlName="pesoKg"
-        />
-      </div>
-      <div>
-        <label for="ar-volumen" class="etiqueta">Volumen (m³)</label>
-        <input
-          id="ar-volumen"
-          type="number"
-          min="0"
-          step="0.0001"
-          class="campo text-right"
-          formControlName="volumenM3"
-        />
-      </div>
-    </fieldset>
+    </section>
 
     <fieldset formArrayName="unidadesAlternas" class="space-y-2">
       <legend class="font-semibold">Unidades alternas</legend>
@@ -291,8 +366,10 @@
             >Presentación del código {{ i + 1 }}</label
           >
           <select [id]="'ar-barra-u-' + i" class="campo w-36" formControlName="unidadSunat">
-            <option value="">Unidad base</option>
-            @for (u of unidadesDelArticulo(); track u) {
+            <option value="">
+              Unidad base{{ unidadesDelArticulo()[0] ? ' (' + unidadesDelArticulo()[0] + ')' : '' }}
+            </option>
+            @for (u of unidadesAlternasDelArticulo(); track u) {
               <option [value]="u">{{ u }}</option>
             }
           </select>
@@ -365,6 +442,15 @@
     }
   </form>
 
+  @if (esNuevo() && tipoActual() === 'INVENTARIABLE' && puedeIngresarStock()) {
+    <section class="tarjeta space-y-2 self-start" aria-labelledby="titulo-stock-inicial">
+      <h3 id="titulo-stock-inicial" class="font-semibold">Stock inicial (opcional)</h3>
+      <p class="text-xs text-slate-500">
+        Si lo completa, al crear el artículo se registra también su stock.
+      </p>
+      <ng-container *ngTemplateOutlet="camposIngreso" />
+    </section>
+  }
   @if (articulo(); as a) {
     <div class="space-y-4">
       @if (a.imagenPrincipalId) {
@@ -473,7 +559,32 @@
 
       @if (sesion.tiene(permisos.inventarioLeer) && a.tipo === 'INVENTARIABLE') {
         <section class="tarjeta space-y-2" aria-labelledby="titulo-stock">
-          <h3 id="titulo-stock" class="font-semibold">Stock por almacén</h3>
+          <div class="flex items-center justify-between gap-2">
+            <h3 id="titulo-stock" class="font-semibold">Stock por almacén</h3>
+            @if (puedeIngresarStock() && !ingresando()) {
+              <button type="button" class="btn-enlace" (click)="ingresando.set(true)">
+                Ingresar stock
+              </button>
+            }
+          </div>
+          @if (ingresando()) {
+            <div class="space-y-2 rounded-md bg-slate-50 p-2">
+              <ng-container *ngTemplateOutlet="camposIngreso" />
+              <div class="flex gap-2">
+                <button
+                  type="button"
+                  class="btn-primario"
+                  [disabled]="guardando()"
+                  (click)="ingresarStock()"
+                >
+                  Registrar
+                </button>
+                <button type="button" class="btn-secundario" (click)="ingresando.set(false)">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          }
           <table class="tabla">
             <thead>
               <tr>
@@ -508,3 +619,54 @@
     </div>
   }
 </div>
+
+<ng-template #camposIngreso>
+  <div [formGroup]="ingreso" class="space-y-2">
+    <div>
+      <label for="in-almacen" class="etiqueta">Almacén</label>
+      <select id="in-almacen" class="campo" formControlName="almacenId">
+        <option value="">Elija…</option>
+        @for (al of almacenesInventario(); track al.id) {
+          <option [value]="al.id">
+            {{ al.codigo }} · {{ al.nombre }} ({{ al.sucursalNombre }})
+          </option>
+        }
+      </select>
+    </div>
+    <div class="grid grid-cols-2 gap-2">
+      <div>
+        <label for="in-cantidad" class="etiqueta">Cantidad</label>
+        <input
+          id="in-cantidad"
+          type="number"
+          min="0.0001"
+          step="0.0001"
+          class="campo text-right"
+          formControlName="cantidad"
+        />
+      </div>
+      <div>
+        <label for="in-costo" class="etiqueta">Costo unitario (S/)</label>
+        <input
+          id="in-costo"
+          type="number"
+          min="0"
+          step="0.000001"
+          class="campo text-right"
+          formControlName="costoUnitario"
+        />
+      </div>
+    </div>
+    <app-detalle-stock
+      [grupo]="ingreso"
+      [control]="controlActual()"
+      [entrada]="true"
+      codigo="este artículo"
+      prefijo="in"
+    />
+    <p class="text-xs text-slate-500">
+      El primer ingreso en un almacén se registra como saldo inicial (con costo obligatorio); los
+      siguientes, como ajuste de entrada al costo indicado o al promedio actual.
+    </p>
+  </div>
+</ng-template>

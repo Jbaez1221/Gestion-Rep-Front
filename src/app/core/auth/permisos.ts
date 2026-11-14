@@ -30,6 +30,7 @@ export const PERMISOS = {
   articulosEditar: 'articulos:update',
   articulosCatalogos: 'articulos.catalogos:update',
   articulosImportar: 'articulos:importar',
+  articulosTributario: 'articulos.tributario:update',
   inventarioLeer: 'inventario:read',
   inventarioMover: 'inventario.movimiento:create',
   inventarioAnular: 'inventario.movimiento:anular',

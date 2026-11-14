@@ -1,4 +1,4 @@
-import { DecimalPipe } from '@angular/common';
+import { DecimalPipe, NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -24,6 +24,7 @@ import { SesionService } from '../../core/auth/sesion.service';
 import { Problema, aProblema } from '../../core/http/problema';
 import {
   Adjunto,
+  AlmacenOpcion,
   AfectacionIgv,
   Articulo,
   ArticuloActualizar,
@@ -44,6 +45,8 @@ import {
 import { NotificacionesService } from '../../core/ui/notificaciones.service';
 import { ErrorApi } from '../../shared/ui/error-api';
 import { CentrosApi } from '../centros/centros.api';
+import { hoyEnLima } from '../centros/arbol';
+import { DetalleStock, controlesDetalle, detalleDe } from '../inventario/detalle-stock';
 import { InventarioApi } from '../inventario/inventario.api';
 import { ArticulosApi, urlAdjunto } from './articulos.api';
 import { TIPOS_ARTICULO } from './articulos-lista';
@@ -56,7 +59,15 @@ const TAMANIO_MAXIMO = 2 * 1024 * 1024;
 
 @Component({
   selector: 'app-articulo-detalle',
-  imports: [ReactiveFormsModule, RouterLink, DecimalPipe, ErrorApi, BuscadorArticulo],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    DecimalPipe,
+    NgTemplateOutlet,
+    ErrorApi,
+    BuscadorArticulo,
+    DetalleStock,
+  ],
   templateUrl: './articulo-detalle.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -75,6 +86,11 @@ export class ArticuloDetalle implements OnInit {
 
   /** Id de la ruta; ausente al crear. */
   readonly id = input<string>();
+  /** Query params al crear: copiar un artículo parecido o partir de un N.° de parte buscado. */
+  readonly copiarDe = input<string>();
+  readonly numeroParte = input<string>();
+
+  protected readonly copiadoDe = signal<string | null>(null);
 
   protected readonly articulo = signal<Articulo | null>(null);
   protected readonly categorias = signal<Categoria[]>([]);
@@ -90,6 +106,13 @@ export class ArticuloDetalle implements OnInit {
   protected readonly error = signal<Problema | null>(null);
   protected readonly guardando = signal(false);
   protected readonly subiendo = signal(false);
+  protected readonly almacenesInventario = signal<AlmacenOpcion[]>([]);
+  protected readonly ingresando = signal(false);
+  protected readonly verTributario = signal(false);
+  protected readonly puedeTributario = computed(() =>
+    this.sesion.tiene(PERMISOS.articulosTributario),
+  );
+  private readonly nombreCategoria = signal<string | null>(null);
 
   protected readonly esNuevo = computed(() => !this.id());
   protected readonly puedeEditar = computed(() =>
@@ -133,6 +156,18 @@ export class ArticuloDetalle implements OnInit {
     propiedades: this.propiedadesForm,
   });
 
+  /** Stock que entra desde la ficha: saldo inicial si es el primero en ese almacén, si no, ajuste de entrada. */
+  protected readonly ingreso = this.fb.group({
+    almacenId: [''],
+    cantidad: [null as number | null, Validators.min(0.0001)],
+    costoUnitario: [null as number | null, Validators.min(0)],
+    ...controlesDetalle(this.fb),
+  });
+
+  protected readonly puedeIngresarStock = computed(() =>
+    this.sesion.tiene(PERMISOS.inventarioMover),
+  );
+
   protected readonly estado = this.fb.group({
     activo: [true],
     bloqueadoCompra: [false],
@@ -142,6 +177,28 @@ export class ArticuloDetalle implements OnInit {
   private readonly valores = toSignal(this.formulario.valueChanges, {
     initialValue: this.formulario.getRawValue(),
   });
+  /** Una línea en lugar de los códigos: lo que la categoría propone y si falta algo para facturar. */
+  protected readonly resumenTributario = computed(() => {
+    const v = { ...this.valores(), ...this.formulario.getRawValue() };
+    const sunat = this.sunat();
+    const partes: string[] = [];
+    if (v.tipo !== 'SERVICIO' && v.tipoExistencia) {
+      partes.push(
+        sunat?.tiposExistencia.find((t) => t.valor === v.tipoExistencia)?.descripcion ??
+          v.tipoExistencia,
+      );
+    }
+    const igv = sunat?.afectacionesIgv.find((t) => t.valor === v.afectacionIgv);
+    partes.push(
+      v.afectacionIgv === 'GRAVADO' ? 'Gravado con IGV' : (igv?.descripcion ?? v.afectacionIgv),
+    );
+    partes.push(
+      v.codigoProductoSunat ? `Código SUNAT ${v.codigoProductoSunat}` : 'Sin código SUNAT',
+    );
+    const categoria = this.nombreCategoria() ?? this.articulo()?.categoria.nombre;
+    return partes.join(' · ') + (categoria ? ` — según la categoría ${categoria}` : '');
+  });
+
   protected readonly tipoActual = computed(
     () => this.valores().tipo ?? this.formulario.controls.tipo.value,
   );
@@ -156,9 +213,31 @@ export class ArticuloDetalle implements OnInit {
     return [...(base ? [base.codigoSunat] : []), ...alternas];
   });
 
+  /** Solo las alternas: la base ya es la opción vacía ("igual a la unidad base"). */
+  protected readonly unidadesAlternasDelArticulo = computed(() =>
+    this.unidadesDelArticulo().slice(1),
+  );
+
   ngOnInit(): void {
+    if (!this.puedeTributario()) {
+      const f = this.formulario.controls;
+      [f.tipoExistencia, f.afectacionIgv, f.codigoProductoSunat].forEach((c) => c.disable());
+    }
     void this.cargarCatalogos();
+    if (this.puedeIngresarStock()) {
+      void this.cargarAlmacenes();
+    }
     const id = this.id();
+    if (!id) {
+      const parte = this.numeroParte();
+      if (parte) {
+        this.formulario.controls.numeroParte.setValue(parte);
+      }
+      const origen = this.copiarDe();
+      if (origen) {
+        void this.copiar(origen);
+      }
+    }
     if (id) {
       this.formulario.controls.codigo.disable();
       this.formulario.controls.tipo.disable();
@@ -217,6 +296,103 @@ export class ArticuloDetalle implements OnInit {
     }
   }
 
+  private async cargarAlmacenes(): Promise<void> {
+    try {
+      const almacenes = await firstValueFrom(this.inventarioApi.almacenes());
+      this.almacenesInventario.set(almacenes);
+      if (almacenes.length === 1 && almacenes[0]) {
+        this.ingreso.controls.almacenId.setValue(almacenes[0].id);
+      }
+    } catch (e) {
+      this.error.set(aProblema(e));
+    }
+  }
+
+  /** Control de stock del artículo (el del formulario al crear, el guardado al editar). */
+  protected controlActual(): ControlStock {
+    return this.articulo()?.control ?? this.formulario.controls.control.value;
+  }
+
+  private quiereIngresarStock(): boolean {
+    const v = this.ingreso.getRawValue();
+    return !!v.almacenId && v.cantidad !== null && String(v.cantidad) !== '';
+  }
+
+  private validarIngreso(): string | null {
+    const v = this.ingreso.getRawValue();
+    if (!v.almacenId || !v.cantidad || Number(v.cantidad) <= 0) {
+      return 'Elija el almacén e indique la cantidad.';
+    }
+    const primero = !this.stock().some(
+      (s) => s.almacen.id === v.almacenId && s.fechaUltimoMovimiento,
+    );
+    if (primero && (v.costoUnitario === null || String(v.costoUnitario) === '')) {
+      return 'El primer ingreso en un almacén necesita el costo unitario.';
+    }
+    return null;
+  }
+
+  /** Registra el ingreso de stock del artículo; devuelve el número de movimiento. */
+  private async registrarStock(articuloId: string): Promise<string> {
+    const v = this.ingreso.getRawValue();
+    const primero = !this.stock().some(
+      (s) => s.almacen.id === v.almacenId && s.fechaUltimoMovimiento,
+    );
+    const m = await firstValueFrom(
+      this.inventarioApi.registrar({
+        tipo: primero ? 'SALDO_INICIAL' : 'AJUSTE_ENTRADA',
+        almacenId: v.almacenId,
+        fecha: hoyEnLima(),
+        glosa: primero
+          ? 'Stock inicial desde la ficha del artículo'
+          : 'Ingreso de stock desde la ficha del artículo',
+        referencia: null,
+        centroCostoId: null,
+        lineas: [
+          {
+            articuloId,
+            cantidad: Number(v.cantidad),
+            costoUnitario:
+              v.costoUnitario === null || String(v.costoUnitario) === ''
+                ? null
+                : Number(v.costoUnitario),
+            ...detalleDe(v),
+          },
+        ],
+      }),
+    );
+    return m.numero;
+  }
+
+  protected async ingresarStock(): Promise<void> {
+    const id = this.id();
+    const problema = this.validarIngreso();
+    if (!id || problema) {
+      this.error.set({ status: 400, title: 'Datos incompletos', detail: problema ?? '' });
+      return;
+    }
+    this.guardando.set(true);
+    try {
+      this.error.set(null);
+      const numero = await this.registrarStock(id);
+      this.avisos.exito(`Stock registrado (${numero}).`);
+      this.ingresando.set(false);
+      this.limpiarIngreso();
+      this.stock.set(await firstValueFrom(this.inventarioApi.existenciasDeArticulo(id)));
+    } catch (e) {
+      this.error.set(aProblema(e));
+    } finally {
+      this.guardando.set(false);
+    }
+  }
+
+  private limpiarIngreso(): void {
+    const almacen =
+      this.almacenesInventario().length === 1 ? this.ingreso.controls.almacenId.value : '';
+    this.ingreso.reset({ almacenId: almacen, cantidad: null, costoUnitario: null, series: '' });
+    this.ingreso.controls.lotes.clear();
+  }
+
   private async cargar(id: string): Promise<void> {
     try {
       const a = await firstValueFrom(this.api.obtener(id));
@@ -231,6 +407,48 @@ export class ArticuloDetalle implements OnInit {
     }
   }
 
+  /**
+   * Parte de un artículo parecido (la misma pieza para otro modelo): copia categoría, marca,
+   * unidades, propiedades y datos tributarios; no copia los códigos, que identifican a cada uno.
+   */
+  private async copiar(origenId: string): Promise<void> {
+    try {
+      const a = await firstValueFrom(this.api.obtener(origenId));
+      await this.cargarPropiedades(a.categoria.id, a.propiedades);
+      this.nombreCategoria.set(a.categoria.nombre);
+      this.formulario.patchValue({
+        descripcion: a.descripcion,
+        descripcionCorta: a.descripcionCorta ?? '',
+        numeroParte: this.numeroParte() ?? '',
+        marcaId: a.marca?.id ?? '',
+        origen: a.origen ?? '',
+        categoriaId: a.categoria.id,
+        tipo: a.tipo,
+        control: a.control,
+        tipoExistencia: a.tipoExistencia ?? '',
+        unidadBaseId: a.unidadBase.id,
+        unidadCompra: a.unidadCompra === a.unidadBase.codigoSunat ? '' : a.unidadCompra,
+        unidadVenta: a.unidadVenta === a.unidadBase.codigoSunat ? '' : a.unidadVenta,
+        afectacionIgv: a.afectacionIgv,
+        codigoProductoSunat: a.codigoProductoSunat ?? '',
+        centroBeneficioId: a.centroBeneficioId ?? '',
+        pesoKg: a.pesoKg,
+        volumenM3: a.volumenM3,
+      });
+      const f = this.formulario.controls;
+      f.unidadesAlternas.clear();
+      a.unidadesAlternas.forEach((u) =>
+        f.unidadesAlternas.push(this.nuevaUnidad(u.unidadSunat, u.factor)),
+      );
+      Object.entries(a.propiedades).forEach(([clave, valor]) =>
+        this.propiedadesForm.get(clave)?.setValue(valor),
+      );
+      this.copiadoDe.set(a.codigo);
+    } catch (e) {
+      this.error.set(aProblema(e));
+    }
+  }
+
   /** Al elegir categoría: propiedades que aplican y, al crear, lo que la categoría propone. */
   protected async cambiarCategoria(): Promise<void> {
     const id = this.formulario.controls.categoriaId.value;
@@ -240,8 +458,10 @@ export class ArticuloDetalle implements OnInit {
     try {
       const v = await firstValueFrom(this.api.valoresCategoria(id));
       this.prefijo.set(v.prefijo);
+      this.nombreCategoria.set(this.categorias().find((c) => c.id === id)?.nombre ?? null);
       if (this.esNuevo()) {
         const f = this.formulario.controls;
+        f.codigoProductoSunat.setValue(v.codigoProductoSunat ?? '');
         if (v.tipo) f.tipo.setValue(v.tipo);
         if (v.tipoExistencia) f.tipoExistencia.setValue(v.tipoExistencia);
         if (v.unidad) f.unidadBaseId.setValue(v.unidad.id);
@@ -292,8 +512,8 @@ export class ArticuloDetalle implements OnInit {
       control: a.control,
       tipoExistencia: a.tipoExistencia ?? '',
       unidadBaseId: a.unidadBase.id,
-      unidadCompra: a.unidadCompra,
-      unidadVenta: a.unidadVenta,
+      unidadCompra: a.unidadCompra === a.unidadBase.codigoSunat ? '' : a.unidadCompra,
+      unidadVenta: a.unidadVenta === a.unidadBase.codigoSunat ? '' : a.unidadVenta,
       afectacionIgv: a.afectacionIgv,
       codigoProductoSunat: a.codigoProductoSunat ?? '',
       centroBeneficioId: a.centroBeneficioId ?? '',
@@ -307,7 +527,12 @@ export class ArticuloDetalle implements OnInit {
     );
     f.codigosBarras.clear();
     a.codigosBarras.forEach((b) =>
-      f.codigosBarras.push(this.nuevaBarra(b.codigo, b.unidadSunat ?? '')),
+      f.codigosBarras.push(
+        this.nuevaBarra(
+          b.codigo,
+          b.unidadSunat === a.unidadBase.codigoSunat ? '' : (b.unidadSunat ?? ''),
+        ),
+      ),
     );
     f.codigosAlternos.clear();
     a.codigosAlternos.forEach((c) =>
@@ -340,6 +565,14 @@ export class ArticuloDetalle implements OnInit {
 
   protected async guardar(): Promise<void> {
     if (this.formulario.invalid) {
+      const f = this.formulario.controls;
+      if (
+        [f.tipoExistencia, f.afectacionIgv, f.codigoProductoSunat, f.pesoKg, f.volumenM3].some(
+          (c) => c.invalid,
+        )
+      ) {
+        this.verTributario.set(true);
+      }
       this.formulario.markAllAsTouched();
       return;
     }
@@ -384,6 +617,13 @@ export class ArticuloDetalle implements OnInit {
         this.mostrar(await firstValueFrom(this.api.actualizar(id, datos)));
         this.avisos.exito('Artículo actualizado.');
       } else {
+        const conStock =
+          v.tipo === 'INVENTARIABLE' && this.puedeIngresarStock() && this.quiereIngresarStock();
+        const problema = conStock ? this.validarIngreso() : null;
+        if (problema) {
+          this.error.set({ status: 400, title: 'Stock inicial incompleto', detail: problema });
+          return;
+        }
         const creado = await firstValueFrom(
           this.api.crear({
             ...datos,
@@ -394,6 +634,16 @@ export class ArticuloDetalle implements OnInit {
           }),
         );
         this.avisos.exito(`Artículo ${creado.codigo} creado.`);
+        if (conStock) {
+          try {
+            const numero = await this.registrarStock(creado.id);
+            this.avisos.exito(`Stock inicial registrado (${numero}).`);
+          } catch (e) {
+            this.avisos.error(
+              `El artículo se creó, pero el stock no se registró: ${aProblema(e).detail ?? aProblema(e).title}`,
+            );
+          }
+        }
         await this.router.navigate(['/articulos', creado.id]);
       }
     } catch (e) {

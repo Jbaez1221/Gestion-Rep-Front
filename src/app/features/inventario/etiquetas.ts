@@ -10,6 +10,8 @@ export const TIPOS_MOVIMIENTO: Record<TipoMovimiento, string> = {
   TRANSFERENCIA_SALIDA: 'Transferencia (salida)',
   TRANSFERENCIA_ENTRADA: 'Transferencia (entrada)',
   REVALORIZACION: 'Revalorización',
+  COMPRA: 'Compra',
+  DEVOLUCION_PROVEEDOR: 'Devolución al proveedor',
 };
 
 export const ESTADOS_TRASLADO: Record<EstadoTraslado, string> = {

@@ -29,6 +29,7 @@ export interface FiltroArticulos {
   marcaId?: string;
   tipo?: TipoArticulo | '';
   activo?: boolean | null;
+  tributarioIncompleto?: boolean;
   pagina?: number;
   tamanio?: number;
 }
@@ -54,6 +55,7 @@ export class ArticulosApi {
         marcaId: f.marcaId,
         tipo: f.tipo,
         activo: f.activo,
+        tributarioIncompleto: f.tributarioIncompleto || null,
         pagina: f.pagina,
         tamanio: f.tamanio,
       }),

@@ -388,6 +388,7 @@ export interface Articulo {
   readonly propiedades: Record<string, string>;
   readonly equivalentes: ArticuloBreve[];
   readonly imagenPrincipalId: string | null;
+  readonly avisos: string[];
   readonly creadoPor: string | null;
   readonly fechaCreacion: string | null;
   readonly modificadoPor: string | null;
@@ -465,6 +466,7 @@ export interface ValoresCategoria {
     readonly nombre: string;
   } | null;
   readonly afectacionIgv: AfectacionIgv | null;
+  readonly codigoProductoSunat: string | null;
   readonly propiedades: Propiedad[];
 }
 
@@ -501,6 +503,7 @@ export interface Categoria {
   readonly tipoExistenciaDefecto: TipoExistencia | null;
   readonly unidadDefectoId: string | null;
   readonly afectacionIgvDefecto: AfectacionIgv | null;
+  readonly codigoProductoSunatDefecto: string | null;
 }
 
 export interface CategoriaGuardar {
@@ -511,6 +514,7 @@ export interface CategoriaGuardar {
   tipoExistenciaDefecto: TipoExistencia | null;
   unidadDefectoId: string | null;
   afectacionIgvDefecto: AfectacionIgv | null;
+  codigoProductoSunatDefecto: string | null;
 }
 
 export interface UnidadMedida {
@@ -542,7 +546,9 @@ export type TipoMovimiento =
   | 'CONSUMO_INTERNO'
   | 'TRANSFERENCIA_SALIDA'
   | 'TRANSFERENCIA_ENTRADA'
-  | 'REVALORIZACION';
+  | 'REVALORIZACION'
+  | 'COMPRA'
+  | 'DEVOLUCION_PROVEEDOR';
 export type EstadoTraslado = 'SOLICITADO' | 'EN_TRANSITO' | 'RECIBIDO' | 'ANULADO';
 
 export interface LoteMovido {
@@ -581,6 +587,7 @@ export interface Existencia {
   readonly articulo: ArticuloRef;
   readonly almacen: AlmacenRef;
   readonly cantidad: number;
+  readonly cantidadPedida: number;
   readonly costoPromedio: number;
   readonly valor: number;
   readonly minimo: number | null;

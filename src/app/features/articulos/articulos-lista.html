@@ -45,6 +45,9 @@
         <option value="todos">Todos</option>
       </select>
     </div>
+    <label class="flex items-center gap-2 pb-2 text-sm">
+      <input type="checkbox" formControlName="tributarioIncompleto" /> Sin código SUNAT
+    </label>
     <button type="submit" class="btn-secundario">Buscar</button>
   </form>
   @if (sesion.tiene(permisos.articulosCrear)) {
@@ -94,7 +97,17 @@
         </tr>
       } @empty {
         <tr>
-          <td colspan="8" class="py-6 text-center text-slate-500">No hay artículos.</td>
+          <td colspan="8" class="py-6 text-center text-slate-500">
+            No hay artículos.
+            @if (buscado() && sesion.tiene(permisos.articulosCrear)) {
+              <a
+                routerLink="../nuevo"
+                [queryParams]="{ numeroParte: buscado() }"
+                class="mt-1 block text-marca-700 underline"
+                >Crear un artículo con el N.° de parte «{{ buscado() }}»</a
+              >
+            }
+          </td>
         </tr>
       }
     </tbody>
