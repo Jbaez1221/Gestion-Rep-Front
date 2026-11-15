@@ -5,12 +5,17 @@ import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 
-import { Articulo, ArticuloListado, Categoria } from '../../core/modelos/api.modelos';
+import {
+  Articulo,
+  ArticuloListado,
+  Categoria,
+  ValoresCategoria,
+} from '../../core/modelos/api.modelos';
 import { pagina } from '../../testing/datos';
 import { sesionFalsa } from '../../testing/sesion-falsa';
 import { CentrosApi } from '../centros/centros.api';
 import { InventarioApi } from '../inventario/inventario.api';
-import { ArticuloDetalle } from './articulo-detalle';
+import { ArticuloDetalle, normalizarMarca, textoPropiedad } from './articulo-detalle';
 import { Articulos } from './articulos';
 import { ArticulosApi } from './articulos.api';
 import { ArticulosLista } from './articulos-lista';
@@ -25,6 +30,8 @@ const SIN_VALORES = {
   unidadDefectoId: null,
   afectacionIgvDefecto: null,
   codigoProductoSunatDefecto: null,
+  controlDefecto: null,
+  centroBeneficioDefectoId: null,
 };
 const FIL: Categoria = {
   id: 'fil',
@@ -146,6 +153,8 @@ function apiFalsa() {
   return {
     listar: vi.fn(() => of(pagina([LISTADO, SERVICIO]))),
     obtener: vi.fn(() => of(ARTICULO)),
+    porCodigo: vi.fn(() => of(ARTICULO)),
+    coincidencias: vi.fn(() => of([])),
     crear: vi.fn(() => of({ ...ARTICULO, id: 'nuevo', codigo: 'FIL-000009' })),
     actualizar: vi.fn(() => of(ARTICULO)),
     cambiarEstado: vi.fn(() => of({ ...ARTICULO, bloqueadoVenta: true })),
@@ -181,8 +190,10 @@ function apiFalsa() {
         unidad: { id: 'u1', codigoSunat: 'NIU', nombre: 'Unidad' },
         afectacionIgv: 'GRAVADO',
         codigoProductoSunat: '25174100',
+        control: null,
+        centroBeneficioId: null,
         propiedades: [PROPIEDAD],
-      }),
+      } as ValoresCategoria),
     ),
     propiedades: vi.fn(() => of([PROPIEDAD])),
     crearPropiedad: vi.fn(() => of(PROPIEDAD)),
@@ -361,6 +372,8 @@ describe('ArticulosApi (contrato)', () => {
     espera('GET', '/api/v1/articulos/a1');
     api.porCodigo('ab/1').subscribe();
     espera('GET', '/api/v1/articulos/codigo/ab%2F1');
+    api.coincidencias(' 90915 ', 'm1', null).subscribe();
+    espera('GET', '/api/v1/articulos/coincidencias?numeroParte=90915&marcaId=m1');
     api
       .cambiarEstado('a1', { activo: true, bloqueadoCompra: true, bloqueadoVenta: false })
       .subscribe();
@@ -388,6 +401,8 @@ describe('ArticulosApi (contrato)', () => {
       unidadDefectoId: null,
       afectacionIgvDefecto: null,
       codigoProductoSunatDefecto: null,
+      controlDefecto: null,
+      centroBeneficioDefectoId: null,
     };
     api.crearCategoria(cat).subscribe();
     espera('POST', '/api/v1/articulos/catalogos/categorias');
@@ -438,6 +453,8 @@ describe('ArticulosLista', () => {
   });
 });
 
+const MAS_DATOS = 'Más datos (código, tipo, unidades, lote o serie, códigos…)';
+
 describe('ArticuloDetalle', () => {
   it('crea un artículo con código automático, barras, alterno y unidad alterna', async () => {
     const api = configurar();
@@ -445,6 +462,9 @@ describe('ArticuloDetalle', () => {
     const navegar = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     escribir('#ar-descripcion', 'Filtro de aire');
     escribir('#ar-categoria', 'aire');
+    await estable();
+    expect(html.querySelector('#ar-codigo')).toBeNull();
+    boton(MAS_DATOS)?.click();
     await estable();
     expect(html.querySelector<HTMLInputElement>('#ar-codigo')?.placeholder).toContain('FIL-');
     escribir('#ar-prop-viscosidad', '10W40');
@@ -987,5 +1007,211 @@ describe('ArticuloDetalle · duplicar y crear desde la búsqueda', () => {
     const enlace = html.querySelector<HTMLAnchorElement>('a[href*="numeroParte"]');
     expect(enlace?.textContent).toContain('04465-0K290');
     expect(enlace?.getAttribute('href')).toContain('numeroParte=04465-0K290');
+  });
+});
+
+describe('ArticuloDetalle · alta rápida', () => {
+  it('arma la descripción, usa el código escaneado y crea la marca nueva por nombre', async () => {
+    const api = configurar();
+    const { html, escribir, boton, estable } = await crear(ArticuloDetalle);
+    vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    const barra = html.querySelector<HTMLInputElement>('#ar-barra-rapida');
+    escribir('#ar-barra-rapida', '7750001');
+    const enter = new KeyboardEvent('keydown', { key: 'Enter', cancelable: true });
+    barra?.dispatchEvent(enter);
+    await estable();
+    expect(enter.defaultPrevented).toBe(true);
+    expect(api.crear).not.toHaveBeenCalled();
+    expect(html.textContent).toContain('El código 7750001 ya es de');
+
+    escribir('#ar-categoria', 'aire');
+    await estable();
+    escribir('#ar-prop-viscosidad', '10W40');
+    escribir('#ar-marca', ' bosch  filtros ');
+    escribir('#ar-parte', 'F-26');
+    await estable();
+    expect(html.querySelector<HTMLInputElement>('#ar-descripcion')?.value).toBe(
+      'AIRE 10W40 BOSCH FILTROS F-26',
+    );
+    expect(html.textContent).toContain('Se creará la marca BOSCH FILTROS.');
+    escribir('#ar-marca', 'toyota');
+    await estable();
+    expect(html.textContent).not.toContain('Se creará la marca');
+
+    escribir('#ar-descripcion', 'Filtro de aire Toyota');
+    escribir('#ar-parte', 'F-27');
+    await estable();
+    expect(html.querySelector<HTMLInputElement>('#ar-descripcion')?.value).toBe(
+      'Filtro de aire Toyota',
+    );
+    boton('Volver a armarla')?.click();
+    await estable();
+    expect(html.querySelector<HTMLInputElement>('#ar-descripcion')?.value).toBe(
+      'AIRE 10W40 TOYOTA F-27',
+    );
+
+    boton('Crear artículo')?.click();
+    await estable();
+    expect(api.crear).toHaveBeenCalledWith(
+      expect.objectContaining({
+        descripcion: 'AIRE 10W40 TOYOTA F-27',
+        marcaId: 'm1',
+        marcaNombre: null,
+        codigosBarras: [{ codigo: '7750001', unidadSunat: null }],
+        control: 'NINGUNO',
+      }),
+    );
+  });
+
+  it('crea y deja el formulario listo para el siguiente, con la marca nueva por nombre', async () => {
+    const api = configurar();
+    const inventario = TestBed.inject(InventarioApi) as unknown as {
+      registrar: ReturnType<typeof vi.fn>;
+    };
+    const { html, escribir, boton, estable } = await crear(ArticuloDetalle);
+    const navegar = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    expect(html.querySelector<HTMLSelectElement>('#in-almacen')?.value).toBe('');
+    escribir('#ar-categoria', 'aire');
+    await estable();
+    escribir('#ar-prop-viscosidad', '10W40');
+    escribir('#ar-marca', 'Bosch');
+    escribir('#ar-parte', 'F-26');
+    escribir('#in-almacen', 'al2');
+    escribir('#in-cantidad', '3');
+    escribir('#in-costo', '10');
+    boton('Crear y agregar otro')?.click();
+    await estable();
+    expect(api.crear).toHaveBeenCalledWith(
+      expect.objectContaining({ marcaId: null, marcaNombre: 'BOSCH', numeroParte: 'F-26' }),
+    );
+    expect(inventario.registrar).toHaveBeenCalledWith(
+      expect.objectContaining({ almacenId: 'al2' }),
+    );
+    expect(navegar).not.toHaveBeenCalled();
+    expect(html.querySelector<HTMLSelectElement>('#ar-categoria')?.value).toBe('aire');
+    expect(html.querySelector<HTMLInputElement>('#ar-marca')?.value).toBe('Bosch');
+    expect(html.querySelector<HTMLInputElement>('#ar-parte')?.value).toBe('');
+    expect(html.querySelector<HTMLInputElement>('#ar-descripcion')?.value).toBe('AIRE 10W40 BOSCH');
+    expect(html.querySelector<HTMLSelectElement>('#in-almacen')?.value).toBe('al2');
+    expect(html.querySelector<HTMLInputElement>('#in-cantidad')?.value).toBe('');
+  });
+
+  it('toma el control y el centro de beneficio que propone la categoría', async () => {
+    const api = configurar();
+    api.valoresCategoria.mockReturnValue(
+      of({
+        categoriaId: 'fil',
+        prefijo: 'FIL',
+        tipo: 'INVENTARIABLE',
+        tipoExistencia: 'MERCADERIAS',
+        unidad: { id: 'u1', codigoSunat: 'NIU', nombre: 'Unidad' },
+        afectacionIgv: 'GRAVADO',
+        codigoProductoSunat: '25174100',
+        control: 'SERIE',
+        centroBeneficioId: 'cb',
+        propiedades: [],
+      }),
+    );
+    const { html, escribir, boton, estable } = await crear(ArticuloDetalle);
+    vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    escribir('#ar-categoria', 'fil');
+    await estable();
+    expect(html.textContent).toContain('Se controla por número de serie');
+    expect(html.querySelector<HTMLInputElement>('#ar-descripcion')?.value).toBe('FILTROS');
+    boton('Crear artículo')?.click();
+    await estable();
+    expect(api.crear).toHaveBeenCalledWith(
+      expect.objectContaining({ control: 'SERIE', centroBeneficioId: 'cb' }),
+    );
+  });
+
+  it('avisa de duplicados y equivalentes por N.° de parte, y abre "Más datos" si falta algo oculto', async () => {
+    const api = configurar();
+    const coincidencia = {
+      id: 'a9',
+      codigo: 'FIL-000009',
+      descripcion: 'Filtro',
+      numeroParte: 'F-26',
+      marca: { id: 'm1', nombre: 'TOYOTA' },
+      mismaMarca: true,
+    };
+    Object.assign(api, {
+      coincidencias: vi
+        .fn()
+        .mockReturnValueOnce(of([coincidencia]))
+        .mockReturnValueOnce(of([{ ...coincidencia, mismaMarca: false }]))
+        .mockReturnValueOnce(throwError(() => new Error('x'))),
+    });
+    const { html, escribir, boton, estable } = await crear(ArticuloDetalle);
+    const parte = html.querySelector<HTMLInputElement>('#ar-parte');
+    escribir('#ar-marca', 'toyota');
+    escribir('#ar-parte', 'F-26');
+    parte?.dispatchEvent(new Event('blur'));
+    await estable();
+    expect(html.textContent).toContain('Posible duplicado');
+    expect(html.querySelector('a[href="/articulos/a9"]')).not.toBeNull();
+    parte?.dispatchEvent(new Event('blur'));
+    await estable();
+    expect(html.textContent).toContain('puede marcarlos como equivalentes');
+    parte?.dispatchEvent(new Event('blur'));
+    await estable();
+    expect(html.textContent).not.toContain('equivalentes');
+    escribir('#ar-parte', '');
+    parte?.dispatchEvent(new Event('blur'));
+    await estable();
+
+    api.valoresCategoria.mockReturnValue(
+      of({
+        categoriaId: 'x',
+        prefijo: null,
+        tipo: null,
+        tipoExistencia: null,
+        unidad: null,
+        afectacionIgv: null,
+        codigoProductoSunat: null,
+        control: null,
+        centroBeneficioId: null,
+        propiedades: [],
+      }),
+    );
+    escribir('#ar-categoria', 'aire');
+    await estable();
+    expect(html.querySelector('#ar-unidad')).toBeNull();
+    boton('Crear artículo')?.click();
+    await estable();
+    expect(html.querySelector('#ar-unidad')).not.toBeNull();
+    expect(html.textContent).toContain('Elija la unidad base.');
+  });
+
+  it('normaliza la marca y el texto de las propiedades', () => {
+    expect(normalizarMarca('  mann   filter ')).toBe('MANN FILTER');
+    const base = { ...PROPIEDAD, opciones: [] };
+    expect(textoPropiedad({ ...base, tipo: 'NUMERO', etiqueta: 'Capacidad (L)' }, '4')).toBe('4 L');
+    expect(textoPropiedad({ ...base, tipo: 'NUMERO', etiqueta: 'Amperaje (A / Ah)' }, '45')).toBe(
+      '45 A',
+    );
+    expect(textoPropiedad({ ...base, tipo: 'NUMERO', etiqueta: 'Dientes' }, '12')).toBe('12');
+    expect(textoPropiedad({ ...base, tipo: 'SI_NO', etiqueta: 'Con sensor (ABS)' }, 'SI')).toBe(
+      'Con sensor',
+    );
+    expect(textoPropiedad({ ...base, tipo: 'SI_NO', etiqueta: 'Con sensor' }, 'NO')).toBe('');
+    expect(textoPropiedad({ ...base, tipo: 'TEXTO' }, '  ')).toBe('');
+  });
+});
+
+describe('CatalogosArticulos · control y centro de beneficio', () => {
+  it('guarda el control y el centro de beneficio que propone la categoría', async () => {
+    const api = configurar();
+    const { html, escribir, boton, estable } = await crear(CatalogosArticulos);
+    [...html.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Editar')?.click();
+    await estable();
+    escribir('#cat-control', 'SERIE');
+    escribir('#cat-beneficio', 'cb');
+    boton('Guardar')?.click();
+    await estable();
+    expect(api.actualizarCategoria).toHaveBeenCalledWith(
+      'fil',
+      expect.objectContaining({ controlDefecto: 'SERIE', centroBeneficioDefectoId: 'cb' }),
+    );
   });
 });
