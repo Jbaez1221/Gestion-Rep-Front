@@ -14,7 +14,9 @@
         >
       }
     }
-    <a routerLink="/articulos/lista" class="btn-enlace">Volver a la lista</a>
+    @if (!enDialogo()) {
+      <a routerLink="/articulos/lista" class="btn-enlace">Volver a la lista</a>
+    }
   </div>
 </div>
 
@@ -553,7 +555,7 @@
         <button type="submit" class="btn-primario" [disabled]="guardando()">
           {{ esNuevo() ? 'Crear artículo' : 'Guardar cambios' }}
         </button>
-        @if (esNuevo()) {
+        @if (esNuevo() && !enDialogo()) {
           <button
             type="button"
             class="btn-secundario"
@@ -572,7 +574,7 @@
     }
   </form>
 
-  @if (esNuevo() && tipoActual() === 'INVENTARIABLE' && puedeIngresarStock()) {
+  @if (esNuevo() && !enDialogo() && tipoActual() === 'INVENTARIABLE' && puedeIngresarStock()) {
     <section class="tarjeta space-y-2 self-start" aria-labelledby="titulo-stock-inicial">
       <h3 id="titulo-stock-inicial" class="font-semibold">Stock inicial (opcional)</h3>
       <p class="text-xs text-slate-500">

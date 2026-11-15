@@ -7,6 +7,7 @@ import {
   effect,
   inject,
   input,
+  output,
   signal,
   untracked,
 } from '@angular/core';
@@ -112,6 +113,9 @@ export class ArticuloDetalle implements OnInit {
   /** Query params al crear: copiar un artículo parecido o partir de un N.° de parte buscado. */
   readonly copiarDe = input<string>();
   readonly numeroParte = input<string>();
+  /** Dentro de otra pantalla (p. ej. una compra): al crear emite el artículo en vez de abrirlo. */
+  readonly enDialogo = input(false);
+  readonly creado = output<Articulo>();
 
   protected readonly copiadoDe = signal<string | null>(null);
 
@@ -768,7 +772,10 @@ export class ArticuloDetalle implements OnInit {
         this.avisos.exito('Artículo actualizado.');
       } else {
         const conStock =
-          v.tipo === 'INVENTARIABLE' && this.puedeIngresarStock() && this.quiereIngresarStock();
+          !this.enDialogo() &&
+          v.tipo === 'INVENTARIABLE' &&
+          this.puedeIngresarStock() &&
+          this.quiereIngresarStock();
         const problema = conStock ? this.validarIngreso() : null;
         if (problema) {
           this.error.set({ status: 400, title: 'Stock inicial incompleto', detail: problema });
@@ -783,6 +790,10 @@ export class ArticuloDetalle implements OnInit {
             unidadBaseId: v.unidadBaseId,
           }),
         );
+        if (this.enDialogo()) {
+          this.creado.emit(creado);
+          return;
+        }
         this.avisos.exito(`Artículo ${creado.codigo} creado.`);
         if (conStock) {
           try {
