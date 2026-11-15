@@ -24,6 +24,7 @@ const SIN_VALORES = {
   tipoExistenciaDefecto: null,
   unidadDefectoId: null,
   afectacionIgvDefecto: null,
+  codigoProductoSunatDefecto: null,
 };
 const FIL: Categoria = {
   id: 'fil',
@@ -95,6 +96,9 @@ const ARTICULO: Articulo = {
   codigosBarras: [{ codigo: '7750001', unidadSunat: 'NIU' }],
   propiedades: { viscosidad: '10W40' },
   imagenPrincipalId: 'img1',
+  avisos: [
+    'Falta el código de producto SUNAT (catálogo 25): defínalo en la categoría o en el artículo antes de facturar.',
+  ],
   codigosAlternos: [{ codigo: 'PROV-1', referencia: 'Proveedor' }],
   unidadesAlternas: [{ unidadSunat: 'BX', factor: 10 }],
   equivalentes: [
@@ -132,7 +136,9 @@ const TODOS = [
   'articulos:update',
   'articulos.catalogos:update',
   'articulos:importar',
+  'articulos.tributario:update',
   'inventario:read',
+  'inventario.movimiento:create',
   'centros:read',
 ];
 
@@ -174,6 +180,7 @@ function apiFalsa() {
         tipoExistencia: 'MERCADERIAS',
         unidad: { id: 'u1', codigoSunat: 'NIU', nombre: 'Unidad' },
         afectacionIgv: 'GRAVADO',
+        codigoProductoSunat: '25174100',
         propiedades: [PROPIEDAD],
       }),
     ),
@@ -262,6 +269,27 @@ function configurar(permisos = TODOS) {
       {
         provide: InventarioApi,
         useValue: {
+          almacenes: vi.fn(() =>
+            of([
+              {
+                id: 'al1',
+                codigo: 'CUS01-01',
+                nombre: 'Principal',
+                sucursalId: 's1',
+                sucursalCodigo: 'CUS01',
+                sucursalNombre: 'Cusco',
+              },
+              {
+                id: 'al2',
+                codigo: 'JUL01-01',
+                nombre: 'Principal',
+                sucursalId: 's2',
+                sucursalCodigo: 'JUL01',
+                sucursalNombre: 'Juliaca',
+              },
+            ]),
+          ),
+          registrar: vi.fn(() => of({ numero: 'MI-00000001' })),
           existenciasDeArticulo: vi.fn(() =>
             of([
               {
@@ -269,6 +297,7 @@ function configurar(permisos = TODOS) {
                 almacen: { id: 'al1', codigo: 'CUS01-01', nombre: 'Principal', sucursal: 'Cusco' },
                 cantidad: 5,
                 costoPromedio: 12.5,
+                fechaUltimoMovimiento: '2026-11-10',
               },
             ]),
           ),
@@ -358,6 +387,7 @@ describe('ArticulosApi (contrato)', () => {
       tipoExistenciaDefecto: null,
       unidadDefectoId: null,
       afectacionIgvDefecto: null,
+      codigoProductoSunatDefecto: null,
     };
     api.crearCategoria(cat).subscribe();
     espera('POST', '/api/v1/articulos/catalogos/categorias');
@@ -418,6 +448,8 @@ describe('ArticuloDetalle', () => {
     await estable();
     expect(html.querySelector<HTMLInputElement>('#ar-codigo')?.placeholder).toContain('FIL-');
     escribir('#ar-prop-viscosidad', '10W40');
+    boton('Ver o cambiar')?.click();
+    await estable();
     escribir('#ar-beneficio', 'cb');
     escribir('#ar-control', 'NINGUNO');
     boton('+ Código de barras')?.click();
@@ -429,7 +461,9 @@ describe('ArticuloDetalle', () => {
     escribir('#ar-ua-0', 'BX');
     escribir('#ar-uaf-0', '12');
     await estable();
-    expect(html.querySelectorAll('#ar-ucompra option')).toHaveLength(3);
+    expect(
+      [...html.querySelectorAll('#ar-ucompra option')].map((o) => o.textContent?.trim()),
+    ).toEqual(['Igual a la unidad base (NIU)', 'BX']);
     boton('Crear artículo')?.click();
     await estable();
     expect(api.crear).toHaveBeenCalledWith(
@@ -488,7 +522,8 @@ describe('ArticuloDetalle', () => {
       'a1',
       expect.objectContaining({
         descripcion: 'Filtro de aceite reforzado',
-        codigosBarras: [{ codigo: '7750001', unidadSunat: 'NIU' }],
+        codigosBarras: [{ codigo: '7750001', unidadSunat: null }],
+        unidadCompra: null,
         propiedades: { viscosidad: '10W40' },
       }),
     );
@@ -766,5 +801,191 @@ describe('ImportacionArticulos', () => {
     boton('Validar')?.click();
     await estable();
     expect(html.querySelector('[role=alert]')).not.toBeNull();
+  });
+});
+
+describe('ArticuloDetalle · stock desde la ficha', () => {
+  it('al crear con stock inicial registra un saldo inicial en el almacén elegido', async () => {
+    const api = configurar();
+    const inventario = TestBed.inject(InventarioApi) as unknown as {
+      registrar: ReturnType<typeof vi.fn>;
+    };
+    const { html, escribir, boton, estable } = await crear(ArticuloDetalle);
+    vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    escribir('#ar-descripcion', 'Filtro de aire');
+    escribir('#ar-categoria', 'aire');
+    await estable();
+    escribir('#ar-prop-viscosidad', '10W40');
+    expect(html.textContent).toContain('Stock inicial (opcional)');
+    escribir('#in-almacen', 'al1');
+    escribir('#in-cantidad', '20');
+    boton('Crear artículo')?.click();
+    await estable();
+    expect(api.crear).not.toHaveBeenCalled();
+    expect(html.textContent).toContain('necesita el costo unitario');
+    escribir('#in-costo', '12');
+    boton('Crear artículo')?.click();
+    await estable();
+    expect(api.crear).toHaveBeenCalled();
+    expect(inventario.registrar).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tipo: 'SALDO_INICIAL',
+        almacenId: 'al1',
+        lineas: [{ articuloId: 'nuevo', cantidad: 20, costoUnitario: 12, lotes: [], series: [] }],
+      }),
+    );
+  });
+
+  it('en un artículo existente ingresa stock como ajuste si el almacén ya tuvo movimientos', async () => {
+    configurar();
+    const inventario = TestBed.inject(InventarioApi) as unknown as {
+      registrar: ReturnType<typeof vi.fn>;
+    };
+    const { html, escribir, boton, estable } = await crear(ArticuloDetalle, { id: 'a1' });
+    boton('Ingresar stock')?.click();
+    await estable();
+    escribir('#in-almacen', 'al1');
+    escribir('#in-cantidad', '4');
+    boton('Registrar')?.click();
+    await estable();
+    expect(inventario.registrar).toHaveBeenCalledWith(
+      expect.objectContaining({ tipo: 'AJUSTE_ENTRADA', almacenId: 'al1' }),
+    );
+    expect(html.textContent).not.toContain('Cancelar');
+
+    boton('Ingresar stock')?.click();
+    await estable();
+    escribir('#in-almacen', 'al2');
+    escribir('#in-cantidad', '2');
+    boton('Registrar')?.click();
+    await estable();
+    expect(html.textContent).toContain('necesita el costo unitario');
+    escribir('#in-costo', '15');
+    boton('Registrar')?.click();
+    await estable();
+    expect(inventario.registrar).toHaveBeenLastCalledWith(
+      expect.objectContaining({ tipo: 'SALDO_INICIAL', almacenId: 'al2' }),
+    );
+  });
+
+  it('sin permiso de movimientos no ofrece ingresar stock', async () => {
+    configurar(['articulos:read', 'inventario:read']);
+    const { boton } = await crear(ArticuloDetalle, { id: 'a1' });
+    expect(boton('Ingresar stock')).toBeUndefined();
+  });
+});
+
+describe('ArticuloDetalle · datos tributarios', () => {
+  it('al crear muestra solo el resumen con lo que propone la categoría', async () => {
+    const api = configurar();
+    const { html, escribir, boton, estable } = await crear(ArticuloDetalle);
+    vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    expect(html.querySelector('#ar-igv')).toBeNull();
+    escribir('#ar-descripcion', 'Filtro');
+    escribir('#ar-categoria', 'aire');
+    await estable();
+    escribir('#ar-prop-viscosidad', '10W40');
+    expect(html.textContent).toContain(
+      'Mercaderías · Gravado con IGV · Código SUNAT 25174100 — según la categoría Aire',
+    );
+    boton('Crear artículo')?.click();
+    await estable();
+    expect(api.crear).toHaveBeenCalledWith(
+      expect.objectContaining({
+        codigoProductoSunat: '25174100',
+        afectacionIgv: 'GRAVADO',
+        tipoExistencia: 'MERCADERIAS',
+      }),
+    );
+  });
+
+  it('sin el permiso tributario los campos se ven bloqueados', async () => {
+    configurar(['articulos:read', 'articulos:create', 'articulos:update']);
+    const { html, boton, estable } = await crear(ArticuloDetalle, { id: 'a1' });
+    expect(html.textContent).toContain('Falta el código de producto SUNAT');
+    boton('Ver o cambiar')?.click();
+    await estable();
+    expect(html.querySelector<HTMLSelectElement>('#ar-igv')?.disabled).toBe(true);
+    expect(html.querySelector<HTMLInputElement>('#ar-peso')?.disabled).toBe(false);
+    expect(html.textContent).toContain('requiere el permiso de datos tributarios');
+  });
+
+  it('abre la sección si un dato tributario es inválido al guardar', async () => {
+    const api = configurar();
+    const { html, escribir, boton, estable } = await crear(ArticuloDetalle, { id: 'a1' });
+    boton('Ver o cambiar')?.click();
+    await estable();
+    escribir('#ar-sunat', '123');
+    boton('Ocultar')?.click();
+    await estable();
+    boton('Guardar cambios')?.click();
+    await estable();
+    expect(api.actualizar).not.toHaveBeenCalled();
+    expect(html.querySelector('#ar-sunat')).not.toBeNull();
+  });
+});
+
+describe('ArticulosLista · filtro tributario', () => {
+  it('filtra los artículos sin código SUNAT', async () => {
+    const api = configurar();
+    const { html, boton, estable } = await crear(ArticulosLista);
+    html.querySelector<HTMLInputElement>('input[formcontrolname=tributarioIncompleto]')?.click();
+    boton('Buscar')?.click();
+    await estable();
+    expect(api.listar).toHaveBeenLastCalledWith(
+      expect.objectContaining({ tributarioIncompleto: true }),
+    );
+  });
+});
+
+describe('ArticuloDetalle · duplicar y crear desde la búsqueda', () => {
+  it('duplica un artículo sin copiar sus códigos', async () => {
+    const api = configurar();
+    const { html, escribir, boton, estable } = await crear(ArticuloDetalle, { copiarDe: 'a1' });
+    await estable();
+    expect(html.textContent).toContain('Copia de FIL-000001');
+    expect(html.querySelector<HTMLInputElement>('#ar-descripcion')?.value).toBe('Filtro de aceite');
+    expect(html.querySelector<HTMLInputElement>('#ar-parte')?.value).toBe('');
+    expect(html.querySelector<HTMLSelectElement>('#ar-categoria')?.value).toBe('fil');
+    expect(html.querySelector('#ar-barra-0')).toBeNull();
+    vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    escribir('#ar-descripcion', 'Filtro de aceite Hilux 2.8');
+    escribir('#ar-parte', '90915-YZZE1');
+    boton('Crear artículo')?.click();
+    await estable();
+    expect(api.crear).toHaveBeenCalledWith(
+      expect.objectContaining({
+        codigo: null,
+        numeroParte: '90915-YZZE1',
+        marcaId: 'm1',
+        categoriaId: 'fil',
+        unidadesAlternas: [{ unidadSunat: 'BX', factor: 10 }],
+        codigosBarras: [],
+        codigosAlternos: [],
+        propiedades: { viscosidad: '10W40' },
+      }),
+    );
+  });
+
+  it('parte del N.° de parte buscado y la ficha ofrece duplicar', async () => {
+    configurar();
+    const nuevo = await crear(ArticuloDetalle, { numeroParte: '04465-0K290' });
+    expect(nuevo.html.querySelector<HTMLInputElement>('#ar-parte')?.value).toBe('04465-0K290');
+    TestBed.resetTestingModule();
+    configurar();
+    const existente = await crear(ArticuloDetalle, { id: 'a1' });
+    expect(existente.html.querySelector('a[href*="copiarDe=a1"]')).not.toBeNull();
+  });
+
+  it('una búsqueda sin resultados ofrece crear el artículo con ese número', async () => {
+    const api = configurar();
+    api.listar.mockReturnValue(of(pagina([])));
+    const { html, escribir, boton, estable } = await crear(ArticulosLista);
+    escribir('#a-texto', '04465-0k290');
+    boton('Buscar')?.click();
+    await estable();
+    const enlace = html.querySelector<HTMLAnchorElement>('a[href*="numeroParte"]');
+    expect(enlace?.textContent).toContain('04465-0K290');
+    expect(enlace?.getAttribute('href')).toContain('numeroParte=04465-0K290');
   });
 });

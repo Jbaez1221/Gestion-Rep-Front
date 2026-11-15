@@ -55,6 +55,7 @@ const EXISTENCIA: Existencia = {
   articulo: REF_ART,
   almacen: REF_ALM,
   cantidad: 6,
+  cantidadPedida: 4,
   costoPromedio: 1,
   valor: 6,
   minimo: 5,
@@ -559,6 +560,7 @@ describe('Existencias', () => {
     const { html, escribir, boton, estable } = await crear(Existencias);
     expect(html.textContent).toContain('FIL-000001');
     expect(html.textContent).toContain('Reponer 14');
+    expect(html.querySelectorAll('tbody tr td')[4]?.textContent?.trim()).toBe('4');
     escribir('#e-almacen', 'al1');
     html.querySelector<HTMLInputElement>('input[formcontrolname=bajoReposicion]')?.click();
     boton('Buscar')?.click();

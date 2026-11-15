@@ -388,6 +388,7 @@ export interface Articulo {
   readonly propiedades: Record<string, string>;
   readonly equivalentes: ArticuloBreve[];
   readonly imagenPrincipalId: string | null;
+  readonly avisos: string[];
   readonly creadoPor: string | null;
   readonly fechaCreacion: string | null;
   readonly modificadoPor: string | null;
@@ -465,6 +466,7 @@ export interface ValoresCategoria {
     readonly nombre: string;
   } | null;
   readonly afectacionIgv: AfectacionIgv | null;
+  readonly codigoProductoSunat: string | null;
   readonly propiedades: Propiedad[];
 }
 
@@ -501,6 +503,7 @@ export interface Categoria {
   readonly tipoExistenciaDefecto: TipoExistencia | null;
   readonly unidadDefectoId: string | null;
   readonly afectacionIgvDefecto: AfectacionIgv | null;
+  readonly codigoProductoSunatDefecto: string | null;
 }
 
 export interface CategoriaGuardar {
@@ -511,6 +514,7 @@ export interface CategoriaGuardar {
   tipoExistenciaDefecto: TipoExistencia | null;
   unidadDefectoId: string | null;
   afectacionIgvDefecto: AfectacionIgv | null;
+  codigoProductoSunatDefecto: string | null;
 }
 
 export interface UnidadMedida {
@@ -542,7 +546,9 @@ export type TipoMovimiento =
   | 'CONSUMO_INTERNO'
   | 'TRANSFERENCIA_SALIDA'
   | 'TRANSFERENCIA_ENTRADA'
-  | 'REVALORIZACION';
+  | 'REVALORIZACION'
+  | 'COMPRA'
+  | 'DEVOLUCION_PROVEEDOR';
 export type EstadoTraslado = 'SOLICITADO' | 'EN_TRANSITO' | 'RECIBIDO' | 'ANULADO';
 
 export interface LoteMovido {
@@ -581,6 +587,7 @@ export interface Existencia {
   readonly articulo: ArticuloRef;
   readonly almacen: AlmacenRef;
   readonly cantidad: number;
+  readonly cantidadPedida: number;
   readonly costoPromedio: number;
   readonly valor: number;
   readonly minimo: number | null;
@@ -911,4 +918,124 @@ export interface LineaContada {
   articuloId: string;
   cantidadContada: number | null;
   costoUnitario: number | null;
+}
+
+// --- Socios comerciales ---
+
+export type TipoDocumentoIdentidad =
+  'SIN_DOCUMENTO' | 'DNI' | 'CARNET_EXTRANJERIA' | 'RUC' | 'PASAPORTE';
+export type TipoDireccion = 'FISCAL' | 'ENTREGA' | 'ALMACEN' | 'OTRA';
+export type TipoCuentaBancaria = 'CORRIENTE' | 'AHORROS' | 'DETRACCIONES';
+export type MonedaSocio = 'PEN' | 'USD';
+export type EstadoConsulta = 'ENCONTRADO' | 'NO_ENCONTRADO' | 'SIN_SERVICIO' | 'DESACTIVADA';
+
+export interface DireccionSocio {
+  tipo: TipoDireccion;
+  direccion: string;
+  ubigeo: string | null;
+  referencia: string | null;
+}
+
+export interface ContactoSocio {
+  nombre: string;
+  cargo: string | null;
+  area: string | null;
+  email: string | null;
+  telefono: string | null;
+}
+
+export interface CuentaSocio {
+  banco: string;
+  tipo: TipoCuentaBancaria;
+  moneda: MonedaSocio;
+  numero: string;
+  cci: string | null;
+}
+
+export interface DatosSocio {
+  nombre: string;
+  nombreComercial: string | null;
+  esCliente: boolean;
+  esProveedor: boolean;
+  email: string | null;
+  telefono: string | null;
+  observaciones: string | null;
+  diasCreditoProveedor: number;
+  monedaProveedor: MonedaSocio;
+  plazoEntregaDias: number | null;
+  sujetoDetraccion: boolean;
+  diasCreditoCliente: number;
+  limiteCredito: number | null;
+  direcciones: DireccionSocio[];
+  contactos: ContactoSocio[];
+  cuentas: CuentaSocio[];
+}
+
+export interface SocioListado {
+  readonly id: string;
+  readonly tipoDocumento: TipoDocumentoIdentidad;
+  readonly numeroDocumento: string;
+  readonly nombre: string;
+  readonly nombreComercial: string | null;
+  readonly esCliente: boolean;
+  readonly esProveedor: boolean;
+  readonly condicionSunat: string | null;
+  readonly activo: boolean;
+  readonly bloqueado: boolean;
+}
+
+export interface Socio extends DatosSocio {
+  readonly id: string;
+  readonly tipoDocumento: TipoDocumentoIdentidad;
+  readonly numeroDocumento: string;
+  readonly tipoPersona: 'NATURAL' | 'JURIDICA';
+  readonly activo: boolean;
+  readonly bloqueado: boolean;
+  readonly motivoBloqueo: string | null;
+  readonly estadoSunat: string | null;
+  readonly condicionSunat: string | null;
+  readonly agenteRetencion: boolean | null;
+  readonly agentePercepcion: boolean | null;
+  readonly buenContribuyente: boolean | null;
+  readonly fechaConsultaSunat: string | null;
+  readonly datosPersonalesOcultos: boolean;
+  readonly avisos: string[];
+  readonly creadoPor: string | null;
+  readonly fechaCreacion: string | null;
+  readonly modificadoPor: string | null;
+  readonly fechaModificacion: string | null;
+}
+
+export interface CatalogosSocios {
+  readonly tiposDocumento: {
+    readonly valor: TipoDocumentoIdentidad;
+    readonly codigo: string;
+    readonly descripcion: string;
+  }[];
+  readonly bancos: string[];
+}
+
+export interface ConsultaRuc {
+  readonly ruc: string;
+  readonly tipoPersona: 'NATURAL' | 'JURIDICA';
+  readonly dniVinculado: string | null;
+  readonly estadoConsulta: EstadoConsulta;
+  readonly mensaje: string | null;
+  readonly razonSocial: string | null;
+  readonly nombreComercial: string | null;
+  readonly estado: string | null;
+  readonly condicion: string | null;
+  readonly direccion: string | null;
+  readonly ubigeo: string | null;
+  readonly departamento: string | null;
+  readonly provincia: string | null;
+  readonly distrito: string | null;
+  readonly advertencias: string[];
+}
+
+export interface ConsultaDni {
+  readonly dni: string;
+  readonly estadoConsulta: EstadoConsulta;
+  readonly mensaje: string | null;
+  readonly nombreCompleto: string | null;
 }

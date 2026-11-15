@@ -65,6 +65,7 @@ export class CatalogosArticulos implements OnInit {
     tipoExistenciaDefecto: ['' as TipoExistencia | ''],
     unidadDefectoId: [''],
     afectacionIgvDefecto: ['' as AfectacionIgv | ''],
+    codigoProductoSunatDefecto: ['', Validators.pattern(/^\d{8}$/)],
   });
   protected readonly propiedad = this.fb.group({
     clave: ['', [Validators.required, Validators.pattern(/^[a-z][a-z0-9_]{0,39}$/)]],
@@ -158,6 +159,7 @@ export class CatalogosArticulos implements OnInit {
             tipoExistenciaDefecto: '',
             unidadDefectoId: '',
             afectacionIgvDefecto: '',
+            codigoProductoSunatDefecto: '',
           }
         : {
             nombre: c.nombre,
@@ -167,6 +169,7 @@ export class CatalogosArticulos implements OnInit {
             tipoExistenciaDefecto: c.tipoExistenciaDefecto ?? '',
             unidadDefectoId: c.unidadDefectoId ?? '',
             afectacionIgvDefecto: c.afectacionIgvDefecto ?? '',
+            codigoProductoSunatDefecto: c.codigoProductoSunatDefecto ?? '',
           },
     );
     if (c !== 'nueva') {
@@ -244,6 +247,7 @@ export class CatalogosArticulos implements OnInit {
       tipoExistenciaDefecto: v.tipoExistenciaDefecto || null,
       unidadDefectoId: v.unidadDefectoId || null,
       afectacionIgvDefecto: v.afectacionIgvDefecto || null,
+      codigoProductoSunatDefecto: v.codigoProductoSunatDefecto || null,
     };
     const ok = await this.ejecutar(
       () =>

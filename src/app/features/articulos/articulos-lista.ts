@@ -50,6 +50,8 @@ export class ArticulosLista implements OnInit {
   protected readonly marcas = signal<Marca[]>([]);
   protected readonly arbol = computed(() => arbolDeCategorias(this.categorias()));
   protected readonly error = signal<Problema | null>(null);
+  /** Texto de la última búsqueda: si no trajo nada, se ofrece crear el artículo con ese N.° de parte. */
+  protected readonly buscado = signal('');
 
   protected readonly filtros = this.fb.group({
     texto: [''],
@@ -57,6 +59,7 @@ export class ArticulosLista implements OnInit {
     marcaId: [''],
     tipo: ['' as TipoArticulo | ''],
     estado: ['activos' as 'activos' | 'inactivos' | 'todos'],
+    tributarioIncompleto: [false],
   });
 
   ngOnInit(): void {
@@ -79,6 +82,7 @@ export class ArticulosLista implements OnInit {
 
   protected async buscar(numero = 0): Promise<void> {
     const f = this.filtros.getRawValue();
+    this.buscado.set(f.texto.trim().toUpperCase());
     try {
       this.error.set(null);
       this.pagina.set(
@@ -89,6 +93,7 @@ export class ArticulosLista implements OnInit {
             marcaId: f.marcaId,
             tipo: f.tipo,
             activo: f.estado === 'todos' ? null : f.estado === 'activos',
+            tributarioIncompleto: f.tributarioIncompleto,
             pagina: numero,
           }),
         ),

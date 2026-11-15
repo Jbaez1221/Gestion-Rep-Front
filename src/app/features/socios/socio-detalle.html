@@ -1,0 +1,429 @@
+<section class="space-y-4">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h1 class="titulo-pagina">
+      @if (socio(); as s) {
+        {{ s.nombre }}
+      } @else {
+        Nuevo socio
+      }
+    </h1>
+    <a routerLink="/socios" class="btn-enlace">Volver a la lista</a>
+  </div>
+
+  <app-error-api [problema]="error()" />
+
+  @if (socio()?.avisos?.length) {
+    <ul
+      class="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
+      role="status"
+    >
+      @for (aviso of socio()?.avisos ?? []; track aviso) {
+        <li>{{ aviso }}</li>
+      }
+    </ul>
+  }
+
+  <div class="grid gap-4 xl:grid-cols-[1fr_22rem]">
+    <form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate class="tarjeta space-y-4">
+      <fieldset
+        [formGroup]="documento"
+        class="grid gap-3 sm:grid-cols-[12rem_1fr_auto] sm:items-end"
+      >
+        <legend class="mb-2 font-semibold">Documento</legend>
+        <div>
+          <label for="so-tipo" class="etiqueta">Tipo (catálogo 06)</label>
+          <select id="so-tipo" class="campo" formControlName="tipoDocumento">
+            @for (t of catalogos()?.tiposDocumento ?? []; track t.valor) {
+              @if (t.valor !== 'SIN_DOCUMENTO' || !esNuevo()) {
+                <option [value]="t.valor">{{ t.descripcion }}</option>
+              }
+            }
+          </select>
+        </div>
+        <div>
+          <label for="so-numero" class="etiqueta">Número</label>
+          <input
+            id="so-numero"
+            class="campo font-mono uppercase"
+            formControlName="numeroDocumento"
+          />
+        </div>
+        @if (esNuevo() && sesion.tiene(permisos.sociosConsultar)) {
+          <button type="button" class="btn-secundario" [disabled]="ocupado()" (click)="consultar()">
+            Consultar
+          </button>
+        }
+      </fieldset>
+
+      @if (existente(); as e) {
+        <p
+          class="rounded-md border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900"
+          role="status"
+        >
+          Ya está registrado como {{ e.nombre }}.
+          <a [routerLink]="['/socios', e.id]" class="font-semibold underline">Abrir su ficha</a>
+        </p>
+      }
+      @if (consulta(); as c) {
+        <div
+          role="status"
+          class="rounded-md border p-3 text-sm"
+          [class]="
+            c.tipo === 'ok'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+              : 'border-slate-200 bg-slate-50 text-slate-700'
+          "
+        >
+          <p>{{ c.mensaje }}</p>
+          @for (a of c.advertencias; track a) {
+            <p class="mt-1 font-semibold text-amber-800">{{ a }}</p>
+          }
+        </div>
+      }
+
+      <fieldset class="grid gap-3 sm:grid-cols-2">
+        <legend class="mb-2 font-semibold">Datos</legend>
+        <div class="sm:col-span-2">
+          <label for="so-nombre" class="etiqueta">Razón social o nombre completo</label>
+          <input id="so-nombre" class="campo" formControlName="nombre" />
+          @if (formulario.controls.nombre.touched && formulario.controls.nombre.invalid) {
+            <p class="error-campo">Indique el nombre.</p>
+          }
+        </div>
+        <div>
+          <label for="so-comercial" class="etiqueta">Nombre comercial</label>
+          <input id="so-comercial" class="campo" formControlName="nombreComercial" />
+        </div>
+        <div class="flex items-end gap-4 pb-2">
+          <label class="flex items-center gap-2 text-sm"
+            ><input type="checkbox" formControlName="esProveedor" /> Proveedor</label
+          >
+          <label class="flex items-center gap-2 text-sm"
+            ><input type="checkbox" formControlName="esCliente" /> Cliente</label
+          >
+        </div>
+        @if (verDatosPersonales() || esNuevo()) {
+          <div>
+            <label for="so-email" class="etiqueta">Correo</label>
+            <input id="so-email" type="email" class="campo" formControlName="email" />
+          </div>
+          <div>
+            <label for="so-telefono" class="etiqueta">Teléfono</label>
+            <input id="so-telefono" class="campo" formControlName="telefono" />
+          </div>
+        }
+      </fieldset>
+
+      @if (formulario.controls.esProveedor.value) {
+        <fieldset class="grid gap-3 sm:grid-cols-4">
+          <legend class="mb-2 font-semibold">Como proveedor</legend>
+          <div>
+            <label for="so-dcp" class="etiqueta">Días de crédito</label>
+            <input
+              id="so-dcp"
+              type="number"
+              min="0"
+              max="365"
+              class="campo text-right"
+              formControlName="diasCreditoProveedor"
+            />
+          </div>
+          <div>
+            <label for="so-moneda" class="etiqueta">Moneda habitual</label>
+            <select id="so-moneda" class="campo" formControlName="monedaProveedor">
+              <option value="PEN">Soles</option>
+              <option value="USD">Dólares</option>
+            </select>
+          </div>
+          <div>
+            <label for="so-plazo" class="etiqueta">Entrega (días)</label>
+            <input
+              id="so-plazo"
+              type="number"
+              min="0"
+              max="365"
+              class="campo text-right"
+              formControlName="plazoEntregaDias"
+            />
+          </div>
+          <label class="flex items-end gap-2 pb-2 text-sm">
+            <input type="checkbox" formControlName="sujetoDetraccion" /> Sujeto a detracción
+          </label>
+        </fieldset>
+      }
+
+      @if (formulario.controls.esCliente.value) {
+        <fieldset class="grid gap-3 sm:grid-cols-4">
+          <legend class="mb-2 font-semibold">Como cliente</legend>
+          <div>
+            <label for="so-dcc" class="etiqueta">Días de crédito</label>
+            <input
+              id="so-dcc"
+              type="number"
+              min="0"
+              max="365"
+              class="campo text-right"
+              formControlName="diasCreditoCliente"
+            />
+          </div>
+          <div>
+            <label for="so-limite" class="etiqueta">Límite de crédito (S/)</label>
+            <input
+              id="so-limite"
+              type="number"
+              min="0"
+              step="0.01"
+              class="campo text-right"
+              formControlName="limiteCredito"
+            />
+          </div>
+        </fieldset>
+      }
+
+      <fieldset formArrayName="direcciones" class="space-y-2">
+        <legend class="font-semibold">Direcciones</legend>
+        @for (d of formulario.controls.direcciones.controls; track d; let i = $index) {
+          <div
+            [formGroupName]="i"
+            class="grid gap-2 sm:grid-cols-[9rem_1fr_7rem_auto] sm:items-center"
+          >
+            <label [for]="'so-dt-' + i" class="sr-only">Tipo de dirección {{ i + 1 }}</label>
+            <select [id]="'so-dt-' + i" class="campo" formControlName="tipo">
+              <option value="FISCAL">Fiscal</option>
+              <option value="ENTREGA">Entrega</option>
+              <option value="ALMACEN">Almacén</option>
+              <option value="OTRA">Otra</option>
+            </select>
+            <label [for]="'so-dd-' + i" class="sr-only">Dirección {{ i + 1 }}</label>
+            <input
+              [id]="'so-dd-' + i"
+              class="campo"
+              formControlName="direccion"
+              placeholder="Dirección"
+            />
+            <label [for]="'so-du-' + i" class="sr-only">Ubigeo de la dirección {{ i + 1 }}</label>
+            <input
+              [id]="'so-du-' + i"
+              class="campo font-mono"
+              formControlName="ubigeo"
+              placeholder="Ubigeo"
+            />
+            @if (puedeEditar()) {
+              <button
+                type="button"
+                class="btn-enlace"
+                (click)="formulario.controls.direcciones.removeAt(i)"
+              >
+                Quitar
+              </button>
+            }
+          </div>
+        }
+        @if (puedeEditar()) {
+          <button type="button" class="btn-enlace" (click)="agregarDireccion()">+ Dirección</button>
+        }
+      </fieldset>
+
+      @if (verDatosPersonales() || esNuevo()) {
+        <fieldset formArrayName="contactos" class="space-y-2">
+          <legend class="font-semibold">Contactos</legend>
+          @for (c of formulario.controls.contactos.controls; track c; let i = $index) {
+            <div [formGroupName]="i" class="grid gap-2 sm:grid-cols-4 sm:items-center">
+              <label [for]="'so-cn-' + i" class="sr-only">Nombre del contacto {{ i + 1 }}</label>
+              <input
+                [id]="'so-cn-' + i"
+                class="campo"
+                formControlName="nombre"
+                placeholder="Nombre"
+              />
+              <label [for]="'so-ca-' + i" class="sr-only">Área del contacto {{ i + 1 }}</label>
+              <input
+                [id]="'so-ca-' + i"
+                class="campo"
+                formControlName="area"
+                placeholder="Área (ventas, cobranzas…)"
+              />
+              <label [for]="'so-ce-' + i" class="sr-only">Correo del contacto {{ i + 1 }}</label>
+              <input
+                [id]="'so-ce-' + i"
+                type="email"
+                class="campo"
+                formControlName="email"
+                placeholder="Correo"
+              />
+              <div class="flex items-center gap-2">
+                <label [for]="'so-ct-' + i" class="sr-only"
+                  >Teléfono del contacto {{ i + 1 }}</label
+                >
+                <input
+                  [id]="'so-ct-' + i"
+                  class="campo"
+                  formControlName="telefono"
+                  placeholder="Teléfono"
+                />
+                @if (puedeEditar()) {
+                  <button
+                    type="button"
+                    class="btn-enlace"
+                    (click)="formulario.controls.contactos.removeAt(i)"
+                  >
+                    Quitar
+                  </button>
+                }
+              </div>
+            </div>
+          }
+          @if (puedeEditar()) {
+            <button type="button" class="btn-enlace" (click)="agregarContacto()">+ Contacto</button>
+          }
+        </fieldset>
+
+        <fieldset formArrayName="cuentas" class="space-y-2">
+          <legend class="font-semibold">Cuentas bancarias</legend>
+          @for (c of formulario.controls.cuentas.controls; track c; let i = $index) {
+            <div
+              [formGroupName]="i"
+              class="grid gap-2 sm:grid-cols-[9rem_10rem_6rem_1fr_1fr_auto] sm:items-center"
+            >
+              <label [for]="'so-kt-' + i" class="sr-only">Tipo de cuenta {{ i + 1 }}</label>
+              <select
+                [id]="'so-kt-' + i"
+                class="campo"
+                formControlName="tipo"
+                (change)="cambiarTipoCuenta(i)"
+              >
+                <option value="CORRIENTE">Corriente</option>
+                <option value="AHORROS">Ahorros</option>
+                <option value="DETRACCIONES">Detracciones</option>
+              </select>
+              <label [for]="'so-kb-' + i" class="sr-only">Banco de la cuenta {{ i + 1 }}</label>
+              <input
+                [id]="'so-kb-' + i"
+                class="campo uppercase"
+                formControlName="banco"
+                list="bancos"
+                placeholder="Banco"
+              />
+              <label [for]="'so-km-' + i" class="sr-only">Moneda de la cuenta {{ i + 1 }}</label>
+              <select [id]="'so-km-' + i" class="campo" formControlName="moneda">
+                <option value="PEN">PEN</option>
+                <option value="USD">USD</option>
+              </select>
+              <label [for]="'so-kn-' + i" class="sr-only">Número de la cuenta {{ i + 1 }}</label>
+              <input
+                [id]="'so-kn-' + i"
+                class="campo font-mono"
+                formControlName="numero"
+                placeholder="Número"
+              />
+              <label [for]="'so-kc-' + i" class="sr-only">CCI de la cuenta {{ i + 1 }}</label>
+              <input
+                [id]="'so-kc-' + i"
+                class="campo font-mono"
+                formControlName="cci"
+                placeholder="CCI (20 dígitos)"
+              />
+              @if (puedeEditar()) {
+                <button
+                  type="button"
+                  class="btn-enlace"
+                  (click)="formulario.controls.cuentas.removeAt(i)"
+                >
+                  Quitar
+                </button>
+              }
+            </div>
+          }
+          <datalist id="bancos">
+            @for (b of catalogos()?.bancos ?? []; track b) {
+              <option [value]="b"></option>
+            }
+          </datalist>
+          @if (puedeEditar()) {
+            <button type="button" class="btn-enlace" (click)="agregarCuenta()">+ Cuenta</button>
+          }
+        </fieldset>
+      } @else {
+        <p class="text-sm text-slate-500">
+          Correo, teléfono, contactos y cuentas bancarias son datos personales: necesita permiso
+          para verlos.
+        </p>
+      }
+
+      <div>
+        <label for="so-observaciones" class="etiqueta">Observaciones</label>
+        <textarea
+          id="so-observaciones"
+          rows="2"
+          class="campo"
+          formControlName="observaciones"
+        ></textarea>
+      </div>
+
+      @if (puedeEditar()) {
+        <button type="submit" class="btn-primario" [disabled]="ocupado()">
+          {{ esNuevo() ? 'Registrar socio' : 'Guardar cambios' }}
+        </button>
+      }
+    </form>
+
+    @if (socio(); as s) {
+      <div class="space-y-4">
+        @if (s.tipoDocumento === 'RUC') {
+          <section class="tarjeta space-y-2" aria-labelledby="titulo-sunat">
+            <h2 id="titulo-sunat" class="font-semibold">SUNAT</h2>
+            <dl class="grid grid-cols-2 gap-1 text-sm">
+              <dt class="text-slate-500">Estado</dt>
+              <dd>{{ s.estadoSunat ?? '—' }}</dd>
+              <dt class="text-slate-500">Condición</dt>
+              <dd [class.text-red-700]="s.condicionSunat && s.condicionSunat !== 'HABIDO'">
+                {{ s.condicionSunat ?? '—' }}
+              </dd>
+              <dt class="text-slate-500">Agente de retención</dt>
+              <dd>{{ indicador(s.agenteRetencion) }}</dd>
+              <dt class="text-slate-500">Agente de percepción</dt>
+              <dd>{{ indicador(s.agentePercepcion) }}</dd>
+              <dt class="text-slate-500">Buen contribuyente</dt>
+              <dd>{{ indicador(s.buenContribuyente) }}</dd>
+              <dt class="text-slate-500">Consultado</dt>
+              <dd>{{ s.fechaConsultaSunat ? s.fechaConsultaSunat.slice(0, 10) : 'Nunca' }}</dd>
+            </dl>
+            @if (sesion.tiene(permisos.sociosEditar) && sesion.tiene(permisos.sociosConsultar)) {
+              <button
+                type="button"
+                class="btn-secundario"
+                [disabled]="ocupado()"
+                (click)="actualizarSunat()"
+              >
+                Actualizar desde SUNAT
+              </button>
+            }
+          </section>
+        }
+
+        <form [formGroup]="estado" (ngSubmit)="guardarEstado()" class="tarjeta space-y-2">
+          <h2 class="font-semibold">Estado</h2>
+          <label class="flex items-center gap-2 text-sm"
+            ><input type="checkbox" formControlName="activo" /> Activo</label
+          >
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" formControlName="bloqueado" /> Bloqueado para documentos nuevos
+          </label>
+          @if (estado.controls.bloqueado.value) {
+            <div>
+              <label for="so-motivo" class="etiqueta">Motivo del bloqueo</label>
+              <input id="so-motivo" class="campo" formControlName="motivoBloqueo" />
+            </div>
+          }
+          @if (sesion.tiene(permisos.sociosBloquear)) {
+            <button type="submit" class="btn-secundario">Guardar estado</button>
+          }
+        </form>
+
+        <p class="text-xs text-slate-500">
+          Registrado por {{ s.creadoPor ?? '—' }} · modificado por {{ s.modificadoPor ?? '—' }}
+        </p>
+      </div>
+    }
+  </div>
+</section>

@@ -57,7 +57,7 @@ test('flujo completo: admin, sucursal, rol, usuario, auditoría, centros, invent
   await cambiarClave(page, CLAVE_ADMIN ?? '', NUEVA_CLAVE_ADMIN);
   await expect(
     page.getByRole('navigation', { name: 'Menú principal' }).getByRole('link'),
-  ).toHaveCount(8);
+  ).toHaveCount(9);
 
   // Sucursal nueva: nace con su almacén principal.
   await page

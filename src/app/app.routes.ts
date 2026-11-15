@@ -118,6 +118,24 @@ export const routes: Routes = [
         ],
       },
       {
+        path: 'socios',
+        title: 'Socios comerciales · Repuestos',
+        data: { permisos: [PERMISOS.sociosLeer] },
+        loadComponent: () => import('./features/socios/socios-lista').then((m) => m.SociosLista),
+      },
+      {
+        path: 'socios/nuevo',
+        title: 'Nuevo socio · Repuestos',
+        data: { permisos: [PERMISOS.sociosCrear] },
+        loadComponent: () => import('./features/socios/socio-detalle').then((m) => m.SocioDetalle),
+      },
+      {
+        path: 'socios/:id',
+        title: 'Socio · Repuestos',
+        data: { permisos: [PERMISOS.sociosLeer] },
+        loadComponent: () => import('./features/socios/socio-detalle').then((m) => m.SocioDetalle),
+      },
+      {
         path: 'articulos',
         title: 'Artículos · Repuestos',
         data: { permisos: [PERMISOS.articulosLeer] },
