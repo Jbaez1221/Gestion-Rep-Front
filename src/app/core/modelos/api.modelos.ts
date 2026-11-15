@@ -566,7 +566,8 @@ export type TipoMovimiento =
   | 'TRANSFERENCIA_ENTRADA'
   | 'REVALORIZACION'
   | 'COMPRA'
-  | 'DEVOLUCION_PROVEEDOR';
+  | 'DEVOLUCION_PROVEEDOR'
+  | 'AJUSTE_COSTO_COMPRA';
 export type EstadoTraslado = 'SOLICITADO' | 'EN_TRANSITO' | 'RECIBIDO' | 'ANULADO';
 
 export interface LoteMovido {
@@ -1056,4 +1057,333 @@ export interface ConsultaDni {
   readonly estadoConsulta: EstadoConsulta;
   readonly mensaje: string | null;
   readonly nombreCompleto: string | null;
+}
+
+// --- Compras ---
+
+export type AfectacionCompra = 'GRAVADO' | 'EXONERADO' | 'INAFECTO';
+export type TipoComprobante = 'FACTURA' | 'BOLETA' | 'NOTA_CREDITO' | 'NOTA_DEBITO';
+export type EstadoCompra = 'REGISTRADA' | 'ANULADA';
+export type EstadoOrden = 'BORRADOR' | 'EMITIDA' | 'PARCIAL' | 'RECIBIDA' | 'CERRADA' | 'ANULADA';
+export type TipoLineaCompra = 'INVENTARIO' | 'GASTO' | 'COSTO' | 'AJUSTE';
+export type EstadoRecepcion = 'PENDIENTE' | 'FACTURADA' | 'ANULADA';
+
+export interface RecepcionBreve {
+  readonly id: string;
+  readonly numero: string;
+  readonly guia: string | null;
+  readonly fecha: string;
+  readonly totalSoles: number;
+  readonly estado: EstadoRecepcion;
+}
+
+export interface LineaRecepcion {
+  readonly linea: number;
+  readonly articuloId: string;
+  readonly articuloCodigo: string;
+  readonly descripcion: string;
+  readonly unidad: string;
+  readonly factor: number;
+  readonly cantidad: number;
+  readonly costoUnitario: number;
+  readonly costoSoles: number;
+  readonly ordenLinea: number | null;
+}
+
+export interface Recepcion {
+  readonly id: string;
+  readonly numero: string;
+  readonly proveedor: ProveedorRef;
+  readonly almacen: AlmacenCompraRef | null;
+  readonly sucursalId: string;
+  readonly orden: ReferenciaDocumento | null;
+  readonly guia: string | null;
+  readonly fecha: string;
+  readonly moneda: Moneda;
+  readonly tipoCambio: number;
+  readonly glosa: string | null;
+  readonly totalSoles: number;
+  readonly estado: EstadoRecepcion;
+  readonly compra: ReferenciaDocumento | null;
+  readonly movimientoId: string | null;
+  readonly lineas: LineaRecepcion[];
+  readonly anuladoPor: string | null;
+  readonly fechaAnulacion: string | null;
+  readonly motivoAnulacion: string | null;
+  readonly creadoPor: string | null;
+  readonly fechaCreacion: string | null;
+}
+
+export interface RecepcionListado {
+  readonly id: string;
+  readonly numero: string;
+  readonly proveedor: ProveedorRef;
+  readonly almacen: AlmacenCompraRef | null;
+  readonly guia: string | null;
+  readonly fecha: string;
+  readonly totalSoles: number;
+  readonly estado: EstadoRecepcion;
+}
+
+export interface RecepcionGuardar {
+  proveedorId: string;
+  almacenId: string | null;
+  ordenId: string | null;
+  guiaSerie: string | null;
+  guiaNumero: string | null;
+  fecha: string;
+  moneda: Moneda;
+  tipoCambio: number | null;
+  glosa: string | null;
+  lineas: {
+    articuloId: string;
+    unidad: string | null;
+    cantidad: number;
+    costoUnitario: number | null;
+    ordenLinea: number | null;
+    lotes: LoteMovido[];
+    series: string[];
+  }[];
+}
+
+export interface ProveedorRef {
+  readonly id: string;
+  readonly documento: string;
+  readonly nombre: string;
+}
+
+export interface AlmacenCompraRef {
+  readonly id: string;
+  readonly codigo: string;
+  readonly nombre: string;
+  readonly sucursal: string;
+}
+
+export interface ReferenciaDocumento {
+  readonly id: string;
+  readonly numero: string;
+}
+
+export interface TipoCambio {
+  readonly fecha: string;
+  readonly compra: number;
+  readonly venta: number;
+  readonly modificadoPor: string | null;
+}
+
+export interface LineaOrden {
+  readonly linea: number;
+  readonly articuloId: string;
+  readonly articuloCodigo: string;
+  readonly descripcion: string;
+  readonly unidad: string;
+  readonly factor: number;
+  readonly cantidad: number;
+  readonly precioUnitario: number;
+  readonly afectacion: AfectacionCompra;
+  readonly cantidadRecibida: number;
+  readonly pendiente: number;
+}
+
+export interface CompraBreve {
+  readonly id: string;
+  readonly numero: string;
+  readonly tipoComprobante: TipoComprobante;
+  readonly comprobante: string;
+  readonly fechaEmision: string;
+  readonly total: number;
+  readonly estado: EstadoCompra;
+}
+
+export interface OrdenCompra {
+  readonly id: string;
+  readonly numero: string;
+  readonly proveedor: ProveedorRef;
+  readonly almacen: AlmacenCompraRef | null;
+  readonly sucursalId: string;
+  readonly fecha: string;
+  readonly fechaEntrega: string | null;
+  readonly moneda: Moneda;
+  readonly diasCredito: number;
+  readonly observacion: string | null;
+  readonly estado: EstadoOrden;
+  readonly subtotal: number;
+  readonly igv: number;
+  readonly total: number;
+  readonly aprobadoPor: string | null;
+  readonly fechaAprobacion: string | null;
+  readonly motivoCierre: string | null;
+  readonly lineas: LineaOrden[];
+  readonly compras: CompraBreve[];
+  readonly recepciones: RecepcionBreve[];
+  readonly creadoPor: string | null;
+  readonly fechaCreacion: string | null;
+}
+
+export interface OrdenListado {
+  readonly id: string;
+  readonly numero: string;
+  readonly proveedor: ProveedorRef;
+  readonly almacen: AlmacenCompraRef | null;
+  readonly fecha: string;
+  readonly fechaEntrega: string | null;
+  readonly moneda: Moneda;
+  readonly total: number;
+  readonly estado: EstadoOrden;
+}
+
+export interface OrdenGuardar {
+  proveedorId: string;
+  almacenId: string;
+  fecha: string;
+  fechaEntrega: string | null;
+  moneda: Moneda;
+  diasCredito: number | null;
+  observacion: string | null;
+  lineas: { articuloId: string; unidad: string | null; cantidad: number; precioUnitario: number }[];
+}
+
+export interface LineaCompraGuardar {
+  articuloId: string | null;
+  descripcion: string | null;
+  unidad: string | null;
+  cantidad: number;
+  precio: number;
+  afectacion: AfectacionCompra | null;
+  centroCostoId: string | null;
+  naturaleza: string | null;
+  ordenLinea: number | null;
+  lotes: LoteMovido[];
+  series: string[];
+  sumaAlCosto: boolean;
+}
+
+export interface CompraGuardar {
+  proveedorId: string;
+  tipoComprobante: TipoComprobante;
+  serie: string;
+  numero: string;
+  fechaEmision: string;
+  fechaVencimiento: string | null;
+  fechaContable: string | null;
+  moneda: Moneda;
+  tipoCambio: number | null;
+  preciosIncluyenIgv: boolean;
+  almacenId: string | null;
+  ordenId: string | null;
+  referenciaId: string | null;
+  motivoNota: string | null;
+  glosa: string | null;
+  detraccionCodigo: string | null;
+  totalDocumento: number | null;
+  lineas: LineaCompraGuardar[];
+  recepcionIds: string[];
+}
+
+export interface LineaCompra {
+  readonly linea: number;
+  readonly tipo: TipoLineaCompra;
+  readonly articuloId: string | null;
+  readonly articuloCodigo: string | null;
+  readonly descripcion: string;
+  readonly unidad: string;
+  readonly factor: number;
+  readonly cantidad: number;
+  readonly valorUnitario: number;
+  readonly afectacion: AfectacionCompra;
+  readonly valorVenta: number;
+  readonly igv: number;
+  readonly total: number;
+  readonly costoSoles: number;
+  readonly costoAdicional: number;
+  readonly centroCostoId: string | null;
+  readonly naturaleza: string | null;
+  readonly ordenLinea: number | null;
+}
+
+export interface Compra {
+  readonly id: string;
+  readonly numero: string;
+  readonly proveedor: ProveedorRef;
+  readonly tipoComprobante: TipoComprobante;
+  readonly comprobante: string;
+  readonly fechaEmision: string;
+  readonly fechaVencimiento: string | null;
+  readonly fechaContable: string;
+  readonly moneda: Moneda;
+  readonly tipoCambio: number;
+  readonly preciosIncluyenIgv: boolean;
+  readonly sucursalId: string;
+  readonly almacen: AlmacenCompraRef | null;
+  readonly orden: ReferenciaDocumento | null;
+  readonly referencia: ReferenciaDocumento | null;
+  readonly motivoNota: {
+    readonly valor: string;
+    readonly codigo: string;
+    readonly descripcion: string;
+  } | null;
+  readonly glosa: string | null;
+  readonly gravado: number;
+  readonly exonerado: number;
+  readonly inafecto: number;
+  readonly igv: number;
+  readonly total: number;
+  readonly totalSoles: number;
+  readonly creditoFiscal: boolean;
+  readonly detraccion: {
+    readonly codigo: string;
+    readonly descripcion: string | null;
+    readonly porcentaje: number;
+    readonly monto: number;
+  } | null;
+  readonly estado: EstadoCompra;
+  readonly movimientoId: string | null;
+  readonly ajusteMovimientoId: string | null;
+  readonly diferenciaNoAplicada: number;
+  readonly lineas: LineaCompra[];
+  readonly notas: CompraBreve[];
+  readonly recepciones: RecepcionBreve[];
+  readonly avisos: string[];
+  readonly anuladoPor: string | null;
+  readonly fechaAnulacion: string | null;
+  readonly motivoAnulacion: string | null;
+  readonly creadoPor: string | null;
+  readonly fechaCreacion: string | null;
+}
+
+export interface CompraListado {
+  readonly id: string;
+  readonly numero: string;
+  readonly proveedor: ProveedorRef;
+  readonly tipoComprobante: TipoComprobante;
+  readonly comprobante: string;
+  readonly fechaEmision: string;
+  readonly fechaContable: string;
+  readonly moneda: Moneda;
+  readonly total: number;
+  readonly totalSoles: number;
+  readonly creditoFiscal: boolean;
+  readonly estado: EstadoCompra;
+}
+
+export interface CatalogosCompras {
+  readonly tiposComprobante: {
+    readonly valor: TipoComprobante;
+    readonly codigo: string;
+    readonly descripcion: string;
+  }[];
+  readonly motivosNota: {
+    readonly valor: string;
+    readonly tipo: TipoComprobante;
+    readonly codigo: string;
+    readonly descripcion: string;
+    readonly devolucion: boolean;
+  }[];
+  readonly detracciones: {
+    readonly codigo: string;
+    readonly descripcion: string;
+    readonly porcentaje: number;
+    readonly umbral: number;
+  }[];
+  readonly tasaIgv: number;
 }

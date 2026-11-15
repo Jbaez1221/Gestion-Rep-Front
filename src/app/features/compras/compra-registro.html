@@ -1,0 +1,451 @@
+<div class="space-y-4">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h1 class="titulo-pagina">Registrar compra</h1>
+    <a routerLink="/compras/lista" class="btn-enlace">Volver a las compras</a>
+  </div>
+
+  <app-error-api [problema]="error()" />
+
+  <form [formGroup]="cabecera" (ngSubmit)="guardar()" novalidate class="tarjeta space-y-4">
+    <fieldset class="grid gap-3 sm:grid-cols-4">
+      <legend class="mb-2 font-semibold">Comprobante del proveedor</legend>
+      <div class="sm:col-span-2">
+        @if (proveedor(); as p) {
+          <p class="etiqueta">Proveedor</p>
+          <p>
+            <span class="font-mono">{{ p.numeroDocumento }}</span> · {{ p.nombre }}
+            <button type="button" class="btn-enlace ml-2" (click)="cambiarProveedor()">
+              Cambiar
+            </button>
+          </p>
+          @if (p.condicionSunat && p.condicionSunat !== 'HABIDO') {
+            <p class="mt-1 text-xs text-amber-800">
+              {{ p.condicionSunat }}: su factura no da crédito fiscal (el IGV irá al costo).
+            </p>
+          }
+        } @else {
+          <app-buscador-proveedor (elegido)="elegirProveedor($event)" />
+        }
+      </div>
+      <div>
+        <label for="co-tipo" class="etiqueta">Tipo</label>
+        <select
+          id="co-tipo"
+          class="campo"
+          formControlName="tipoComprobante"
+          (change)="cambiarTipo()"
+        >
+          @for (t of catalogos()?.tiposComprobante ?? []; track t.valor) {
+            <option [value]="t.valor">{{ t.codigo }} · {{ t.descripcion }}</option>
+          }
+        </select>
+      </div>
+      <div class="grid grid-cols-[5rem_1fr] gap-2">
+        <div>
+          <label for="co-serie" class="etiqueta">Serie</label>
+          <input
+            id="co-serie"
+            class="campo font-mono uppercase"
+            formControlName="serie"
+            maxlength="4"
+            placeholder="F001"
+          />
+        </div>
+        <div>
+          <label for="co-numero" class="etiqueta">Número</label>
+          <input
+            id="co-numero"
+            class="campo font-mono"
+            inputmode="numeric"
+            formControlName="numero"
+            maxlength="8"
+          />
+        </div>
+      </div>
+      <div>
+        <label for="co-emision" class="etiqueta">Fecha de emisión</label>
+        <input
+          id="co-emision"
+          type="date"
+          class="campo"
+          formControlName="fechaEmision"
+          (change)="proponerTipoCambio()"
+        />
+      </div>
+      <div>
+        <label for="co-contable" class="etiqueta">Fecha contable</label>
+        <input id="co-contable" type="date" class="campo" formControlName="fechaContable" />
+        <p class="mt-1 text-xs text-slate-500">Define el mes y la fecha del ingreso al almacén.</p>
+      </div>
+      @if (!esNota()) {
+        <div>
+          <label for="co-vence" class="etiqueta">Vencimiento</label>
+          <input id="co-vence" type="date" class="campo" formControlName="fechaVencimiento" />
+          @if (proveedor()?.diasCreditoProveedor) {
+            <p class="mt-1 text-xs text-slate-500">
+              Vacío: emisión + {{ proveedor()?.diasCreditoProveedor }} días de crédito.
+            </p>
+          }
+        </div>
+      }
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label for="co-moneda" class="etiqueta">Moneda</label>
+          <select
+            id="co-moneda"
+            class="campo"
+            formControlName="moneda"
+            (change)="proponerTipoCambio()"
+          >
+            <option value="PEN">Soles</option>
+            <option value="USD">Dólares</option>
+          </select>
+        </div>
+        @if (cabecera.controls.moneda.value === 'USD' && !esNota()) {
+          <div>
+            <label for="co-tc" class="etiqueta">Tipo de cambio</label>
+            <input
+              id="co-tc"
+              type="number"
+              step="0.001"
+              min="0.001"
+              class="campo text-right"
+              formControlName="tipoCambio"
+            />
+            @if (tipoCambioDe()) {
+              <p class="mt-1 text-xs text-slate-500">Venta SBS del {{ tipoCambioDe() }}.</p>
+            }
+          </div>
+        }
+      </div>
+
+      @if (esNota()) {
+        <div class="sm:col-span-2">
+          <label for="co-ref" class="etiqueta">Comprobante que modifica</label>
+          <select
+            id="co-ref"
+            class="campo"
+            [formControl]="referenciaId"
+            (change)="elegirReferencia(referenciaId.value)"
+          >
+            <option value="">Elija…</option>
+            @for (c of comprobantes(); track c.id) {
+              <option [value]="c.id">
+                {{ nombres[c.tipoComprobante] }} {{ c.comprobante }} ·
+                {{ c.total | number: '1.2-2' }}
+              </option>
+            }
+          </select>
+        </div>
+        <div class="sm:col-span-2">
+          <label for="co-motivo" class="etiqueta">Motivo</label>
+          <select id="co-motivo" class="campo" formControlName="motivoNota">
+            <option value="">Elija…</option>
+            @for (m of motivos(); track m.valor) {
+              <option [value]="m.codigo">{{ m.codigo }} · {{ m.descripcion }}</option>
+            }
+          </select>
+          @if (devolucion()) {
+            <p class="mt-1 text-xs text-slate-500">Lo devuelto sale del almacén de la compra.</p>
+          } @else if (cabecera.controls.motivoNota.value) {
+            <p class="mt-1 text-xs text-slate-500">Solo cambia el importe: no mueve stock.</p>
+          }
+        </div>
+        @if (referenciaElegida()) {
+          <div class="sm:col-span-4">
+            <button type="button" class="btn-enlace" (click)="copiarLineasReferencia()">
+              Copiar los artículos del comprobante
+            </button>
+          </div>
+        }
+      } @else {
+        <div>
+          <label for="co-almacen" class="etiqueta">Almacén donde entra</label>
+          <select id="co-almacen" class="campo" formControlName="almacenId">
+            <option value="">Sin mercadería (solo gastos)</option>
+            @for (a of almacenes(); track a.id) {
+              <option [value]="a.id">{{ a.sucursalNombre }} · {{ a.nombre }}</option>
+            }
+          </select>
+        </div>
+        @if (recepcionesPendientes().length > 0) {
+          <fieldset class="space-y-1 sm:col-span-4">
+            <legend class="etiqueta">
+              Factura recepciones con guía (su mercadería ya está en el almacén)
+            </legend>
+            @for (r of recepcionesPendientes(); track r.id) {
+              <label class="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  [checked]="recepcionesElegidas().includes(r.id)"
+                  (change)="alternarRecepcion(r.id, $any($event.target).checked)"
+                />
+                <span class="font-mono">{{ r.numero }}</span> · guía {{ r.guia ?? '—' }} ·
+                {{ r.totalSoles | number: '1.2-2' }}
+              </label>
+            }
+          </fieldset>
+        }
+        @if (ordenesAbiertas().length > 0 && recepcionesElegidas().length === 0) {
+          <div>
+            <label for="co-orden" class="etiqueta">Recibe la orden</label>
+            <select
+              id="co-orden"
+              class="campo"
+              [formControl]="ordenId"
+              (change)="elegirOrden(ordenId.value)"
+            >
+              <option value="">Sin orden</option>
+              @for (o of ordenesAbiertas(); track o.id) {
+                <option [value]="o.id">{{ o.numero }} · {{ o.total | number: '1.2-2' }}</option>
+              }
+            </select>
+          </div>
+        }
+        @if (tipo() === 'FACTURA') {
+          <div>
+            <label for="co-detraccion" class="etiqueta">Detracción (SPOT)</label>
+            <select id="co-detraccion" class="campo" formControlName="detraccionCodigo">
+              <option value="">No aplica</option>
+              @for (d of catalogos()?.detracciones ?? []; track d.codigo) {
+                <option [value]="d.codigo">
+                  {{ d.codigo }} · {{ d.descripcion }} ({{ d.porcentaje }} %)
+                </option>
+              }
+            </select>
+            @if (proveedor()?.sujetoDetraccion && !cabecera.controls.detraccionCodigo.value) {
+              <p class="mt-1 text-xs text-amber-800">El proveedor está sujeto a detracción.</p>
+            }
+          </div>
+        }
+      }
+    </fieldset>
+
+    <fieldset class="space-y-2">
+      <legend class="font-semibold">Líneas</legend>
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" formControlName="preciosIncluyenIgv" />
+        Los precios incluyen IGV (como en una boleta)
+      </label>
+      <div class="overflow-x-auto">
+        <table class="tabla">
+          <thead>
+            <tr>
+              <th scope="col">Descripción</th>
+              <th scope="col">Unidad</th>
+              <th scope="col" class="text-right">Cantidad</th>
+              <th scope="col" class="text-right">Precio</th>
+              <th scope="col" class="text-right">Total</th>
+              <th scope="col"><span class="sr-only">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            @for (l of lineas.controls; track l; let i = $index) {
+              <tr [formGroup]="l" class="align-top">
+                <td class="min-w-64 space-y-1">
+                  @if (l.controls.clase.value === 'ARTICULO') {
+                    <p>
+                      <span class="font-mono">{{ l.controls.codigo.value }}</span> ·
+                      {{ l.controls.descripcion.value }}
+                      @if (lineaMueveStock(i)) {
+                        <span class="insignia-ok ml-1"
+                          >{{ esNota() ? 'Sale' : 'Entra' }} al almacén</span
+                        >
+                      }
+                      @if (l.controls.deRecepcion.value) {
+                        <span class="insignia-neutra ml-1"
+                          >Ya en el almacén: corrija el precio</span
+                        >
+                      }
+                    </p>
+                  } @else {
+                    <label [for]="'co-desc-' + i" class="sr-only">Descripción del gasto</label>
+                    <input
+                      [id]="'co-desc-' + i"
+                      class="campo"
+                      formControlName="descripcion"
+                      placeholder="Flete, servicio…"
+                    />
+                    <label [for]="'co-afec-' + i" class="sr-only">Afectación del IGV</label>
+                    <select [id]="'co-afec-' + i" class="campo w-40" formControlName="afectacion">
+                      <option value="GRAVADO">Gravado</option>
+                      <option value="EXONERADO">Exonerado</option>
+                      <option value="INAFECTO">Inafecto</option>
+                    </select>
+                  }
+                  @if (l.controls.clase.value === 'GASTO' && !esNota()) {
+                    <label class="flex items-center gap-2 text-xs">
+                      <input type="checkbox" formControlName="sumaAlCosto" />
+                      Suma al costo de la mercadería (flete, seguro)
+                    </label>
+                  }
+                  @if (necesitaCentro(i) || (l.controls.clase.value === 'GASTO' && esNota())) {
+                    <div class="flex flex-wrap gap-1">
+                      <label [for]="'co-centro-' + i" class="sr-only">Centro de costo</label>
+                      <select
+                        [id]="'co-centro-' + i"
+                        class="campo w-56"
+                        formControlName="centroCostoId"
+                      >
+                        <option value="">Centro de costo…</option>
+                        @for (c of centros(); track c.id) {
+                          <option [value]="c.id">{{ c.codigo }} · {{ c.nombre }}</option>
+                        }
+                      </select>
+                      <label [for]="'co-nat-' + i" class="sr-only">Cuenta por naturaleza</label>
+                      <input
+                        [id]="'co-nat-' + i"
+                        class="campo w-24 font-mono"
+                        formControlName="naturaleza"
+                        placeholder="63"
+                      />
+                    </div>
+                  }
+                  @if (lineaMueveStock(i) && l.controls.control.value !== 'NINGUNO') {
+                    <app-detalle-stock
+                      [grupo]="l"
+                      [control]="l.controls.control.value"
+                      [entrada]="!esNota()"
+                      [codigo]="l.controls.codigo.value"
+                      [prefijo]="'co-' + i"
+                    />
+                    <p class="text-xs text-slate-500">Cantidades de lotes en unidad base.</p>
+                  }
+                </td>
+                <td>
+                  @if (l.controls.clase.value === 'ARTICULO') {
+                    <label [for]="'co-unidad-' + i" class="sr-only">Unidad</label>
+                    <select [id]="'co-unidad-' + i" class="campo w-24" formControlName="unidad">
+                      @for (u of l.controls.unidades.value; track u) {
+                        <option [value]="u">{{ u }}</option>
+                      }
+                    </select>
+                  } @else {
+                    {{ l.controls.unidad.value }}
+                  }
+                </td>
+                <td>
+                  <label [for]="'co-cant-' + i" class="sr-only">Cantidad</label>
+                  <input
+                    [id]="'co-cant-' + i"
+                    type="number"
+                    min="0.0001"
+                    step="0.0001"
+                    class="campo w-28 text-right"
+                    formControlName="cantidad"
+                  />
+                </td>
+                <td>
+                  <label [for]="'co-precio-' + i" class="sr-only">Precio</label>
+                  <input
+                    [id]="'co-precio-' + i"
+                    type="number"
+                    min="0"
+                    step="0.000001"
+                    class="campo w-32 text-right"
+                    formControlName="precio"
+                  />
+                </td>
+                <td class="text-right">{{ importes()[i]?.total | number: '1.2-2' }}</td>
+                <td>
+                  <button type="button" class="btn-enlace" (click)="lineas.removeAt(i)">
+                    Quitar
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="flex flex-wrap items-end gap-3">
+        <div class="min-w-72 flex-1">
+          <app-buscador-articulo
+            etiqueta="Agregar artículo"
+            [excluir]="idsArticulos()"
+            (elegido)="agregarArticulo($event)"
+          />
+        </div>
+        @if (sesion.tiene(permisos.articulosCrear) && !esNota()) {
+          <button type="button" class="btn-enlace" (click)="creandoArticulo.set(true)">
+            + Artículo nuevo
+          </button>
+        }
+        <button type="button" class="btn-enlace" (click)="agregarGasto()">
+          + Gasto (flete, servicio)
+        </button>
+      </div>
+    </fieldset>
+
+    <div class="grid gap-3 sm:grid-cols-[1fr_20rem]">
+      <div class="space-y-3">
+        <div>
+          <label for="co-glosa" class="etiqueta">Glosa</label>
+          <input id="co-glosa" class="campo" formControlName="glosa" />
+        </div>
+        <div class="max-w-xs">
+          <label for="co-total-doc" class="etiqueta">Total del comprobante (para verificar)</label>
+          <input
+            id="co-total-doc"
+            type="number"
+            min="0"
+            step="0.01"
+            class="campo text-right"
+            formControlName="totalDocumento"
+          />
+          @if (descuadre() !== null) {
+            <p class="error-campo">
+              No cuadra: las líneas suman {{ totales().total | number: '1.2-2' }}.
+            </p>
+          }
+        </div>
+      </div>
+      <dl class="grid grid-cols-2 gap-1 self-start text-sm">
+        <dt>Gravado</dt>
+        <dd class="text-right">{{ totales().gravado | number: '1.2-2' }}</dd>
+        @if (totales().exonerado) {
+          <dt>Exonerado</dt>
+          <dd class="text-right">{{ totales().exonerado | number: '1.2-2' }}</dd>
+        }
+        @if (totales().inafecto) {
+          <dt>Inafecto</dt>
+          <dd class="text-right">{{ totales().inafecto | number: '1.2-2' }}</dd>
+        }
+        <dt>IGV</dt>
+        <dd class="text-right">{{ totales().igv | number: '1.2-2' }}</dd>
+        <dt class="font-semibold">Total</dt>
+        <dd class="text-right font-semibold">
+          {{ cabecera.controls.moneda.value === 'USD' ? 'US$' : 'S/' }}
+          {{ totales().total | number: '1.2-2' }}
+        </dd>
+        @if (cabecera.controls.moneda.value === 'USD') {
+          <dt>En soles</dt>
+          <dd class="text-right">{{ totalSoles() | number: '1.2-2' }}</dd>
+        }
+        @if (detraccion(); as d) {
+          <dt>Detracción</dt>
+          <dd class="text-right">S/ {{ d | number: '1.0-0' }}</dd>
+        }
+      </dl>
+    </div>
+
+    <button type="submit" class="btn-primario" [disabled]="guardando()">Registrar</button>
+  </form>
+
+  @if (creandoArticulo()) {
+    <div
+      class="fixed inset-0 z-20 overflow-y-auto bg-slate-900/40 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Nuevo artículo"
+    >
+      <div class="mx-auto max-w-5xl space-y-2 rounded-lg bg-slate-50 p-4">
+        <div class="flex justify-end">
+          <button type="button" class="btn-enlace" (click)="creandoArticulo.set(false)">
+            Cerrar
+          </button>
+        </div>
+        <app-articulo-detalle [enDialogo]="true" (creado)="articuloCreado($event)" />
+      </div>
+    </div>
+  }
+</div>

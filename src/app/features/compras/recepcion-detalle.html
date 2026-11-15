@@ -1,0 +1,304 @@
+<div class="space-y-4">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h1 class="titulo-pagina">
+      @if (recepcion(); as r) {
+        Recepción <span class="font-mono">{{ r.numero }}</span>
+        <span [class]="clase(r.estado)" class="ml-2 align-middle">{{ nombres[r.estado] }}</span>
+      } @else {
+        Recibir con guía
+      }
+    </h1>
+    <a routerLink="/compras/recepciones" class="btn-enlace">Volver a las recepciones</a>
+  </div>
+
+  <app-error-api [problema]="error()" />
+
+  @if (recepcion(); as r) {
+    <section class="tarjeta grid gap-3 text-sm sm:grid-cols-4">
+      <div class="sm:col-span-2">
+        <p class="etiqueta">Proveedor</p>
+        <p>
+          <span class="font-mono">{{ r.proveedor.documento }}</span> · {{ r.proveedor.nombre }}
+        </p>
+      </div>
+      <div>
+        <p class="etiqueta">Guía</p>
+        <p class="font-mono">{{ r.guia ?? 'Sin guía' }}</p>
+      </div>
+      <div>
+        <p class="etiqueta">Fecha</p>
+        <p>{{ r.fecha | date: 'dd/MM/yyyy' }}</p>
+      </div>
+      <div>
+        <p class="etiqueta">Almacén</p>
+        <p>{{ r.almacen ? r.almacen.sucursal + ' · ' + r.almacen.nombre : '—' }}</p>
+      </div>
+      @if (r.orden; as o) {
+        <div>
+          <p class="etiqueta">Orden de compra</p>
+          <a
+            [routerLink]="['/compras/orden', o.id]"
+            class="font-mono text-marca-700 hover:underline"
+            >{{ o.numero }}</a
+          >
+        </div>
+      }
+      @if (r.compra; as c) {
+        <div>
+          <p class="etiqueta">Facturada en</p>
+          <a
+            [routerLink]="['/compras/documento', c.id]"
+            class="font-mono text-marca-700 hover:underline"
+            >{{ c.numero }}</a
+          >
+        </div>
+      }
+      <div>
+        <p class="etiqueta">Moneda</p>
+        <p>
+          {{
+            r.moneda === 'USD' ? 'Dólares (TC ' + (r.tipoCambio | number: '1.3-3') + ')' : 'Soles'
+          }}
+        </p>
+      </div>
+    </section>
+    <div class="tarjeta overflow-x-auto p-0 sm:p-0">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th scope="col">Artículo</th>
+            <th scope="col" class="text-right">Cantidad</th>
+            <th scope="col" class="text-right">Costo unit.</th>
+            <th scope="col" class="text-right">Costo S/</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          @for (l of r.lineas; track l.linea) {
+            <tr>
+              <td>
+                <span class="font-mono">{{ l.articuloCodigo }}</span> · {{ l.descripcion }}
+              </td>
+              <td class="whitespace-nowrap text-right">
+                {{ l.cantidad | number: '1.0-4' }} {{ l.unidad }}
+              </td>
+              <td class="text-right">{{ l.costoUnitario | number: '1.2-6' }}</td>
+              <td class="text-right">{{ l.costoSoles | number: '1.2-2' }}</td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3" class="text-right font-semibold">Total</td>
+            <td class="text-right font-semibold">{{ r.totalSoles | number: '1.2-2' }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <p class="text-xs text-slate-500">
+      Registrada por {{ r.creadoPor ?? '—' }}
+      @if (r.anuladoPor) {
+        · anulada por {{ r.anuladoPor }}: {{ r.motivoAnulacion }}
+      }
+    </p>
+    @if (r.estado === 'PENDIENTE') {
+      <div class="flex flex-wrap gap-2">
+        @if (sesion.tiene(permisos.comprasRegistrar)) {
+          <a
+            routerLink="/compras/registrar"
+            [queryParams]="{ recepcion: r.id }"
+            class="btn-secundario"
+            >Registrar su factura</a
+          >
+        }
+        @if (sesion.tiene(permisos.comprasAnular)) {
+          <button type="button" class="btn-enlace" (click)="anular()">Anular</button>
+        }
+      </div>
+    }
+  } @else if (!id()) {
+    <form [formGroup]="cabecera" (ngSubmit)="guardar()" novalidate class="tarjeta space-y-4">
+      <div class="grid gap-3 sm:grid-cols-4">
+        <div class="sm:col-span-2">
+          @if (proveedor(); as p) {
+            <p class="etiqueta">Proveedor</p>
+            <p>
+              <span class="font-mono">{{ p.numeroDocumento }}</span> · {{ p.nombre }}
+              <button type="button" class="btn-enlace ml-2" (click)="proveedor.set(null)">
+                Cambiar
+              </button>
+            </p>
+          } @else {
+            <app-buscador-proveedor (elegido)="elegirProveedor($event)" />
+          }
+        </div>
+        @if (ordenesAbiertas().length > 0) {
+          <div>
+            <label for="re-orden" class="etiqueta">Recibe la orden</label>
+            <select
+              id="re-orden"
+              class="campo"
+              [formControl]="ordenId"
+              (change)="elegirOrden(ordenId.value)"
+            >
+              <option value="">Sin orden</option>
+              @for (o of ordenesAbiertas(); track o.id) {
+                <option [value]="o.id">{{ o.numero }} · {{ o.total | number: '1.2-2' }}</option>
+              }
+            </select>
+          </div>
+        }
+        <div>
+          <label for="re-almacen" class="etiqueta">Almacén donde entra</label>
+          <select id="re-almacen" class="campo" formControlName="almacenId">
+            <option value="">Elija…</option>
+            @for (a of almacenes(); track a.id) {
+              <option [value]="a.id">{{ a.sucursalNombre }} · {{ a.nombre }}</option>
+            }
+          </select>
+        </div>
+        <div class="grid grid-cols-[5rem_1fr] gap-2">
+          <div>
+            <label for="re-serie" class="etiqueta">Serie guía</label>
+            <input
+              id="re-serie"
+              class="campo font-mono uppercase"
+              formControlName="guiaSerie"
+              maxlength="4"
+              placeholder="T001"
+            />
+          </div>
+          <div>
+            <label for="re-numero" class="etiqueta">Número</label>
+            <input
+              id="re-numero"
+              class="campo font-mono"
+              inputmode="numeric"
+              formControlName="guiaNumero"
+              maxlength="8"
+            />
+          </div>
+        </div>
+        <div>
+          <label for="re-fecha" class="etiqueta">Fecha de recepción</label>
+          <input id="re-fecha" type="date" class="campo" formControlName="fecha" />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label for="re-moneda" class="etiqueta">Moneda</label>
+            <select id="re-moneda" class="campo" formControlName="moneda">
+              <option value="PEN">Soles</option>
+              <option value="USD">Dólares</option>
+            </select>
+          </div>
+          @if (cabecera.controls.moneda.value === 'USD') {
+            <div>
+              <label for="re-tc" class="etiqueta">Tipo de cambio</label>
+              <input
+                id="re-tc"
+                type="number"
+                step="0.001"
+                min="0.001"
+                class="campo text-right"
+                formControlName="tipoCambio"
+                placeholder="Del día"
+              />
+            </div>
+          }
+        </div>
+      </div>
+
+      <fieldset class="space-y-2">
+        <legend class="font-semibold">Lo que llegó</legend>
+        <p class="text-xs text-slate-500">
+          Costo sin IGV: el de la orden, o el que espera en la factura. La factura ajustará la
+          diferencia.
+        </p>
+        <div class="overflow-x-auto">
+          <table class="tabla">
+            <thead>
+              <tr>
+                <th scope="col">Artículo</th>
+                <th scope="col">Unidad</th>
+                <th scope="col" class="text-right">Cantidad</th>
+                <th scope="col" class="text-right">Costo unit.</th>
+                <th scope="col"><span class="sr-only">Acciones</span></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              @for (l of lineas.controls; track l; let i = $index) {
+                <tr [formGroup]="l" class="align-top">
+                  <td class="min-w-64 space-y-1">
+                    <p>
+                      <span class="font-mono">{{ l.controls.codigo.value }}</span> ·
+                      {{ l.controls.descripcion.value }}
+                    </p>
+                    @if (l.controls.control.value !== 'NINGUNO') {
+                      <app-detalle-stock
+                        [grupo]="l"
+                        [control]="l.controls.control.value"
+                        [entrada]="true"
+                        [codigo]="l.controls.codigo.value"
+                        [prefijo]="'re-' + i"
+                      />
+                    }
+                  </td>
+                  <td>
+                    <label [for]="'re-unidad-' + i" class="sr-only">Unidad</label>
+                    <select [id]="'re-unidad-' + i" class="campo w-24" formControlName="unidad">
+                      @for (u of l.controls.unidades.value; track u) {
+                        <option [value]="u">{{ u }}</option>
+                      }
+                    </select>
+                  </td>
+                  <td>
+                    <label [for]="'re-cant-' + i" class="sr-only">Cantidad</label>
+                    <input
+                      [id]="'re-cant-' + i"
+                      type="number"
+                      min="0.0001"
+                      step="0.0001"
+                      class="campo w-28 text-right"
+                      formControlName="cantidad"
+                    />
+                  </td>
+                  <td>
+                    <label [for]="'re-costo-' + i" class="sr-only">Costo</label>
+                    <input
+                      [id]="'re-costo-' + i"
+                      type="number"
+                      min="0"
+                      step="0.000001"
+                      class="campo w-32 text-right"
+                      formControlName="costo"
+                    />
+                  </td>
+                  <td>
+                    <button type="button" class="btn-enlace" (click)="lineas.removeAt(i)">
+                      Quitar
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <app-buscador-articulo
+          etiqueta="Agregar artículo"
+          [soloInventariables]="true"
+          (elegido)="agregar($event)"
+        />
+        <p class="text-right text-sm">
+          Total sin IGV: <span class="font-semibold">{{ total() | number: '1.2-2' }}</span>
+        </p>
+      </fieldset>
+
+      <div>
+        <label for="re-glosa" class="etiqueta">Glosa</label>
+        <input id="re-glosa" class="campo" formControlName="glosa" />
+      </div>
+      <button type="submit" class="btn-primario" [disabled]="guardando()">
+        Registrar recepción
+      </button>
+    </form>
+  }
+</div>
