@@ -42,6 +42,23 @@
   <form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate class="tarjeta space-y-4">
     <fieldset class="grid gap-3 sm:grid-cols-3">
       <legend class="mb-2 font-semibold">Identificación</legend>
+      @if (esNuevo()) {
+        <div>
+          <label for="ar-barra-rapida" class="etiqueta">Código de barras</label>
+          <input
+            id="ar-barra-rapida"
+            class="campo font-mono"
+            [formControl]="barra"
+            placeholder="Escanee o escriba"
+            autocomplete="off"
+            (keydown.enter)="alEscanear($event)"
+            (blur)="revisarBarra()"
+          />
+          @if (barra.touched && barra.invalid) {
+            <p class="error-campo">4 a 30 letras, números o guiones.</p>
+          }
+        </div>
+      }
       <div>
         <label for="ar-categoria" class="etiqueta">Categoría</label>
         <select
@@ -61,71 +78,151 @@
         @if (formulario.controls.categoriaId.touched && formulario.controls.categoriaId.invalid) {
           <p class="error-campo">Elija una categoría.</p>
         }
-      </div>
-      <div>
-        <label for="ar-codigo" class="etiqueta">Código</label>
-        <input
-          id="ar-codigo"
-          class="campo font-mono uppercase"
-          formControlName="codigo"
-          [placeholder]="esNuevo() ? 'Automático: ' + (prefijo() ?? 'ART') + '-000000' : ''"
-        />
-        @if (formulario.controls.codigo.touched && formulario.controls.codigo.invalid) {
-          <p class="error-campo">2 a 30 caracteres: letras, números, punto o guion.</p>
+        @if (esNuevo() && tipoActual() === 'INVENTARIABLE' && controlActual() !== 'NINGUNO') {
+          <p class="mt-1 text-xs text-slate-500">
+            Se controla {{ controlActual() === 'SERIE' ? 'por número de serie' : 'por lote' }}
+            (lo propone la categoría).
+          </p>
         }
-      </div>
-      <div>
-        <label for="ar-tipo" class="etiqueta">Tipo</label>
-        <select id="ar-tipo" class="campo" formControlName="tipo">
-          <option value="INVENTARIABLE">Inventariable (lleva stock)</option>
-          <option value="SERVICIO">Servicio</option>
-          <option value="NO_INVENTARIABLE">No inventariable</option>
-        </select>
-      </div>
-      <div class="sm:col-span-2">
-        <label for="ar-descripcion" class="etiqueta">Descripción</label>
-        <input id="ar-descripcion" class="campo" formControlName="descripcion" />
-        @if (formulario.controls.descripcion.touched && formulario.controls.descripcion.invalid) {
-          <p class="error-campo">Indique la descripción (máx. 200).</p>
-        }
-      </div>
-      @if (tipoActual() === 'INVENTARIABLE') {
-        <div>
-          <label for="ar-control" class="etiqueta">Control</label>
-          <select id="ar-control" class="campo" formControlName="control">
-            <option value="NINGUNO">Solo cantidad</option>
-            <option value="LOTE">Por lote (con vencimiento)</option>
-            <option value="SERIE">Por número de serie</option>
-          </select>
-        </div>
-      }
-      <div>
-        <label for="ar-corta" class="etiqueta">Descripción corta (ticket)</label>
-        <input id="ar-corta" class="campo" formControlName="descripcionCorta" />
-      </div>
-      <div>
-        <label for="ar-parte" class="etiqueta">N.° de parte (OEM)</label>
-        <input id="ar-parte" class="campo font-mono uppercase" formControlName="numeroParte" />
       </div>
       <div>
         <label for="ar-marca" class="etiqueta">Marca</label>
-        <select id="ar-marca" class="campo" formControlName="marcaId">
-          <option value="">Sin marca</option>
+        <input
+          id="ar-marca"
+          class="campo uppercase"
+          formControlName="marca"
+          list="ar-marcas"
+          autocomplete="off"
+          placeholder="Elija o escriba una nueva"
+          (blur)="revisarParte()"
+        />
+        <datalist id="ar-marcas">
           @for (m of marcas(); track m.id) {
-            @if (m.activo || m.id === articulo()?.marca?.id) {
-              <option [value]="m.id">{{ m.nombre }}</option>
+            @if (m.activo) {
+              <option [value]="m.nombre"></option>
             }
           }
-        </select>
+        </datalist>
+        @if (marcaNueva(); as nueva) {
+          <p class="mt-1 text-xs text-slate-500">Se creará la marca {{ nueva }}.</p>
+        }
       </div>
       <div>
-        <label for="ar-origen" class="etiqueta">Origen</label>
-        <select id="ar-origen" class="campo" formControlName="origen">
-          <option value="">—</option>
-          <option value="ORIGINAL">Original</option>
-          <option value="ALTERNATIVO">Alternativo</option>
-        </select>
+        <label for="ar-parte" class="etiqueta">N.° de parte (OEM)</label>
+        <input
+          id="ar-parte"
+          class="campo font-mono uppercase"
+          formControlName="numeroParte"
+          (blur)="revisarParte()"
+        />
       </div>
+      <div class="sm:col-span-2">
+        <label for="ar-descripcion" class="etiqueta">Descripción</label>
+        <input
+          id="ar-descripcion"
+          class="campo"
+          formControlName="descripcion"
+          (input)="escribioDescripcion($event)"
+        />
+        @if (formulario.controls.descripcion.touched && formulario.controls.descripcion.invalid) {
+          <p class="error-campo">Indique la descripción (máx. 200).</p>
+        }
+        @if (esNuevo()) {
+          <p class="mt-1 text-xs text-slate-500">
+            Se arma con la categoría, sus propiedades, la marca y el N.° de parte; puede cambiarla.
+            @if (descripcionManual() && descripcionSugerida()) {
+              <button type="button" class="btn-enlace text-xs" (click)="armarDescripcion()">
+                Volver a armarla
+              </button>
+            }
+          </p>
+        }
+      </div>
+      @if (barraExistente(); as existente) {
+        <div
+          class="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 sm:col-span-3"
+          role="status"
+        >
+          El código {{ barra.value }} ya es de
+          <a [routerLink]="['/articulos', existente.id]" class="font-mono underline">{{
+            existente.codigo
+          }}</a>
+          · {{ existente.descripcion }}.
+        </div>
+      }
+      @if (coincidencias().length > 0) {
+        <div
+          class="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 sm:col-span-3"
+          role="status"
+        >
+          <p>
+            {{
+              duplicados().length > 0
+                ? 'Posible duplicado: ya hay un artículo con este N.° de parte y la misma marca.'
+                : 'Hay artículos de otras marcas con este N.° de parte: puede marcarlos como equivalentes.'
+            }}
+          </p>
+          <ul class="mt-1 list-disc pl-5">
+            @for (c of coincidencias(); track c.id) {
+              <li>
+                <a [routerLink]="['/articulos', c.id]" class="font-mono underline">{{
+                  c.codigo
+                }}</a>
+                · {{ c.descripcion }}{{ c.marca ? ' · ' + c.marca.nombre : '' }}
+              </li>
+            }
+          </ul>
+        </div>
+      }
+      @if (verMas()) {
+        <div>
+          <label for="ar-codigo" class="etiqueta">Código</label>
+          <input
+            id="ar-codigo"
+            class="campo font-mono uppercase"
+            formControlName="codigo"
+            [placeholder]="esNuevo() ? 'Automático: ' + (prefijo() ?? 'ART') + '-000000' : ''"
+          />
+          @if (formulario.controls.codigo.touched && formulario.controls.codigo.invalid) {
+            <p class="error-campo">2 a 30 caracteres: letras, números, punto o guion.</p>
+          }
+        </div>
+        <div>
+          <label for="ar-tipo" class="etiqueta">Tipo</label>
+          <select id="ar-tipo" class="campo" formControlName="tipo">
+            <option value="INVENTARIABLE">Inventariable (lleva stock)</option>
+            <option value="SERVICIO">Servicio</option>
+            <option value="NO_INVENTARIABLE">No inventariable</option>
+          </select>
+        </div>
+        @if (tipoActual() === 'INVENTARIABLE') {
+          <div>
+            <label for="ar-control" class="etiqueta">Control</label>
+            <select id="ar-control" class="campo" formControlName="control">
+              <option value="NINGUNO">Solo cantidad</option>
+              <option value="LOTE">Por lote (con vencimiento)</option>
+              <option value="SERIE">Por número de serie</option>
+            </select>
+          </div>
+        }
+        <div>
+          <label for="ar-corta" class="etiqueta">Descripción corta (ticket)</label>
+          <input
+            id="ar-corta"
+            class="campo"
+            formControlName="descripcionCorta"
+            placeholder="Vacía: la descripción"
+          />
+        </div>
+        <div>
+          <label for="ar-origen" class="etiqueta">Origen</label>
+          <select id="ar-origen" class="campo" formControlName="origen">
+            <option value="">—</option>
+            <option value="ORIGINAL">Original</option>
+            <option value="ALTERNATIVO">Alternativo</option>
+          </select>
+        </div>
+      }
     </fieldset>
 
     @if (propiedades().length > 0) {
@@ -166,59 +263,72 @@
       </fieldset>
     }
 
-    <fieldset class="grid gap-3 sm:grid-cols-3">
-      <legend class="mb-2 font-semibold">Unidades</legend>
-      <div>
-        <label for="ar-unidad" class="etiqueta">Unidad base (catálogo 03)</label>
-        <select id="ar-unidad" class="campo" formControlName="unidadBaseId">
-          <option value="">Elija…</option>
-          @for (u of unidades(); track u.id) {
-            @if (u.activo || u.id === articulo()?.unidadBase?.id) {
-              <option [value]="u.id">{{ u.codigoSunat }} · {{ u.nombre }}</option>
+    <button
+      type="button"
+      class="btn-enlace"
+      [attr.aria-expanded]="verMas()"
+      (click)="verMas.set(!verMas())"
+    >
+      {{ verMas() ? 'Menos datos' : 'Más datos (código, tipo, unidades, lote o serie, códigos…)' }}
+    </button>
+
+    @if (verMas()) {
+      <fieldset class="grid gap-3 sm:grid-cols-3">
+        <legend class="mb-2 font-semibold">Unidades</legend>
+        <div>
+          <label for="ar-unidad" class="etiqueta">Unidad base (catálogo 03)</label>
+          <select id="ar-unidad" class="campo" formControlName="unidadBaseId">
+            <option value="">Elija…</option>
+            @for (u of unidades(); track u.id) {
+              @if (u.activo || u.id === articulo()?.unidadBase?.id) {
+                <option [value]="u.id">{{ u.codigoSunat }} · {{ u.nombre }}</option>
+              }
             }
+          </select>
+          @if (
+            formulario.controls.unidadBaseId.touched && formulario.controls.unidadBaseId.invalid
+          ) {
+            <p class="error-campo">Elija la unidad base.</p>
           }
-        </select>
-        @if (formulario.controls.unidadBaseId.touched && formulario.controls.unidadBaseId.invalid) {
-          <p class="error-campo">Elija la unidad base.</p>
-        }
-      </div>
-      <div>
-        <label for="ar-ucompra" class="etiqueta">Unidad de compra</label>
-        <select id="ar-ucompra" class="campo" formControlName="unidadCompra">
-          <option value="">
-            Igual a la unidad base{{
-              unidadesDelArticulo()[0] ? ' (' + unidadesDelArticulo()[0] + ')' : ''
-            }}
-          </option>
-          @for (u of unidadesAlternasDelArticulo(); track u) {
-            <option [value]="u">{{ u }}</option>
+        </div>
+        <div>
+          <label for="ar-ucompra" class="etiqueta">Unidad de compra</label>
+          <select id="ar-ucompra" class="campo" formControlName="unidadCompra">
+            <option value="">
+              Igual a la unidad base{{
+                unidadesDelArticulo()[0] ? ' (' + unidadesDelArticulo()[0] + ')' : ''
+              }}
+            </option>
+            @for (u of unidadesAlternasDelArticulo(); track u) {
+              <option [value]="u">{{ u }}</option>
+            }
+          </select>
+          @if (unidadesDelArticulo().length < 2) {
+            <p class="mt-1 text-xs text-slate-500">
+              Para otra presentación (caja, juego…), agréguela en Unidades alternas.
+            </p>
           }
-        </select>
-        @if (unidadesDelArticulo().length < 2) {
-          <p class="mt-1 text-xs text-slate-500">
-            Para otra presentación (caja, juego…), agréguela en Unidades alternas.
-          </p>
-        }
-      </div>
-      <div>
-        <label for="ar-uventa" class="etiqueta">Unidad de venta</label>
-        <select id="ar-uventa" class="campo" formControlName="unidadVenta">
-          <option value="">
-            Igual a la unidad base{{
-              unidadesDelArticulo()[0] ? ' (' + unidadesDelArticulo()[0] + ')' : ''
-            }}
-          </option>
-          @for (u of unidadesAlternasDelArticulo(); track u) {
-            <option [value]="u">{{ u }}</option>
+        </div>
+        <div>
+          <label for="ar-uventa" class="etiqueta">Unidad de venta</label>
+          <select id="ar-uventa" class="campo" formControlName="unidadVenta">
+            <option value="">
+              Igual a la unidad base{{
+                unidadesDelArticulo()[0] ? ' (' + unidadesDelArticulo()[0] + ')' : ''
+              }}
+            </option>
+            @for (u of unidadesAlternasDelArticulo(); track u) {
+              <option [value]="u">{{ u }}</option>
+            }
+          </select>
+          @if (unidadesDelArticulo().length < 2) {
+            <p class="mt-1 text-xs text-slate-500">
+              Para otra presentación (caja, juego…), agréguela en Unidades alternas.
+            </p>
           }
-        </select>
-        @if (unidadesDelArticulo().length < 2) {
-          <p class="mt-1 text-xs text-slate-500">
-            Para otra presentación (caja, juego…), agréguela en Unidades alternas.
-          </p>
-        }
-      </div>
-    </fieldset>
+        </div>
+      </fieldset>
+    }
 
     <section
       class="space-y-2 rounded-md border border-slate-200 p-3"
@@ -317,123 +427,143 @@
       }
     </section>
 
-    <fieldset formArrayName="unidadesAlternas" class="space-y-2">
-      <legend class="font-semibold">Unidades alternas</legend>
-      @for (g of formulario.controls.unidadesAlternas.controls; track g; let i = $index) {
-        <div [formGroupName]="i" class="flex flex-wrap items-center gap-2">
-          <span class="text-sm">1</span>
-          <label [for]="'ar-ua-' + i" class="sr-only">Unidad alterna {{ i + 1 }}</label>
-          <select [id]="'ar-ua-' + i" class="campo w-48" formControlName="unidadSunat">
-            <option value="">Elija…</option>
-            @for (u of unidadesActivas(); track u.id) {
-              <option [value]="u.codigoSunat">{{ u.codigoSunat }} · {{ u.nombre }}</option>
+    @if (verMas()) {
+      <fieldset formArrayName="unidadesAlternas" class="space-y-2">
+        <legend class="font-semibold">Unidades alternas</legend>
+        @for (g of formulario.controls.unidadesAlternas.controls; track g; let i = $index) {
+          <div [formGroupName]="i" class="flex flex-wrap items-center gap-2">
+            <span class="text-sm">1</span>
+            <label [for]="'ar-ua-' + i" class="sr-only">Unidad alterna {{ i + 1 }}</label>
+            <select [id]="'ar-ua-' + i" class="campo w-48" formControlName="unidadSunat">
+              <option value="">Elija…</option>
+              @for (u of unidadesActivas(); track u.id) {
+                <option [value]="u.codigoSunat">{{ u.codigoSunat }} · {{ u.nombre }}</option>
+              }
+            </select>
+            <span class="text-sm">=</span>
+            <label [for]="'ar-uaf-' + i" class="sr-only">Factor de la unidad {{ i + 1 }}</label>
+            <input
+              [id]="'ar-uaf-' + i"
+              type="number"
+              min="0.0001"
+              step="0.0001"
+              class="campo w-32 text-right"
+              formControlName="factor"
+            />
+            <span class="text-sm">unidades base</span>
+            @if (puedeEditar()) {
+              <button
+                type="button"
+                class="btn-enlace"
+                (click)="formulario.controls.unidadesAlternas.removeAt(i)"
+              >
+                Quitar
+              </button>
             }
-          </select>
-          <span class="text-sm">=</span>
-          <label [for]="'ar-uaf-' + i" class="sr-only">Factor de la unidad {{ i + 1 }}</label>
-          <input
-            [id]="'ar-uaf-' + i"
-            type="number"
-            min="0.0001"
-            step="0.0001"
-            class="campo w-32 text-right"
-            formControlName="factor"
-          />
-          <span class="text-sm">unidades base</span>
-          @if (puedeEditar()) {
-            <button
-              type="button"
-              class="btn-enlace"
-              (click)="formulario.controls.unidadesAlternas.removeAt(i)"
-            >
-              Quitar
-            </button>
-          }
-        </div>
-      }
-      @if (puedeEditar()) {
-        <button type="button" class="btn-enlace" (click)="agregarUnidad()">+ Unidad alterna</button>
-      }
-    </fieldset>
+          </div>
+        }
+        @if (puedeEditar()) {
+          <button type="button" class="btn-enlace" (click)="agregarUnidad()">
+            + Unidad alterna
+          </button>
+        }
+      </fieldset>
 
-    <fieldset formArrayName="codigosBarras" class="space-y-2">
-      <legend class="font-semibold">Códigos de barras</legend>
-      @for (g of formulario.controls.codigosBarras.controls; track g; let i = $index) {
-        <div [formGroupName]="i" class="flex flex-wrap items-center gap-2">
-          <label [for]="'ar-barra-' + i" class="sr-only">Código de barras {{ i + 1 }}</label>
-          <input [id]="'ar-barra-' + i" class="campo w-56 font-mono" formControlName="codigo" />
-          <label [for]="'ar-barra-u-' + i" class="sr-only"
-            >Presentación del código {{ i + 1 }}</label
-          >
-          <select [id]="'ar-barra-u-' + i" class="campo w-36" formControlName="unidadSunat">
-            <option value="">
-              Unidad base{{ unidadesDelArticulo()[0] ? ' (' + unidadesDelArticulo()[0] + ')' : '' }}
-            </option>
-            @for (u of unidadesAlternasDelArticulo(); track u) {
-              <option [value]="u">{{ u }}</option>
+      <fieldset formArrayName="codigosBarras" class="space-y-2">
+        <legend class="font-semibold">Códigos de barras</legend>
+        @for (g of formulario.controls.codigosBarras.controls; track g; let i = $index) {
+          <div [formGroupName]="i" class="flex flex-wrap items-center gap-2">
+            <label [for]="'ar-barra-' + i" class="sr-only">Código de barras {{ i + 1 }}</label>
+            <input [id]="'ar-barra-' + i" class="campo w-56 font-mono" formControlName="codigo" />
+            <label [for]="'ar-barra-u-' + i" class="sr-only"
+              >Presentación del código {{ i + 1 }}</label
+            >
+            <select [id]="'ar-barra-u-' + i" class="campo w-36" formControlName="unidadSunat">
+              <option value="">
+                Unidad base{{
+                  unidadesDelArticulo()[0] ? ' (' + unidadesDelArticulo()[0] + ')' : ''
+                }}
+              </option>
+              @for (u of unidadesAlternasDelArticulo(); track u) {
+                <option [value]="u">{{ u }}</option>
+              }
+            </select>
+            @if (puedeEditar()) {
+              <button
+                type="button"
+                class="btn-enlace"
+                (click)="formulario.controls.codigosBarras.removeAt(i)"
+              >
+                Quitar
+              </button>
             }
-          </select>
-          @if (puedeEditar()) {
-            <button
-              type="button"
-              class="btn-enlace"
-              (click)="formulario.controls.codigosBarras.removeAt(i)"
-            >
-              Quitar
-            </button>
-          }
-          @if (g.controls.codigo.touched && g.controls.codigo.invalid) {
-            <p class="error-campo w-full">4 a 30 letras, números o guiones.</p>
-          }
-        </div>
-      }
-      @if (puedeEditar()) {
-        <button type="button" class="btn-enlace" (click)="agregarBarra()">
-          + Código de barras
-        </button>
-      }
-    </fieldset>
+            @if (g.controls.codigo.touched && g.controls.codigo.invalid) {
+              <p class="error-campo w-full">4 a 30 letras, números o guiones.</p>
+            }
+          </div>
+        }
+        @if (puedeEditar()) {
+          <button type="button" class="btn-enlace" (click)="agregarBarra()">
+            + Código de barras
+          </button>
+        }
+      </fieldset>
 
-    <fieldset formArrayName="codigosAlternos" class="space-y-2">
-      <legend class="font-semibold">Códigos alternos (proveedor, catálogo)</legend>
-      @for (g of formulario.controls.codigosAlternos.controls; track g; let i = $index) {
-        <div [formGroupName]="i" class="flex flex-wrap items-center gap-2">
-          <label [for]="'ar-alt-' + i" class="sr-only">Código alterno {{ i + 1 }}</label>
-          <input
-            [id]="'ar-alt-' + i"
-            class="campo w-48 font-mono"
-            formControlName="codigo"
-            placeholder="Código"
-          />
-          <label [for]="'ar-altref-' + i" class="sr-only">Referencia del código {{ i + 1 }}</label>
-          <input
-            [id]="'ar-altref-' + i"
-            class="campo flex-1"
-            formControlName="referencia"
-            placeholder="De quién (p. ej. proveedor)"
-          />
-          @if (puedeEditar()) {
-            <button
-              type="button"
-              class="btn-enlace"
-              (click)="formulario.controls.codigosAlternos.removeAt(i)"
+      <fieldset formArrayName="codigosAlternos" class="space-y-2">
+        <legend class="font-semibold">Códigos alternos (proveedor, catálogo)</legend>
+        @for (g of formulario.controls.codigosAlternos.controls; track g; let i = $index) {
+          <div [formGroupName]="i" class="flex flex-wrap items-center gap-2">
+            <label [for]="'ar-alt-' + i" class="sr-only">Código alterno {{ i + 1 }}</label>
+            <input
+              [id]="'ar-alt-' + i"
+              class="campo w-48 font-mono"
+              formControlName="codigo"
+              placeholder="Código"
+            />
+            <label [for]="'ar-altref-' + i" class="sr-only"
+              >Referencia del código {{ i + 1 }}</label
             >
-              Quitar
-            </button>
-          }
-        </div>
-      }
-      @if (puedeEditar()) {
-        <button type="button" class="btn-enlace" (click)="agregarAlterno()">
-          + Código alterno
-        </button>
-      }
-    </fieldset>
+            <input
+              [id]="'ar-altref-' + i"
+              class="campo flex-1"
+              formControlName="referencia"
+              placeholder="De quién (p. ej. proveedor)"
+            />
+            @if (puedeEditar()) {
+              <button
+                type="button"
+                class="btn-enlace"
+                (click)="formulario.controls.codigosAlternos.removeAt(i)"
+              >
+                Quitar
+              </button>
+            }
+          </div>
+        }
+        @if (puedeEditar()) {
+          <button type="button" class="btn-enlace" (click)="agregarAlterno()">
+            + Código alterno
+          </button>
+        }
+      </fieldset>
+    }
 
     @if (puedeEditar()) {
-      <button type="submit" class="btn-primario" [disabled]="guardando()">
-        {{ esNuevo() ? 'Crear artículo' : 'Guardar cambios' }}
-      </button>
+      <div class="flex flex-wrap gap-2">
+        <button type="submit" class="btn-primario" [disabled]="guardando()">
+          {{ esNuevo() ? 'Crear artículo' : 'Guardar cambios' }}
+        </button>
+        @if (esNuevo()) {
+          <button
+            type="button"
+            class="btn-secundario"
+            [disabled]="guardando()"
+            (click)="guardar(true)"
+          >
+            Crear y agregar otro
+          </button>
+        }
+      </div>
     }
     @if (articulo(); as a) {
       <p class="text-xs text-slate-500">

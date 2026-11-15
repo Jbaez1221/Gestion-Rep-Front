@@ -12,6 +12,7 @@ import {
   ArticuloListado,
   CatalogosSunat,
   Categoria,
+  CoincidenciaParte,
   CategoriaGuardar,
   Marca,
   Pagina,
@@ -68,6 +69,17 @@ export class ArticulosApi {
 
   porCodigo(codigo: string): Observable<Articulo> {
     return this.http.get<Articulo>(`${API}/articulos/codigo/${encodeURIComponent(codigo.trim())}`);
+  }
+
+  /** Artículos con ese N.° de parte, los de la marca indicada primero. */
+  coincidencias(
+    numeroParte: string,
+    marcaId: string | null,
+    excepto: string | null,
+  ): Observable<CoincidenciaParte[]> {
+    return this.http.get<CoincidenciaParte[]>(`${API}/articulos/coincidencias`, {
+      params: aParametros({ numeroParte: numeroParte.trim(), marcaId, excepto }),
+    });
   }
 
   crear(datos: ArticuloCrear): Observable<Articulo> {

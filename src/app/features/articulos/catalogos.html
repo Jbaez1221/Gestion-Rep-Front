@@ -88,6 +88,26 @@
               }
             </select>
           </div>
+          <div>
+            <label for="cat-control" class="etiqueta">Control de stock</label>
+            <select id="cat-control" class="campo" formControlName="controlDefecto">
+              <option value="">—</option>
+              <option value="NINGUNO">Solo cantidad</option>
+              <option value="LOTE">Por lote (con vencimiento)</option>
+              <option value="SERIE">Por número de serie</option>
+            </select>
+          </div>
+          @if (beneficios().length > 0) {
+            <div>
+              <label for="cat-beneficio" class="etiqueta">Centro de beneficio</label>
+              <select id="cat-beneficio" class="campo" formControlName="centroBeneficioDefectoId">
+                <option value="">—</option>
+                @for (c of beneficios(); track c.id) {
+                  <option [value]="c.id">{{ c.codigo }} · {{ c.nombre }}</option>
+                }
+              </select>
+            </div>
+          }
           <div class="col-span-2">
             <label for="cat-sunat" class="etiqueta">Código de producto SUNAT (catálogo 25)</label>
             <input

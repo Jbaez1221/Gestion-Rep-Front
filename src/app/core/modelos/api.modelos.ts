@@ -400,6 +400,8 @@ export interface ArticuloActualizar {
   descripcionCorta: string | null;
   numeroParte: string | null;
   marcaId: string | null;
+  /** Sin marcaId: la marca con ese nombre, o una nueva. */
+  marcaNombre?: string | null;
   origen: OrigenArticulo | null;
   categoriaId: string;
   tipoExistencia: TipoExistencia | null;
@@ -467,7 +469,19 @@ export interface ValoresCategoria {
   } | null;
   readonly afectacionIgv: AfectacionIgv | null;
   readonly codigoProductoSunat: string | null;
+  readonly control: ControlStock | null;
+  readonly centroBeneficioId: string | null;
   readonly propiedades: Propiedad[];
+}
+
+/** Artículo con el mismo N.° de parte: posible duplicado (misma marca) o equivalente. */
+export interface CoincidenciaParte {
+  readonly id: string;
+  readonly codigo: string;
+  readonly descripcion: string;
+  readonly numeroParte: string | null;
+  readonly marca: { readonly id: string; readonly nombre: string } | null;
+  readonly mismaMarca: boolean;
 }
 
 export interface FilaImportacion {
@@ -504,6 +518,8 @@ export interface Categoria {
   readonly unidadDefectoId: string | null;
   readonly afectacionIgvDefecto: AfectacionIgv | null;
   readonly codigoProductoSunatDefecto: string | null;
+  readonly controlDefecto: ControlStock | null;
+  readonly centroBeneficioDefectoId: string | null;
 }
 
 export interface CategoriaGuardar {
@@ -515,6 +531,8 @@ export interface CategoriaGuardar {
   unidadDefectoId: string | null;
   afectacionIgvDefecto: AfectacionIgv | null;
   codigoProductoSunatDefecto: string | null;
+  controlDefecto: ControlStock | null;
+  centroBeneficioDefectoId: string | null;
 }
 
 export interface UnidadMedida {

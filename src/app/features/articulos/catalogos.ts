@@ -16,6 +16,8 @@ import {
   AfectacionIgv,
   CatalogosSunat,
   Categoria,
+  Centro,
+  ControlStock,
   Marca,
   Propiedad,
   TipoArticulo,
@@ -26,6 +28,7 @@ import {
 import { NotificacionesService } from '../../core/ui/notificaciones.service';
 import { ErrorApi } from '../../shared/ui/error-api';
 import { indentar } from '../centros/arbol';
+import { CentrosApi } from '../centros/centros.api';
 import { ArticulosApi } from './articulos.api';
 import { arbolDeCategorias, etiquetaCategoria } from './categorias';
 
@@ -37,6 +40,7 @@ import { arbolDeCategorias, etiquetaCategoria } from './categorias';
 })
 export class CatalogosArticulos implements OnInit {
   private readonly api = inject(ArticulosApi);
+  private readonly centrosApi = inject(CentrosApi);
   private readonly avisos = inject(NotificacionesService);
   private readonly fb = inject(NonNullableFormBuilder);
   protected readonly sesion = inject(SesionService);
@@ -48,6 +52,7 @@ export class CatalogosArticulos implements OnInit {
   protected readonly unidades = signal<UnidadMedida[]>([]);
   protected readonly sunat = signal<CatalogosSunat | null>(null);
   protected readonly propiedades = signal<Propiedad[]>([]);
+  protected readonly beneficios = signal<Centro[]>([]);
   protected readonly arbol = computed(() => arbolDeCategorias(this.categorias()));
   protected readonly editandoCategoria = signal<Categoria | 'nueva' | null>(null);
   protected readonly error = signal<Problema | null>(null);
@@ -66,6 +71,8 @@ export class CatalogosArticulos implements OnInit {
     unidadDefectoId: [''],
     afectacionIgvDefecto: ['' as AfectacionIgv | ''],
     codigoProductoSunatDefecto: ['', Validators.pattern(/^\d{8}$/)],
+    controlDefecto: ['' as ControlStock | ''],
+    centroBeneficioDefectoId: [''],
   });
   protected readonly propiedad = this.fb.group({
     clave: ['', [Validators.required, Validators.pattern(/^[a-z][a-z0-9_]{0,39}$/)]],
@@ -96,6 +103,13 @@ export class CatalogosArticulos implements OnInit {
       this.marcas.set(marcas);
       this.categorias.set(categorias);
       this.unidades.set(unidades);
+      if (this.sesion.tiene(PERMISOS.centrosLeer) && this.beneficios().length === 0) {
+        this.beneficios.set(
+          (await firstValueFrom(this.centrosApi.listar('BENEFICIO'))).filter(
+            (c) => c.imputable && c.activo,
+          ),
+        );
+      }
     } catch (e) {
       this.error.set(aProblema(e));
     }
@@ -160,6 +174,8 @@ export class CatalogosArticulos implements OnInit {
             unidadDefectoId: '',
             afectacionIgvDefecto: '',
             codigoProductoSunatDefecto: '',
+            controlDefecto: '',
+            centroBeneficioDefectoId: '',
           }
         : {
             nombre: c.nombre,
@@ -170,6 +186,8 @@ export class CatalogosArticulos implements OnInit {
             unidadDefectoId: c.unidadDefectoId ?? '',
             afectacionIgvDefecto: c.afectacionIgvDefecto ?? '',
             codigoProductoSunatDefecto: c.codigoProductoSunatDefecto ?? '',
+            controlDefecto: c.controlDefecto ?? '',
+            centroBeneficioDefectoId: c.centroBeneficioDefectoId ?? '',
           },
     );
     if (c !== 'nueva') {
@@ -248,6 +266,8 @@ export class CatalogosArticulos implements OnInit {
       unidadDefectoId: v.unidadDefectoId || null,
       afectacionIgvDefecto: v.afectacionIgvDefecto || null,
       codigoProductoSunatDefecto: v.codigoProductoSunatDefecto || null,
+      controlDefecto: v.controlDefecto || null,
+      centroBeneficioDefectoId: v.centroBeneficioDefectoId || null,
     };
     const ok = await this.ejecutar(
       () =>

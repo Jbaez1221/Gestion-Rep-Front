@@ -4,9 +4,11 @@ import {
   Component,
   OnInit,
   computed,
+  effect,
   inject,
   input,
   signal,
+  untracked,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
@@ -33,6 +35,7 @@ import {
   CatalogosSunat,
   Categoria,
   Centro,
+  CoincidenciaParte,
   ControlStock,
   Existencia,
   Marca,
@@ -56,6 +59,26 @@ import { arbolDeCategorias, etiquetaCategoria } from './categorias';
 const PATRON_CODIGO = /^[A-Za-z0-9.-]{2,30}$/;
 const PATRON_BARRAS = /^[A-Za-z0-9-]{4,30}$/;
 const TAMANIO_MAXIMO = 2 * 1024 * 1024;
+
+/** Como el backend guarda las marcas: sin espacios repetidos y en mayúsculas. */
+export function normalizarMarca(texto: string): string {
+  return texto.trim().replace(/\s+/g, ' ').toUpperCase();
+}
+
+/**
+ * Valor de una propiedad tal como entra en la descripción: un número lleva la unidad de su
+ * etiqueta ("Capacidad (L)" → "4 L") y un sí/no, la etiqueta si es sí.
+ */
+export function textoPropiedad(p: Propiedad, valor: string): string {
+  const v = valor.trim();
+  if (!v) return '';
+  if (p.tipo === 'SI_NO') return v === 'SI' ? p.etiqueta.replace(/\s*\(.*\)\s*/, '') : '';
+  if (p.tipo === 'NUMERO') {
+    const unidad = /\(([^)]+)\)/.exec(p.etiqueta)?.[1]?.split('/')[0]?.trim();
+    return unidad ? `${v} ${unidad}` : v;
+  }
+  return v;
+}
 
 @Component({
   selector: 'app-articulo-detalle',
@@ -109,6 +132,14 @@ export class ArticuloDetalle implements OnInit {
   protected readonly almacenesInventario = signal<AlmacenOpcion[]>([]);
   protected readonly ingresando = signal(false);
   protected readonly verTributario = signal(false);
+  /** Al crear solo se ve lo esencial; unidades, lote o serie y códigos quedan en "Más datos". */
+  protected readonly verMas = signal(false);
+  /** El usuario escribió la descripción: deja de armarse sola. */
+  protected readonly descripcionManual = signal(false);
+  protected readonly coincidencias = signal<CoincidenciaParte[]>([]);
+  protected readonly duplicados = computed(() => this.coincidencias().filter((c) => c.mismaMarca));
+  /** Código de barras escaneado al crear que ya pertenece a otro artículo. */
+  protected readonly barraExistente = signal<Articulo | null>(null);
   protected readonly puedeTributario = computed(() =>
     this.sesion.tiene(PERMISOS.articulosTributario),
   );
@@ -136,7 +167,7 @@ export class ArticuloDetalle implements OnInit {
     descripcion: ['', [Validators.required, Validators.maxLength(200)]],
     descripcionCorta: ['', Validators.maxLength(60)],
     numeroParte: ['', Validators.maxLength(50)],
-    marcaId: [''],
+    marca: ['', Validators.maxLength(80)],
     origen: ['' as OrigenArticulo | ''],
     categoriaId: ['', Validators.required],
     tipo: ['INVENTARIABLE' as TipoArticulo, Validators.required],
@@ -155,6 +186,9 @@ export class ArticuloDetalle implements OnInit {
     unidadesAlternas: this.fb.array([] as ReturnType<ArticuloDetalle['nuevaUnidad']>[]),
     propiedades: this.propiedadesForm,
   });
+
+  /** Código de barras del alta rápida (el lector lo escribe y manda Enter). */
+  protected readonly barra = this.fb.control('', Validators.pattern(PATRON_BARRAS));
 
   /** Stock que entra desde la ficha: saldo inicial si es el primero en ese almacén, si no, ajuste de entrada. */
   protected readonly ingreso = this.fb.group({
@@ -199,6 +233,30 @@ export class ArticuloDetalle implements OnInit {
     return partes.join(' · ') + (categoria ? ` — según la categoría ${categoria}` : '');
   });
 
+  /** Categoría, propiedades, marca y N.° de parte: "FILTROS ACEITE TOYOTA 90915-YZZD2". */
+  protected readonly descripcionSugerida = computed(() => {
+    const v = this.valores();
+    const valores = (v.propiedades ?? {}) as Record<string, string>;
+    return [
+      this.nombreCategoria() ?? '',
+      ...this.propiedades().map((p) => textoPropiedad(p, valores[p.clave] ?? '')),
+      v.marca ?? '',
+      v.numeroParte ?? '',
+    ]
+      .map((x) => x.trim())
+      .filter((x) => x)
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .toUpperCase()
+      .slice(0, 200);
+  });
+
+  /** La marca escrita no existe: se creará al guardar. */
+  protected readonly marcaNueva = computed(() => {
+    const texto = normalizarMarca(this.valores().marca ?? '');
+    return texto && !this.marcas().some((m) => m.nombre === texto) ? texto : null;
+  });
+
   protected readonly tipoActual = computed(
     () => this.valores().tipo ?? this.formulario.controls.tipo.value,
   );
@@ -217,6 +275,15 @@ export class ArticuloDetalle implements OnInit {
   protected readonly unidadesAlternasDelArticulo = computed(() =>
     this.unidadesDelArticulo().slice(1),
   );
+
+  constructor() {
+    effect(() => {
+      const sugerida = this.descripcionSugerida();
+      if (this.esNuevo() && !this.descripcionManual() && sugerida) {
+        untracked(() => this.formulario.controls.descripcion.setValue(sugerida));
+      }
+    });
+  }
 
   ngOnInit(): void {
     if (!this.puedeTributario()) {
@@ -239,6 +306,7 @@ export class ArticuloDetalle implements OnInit {
       }
     }
     if (id) {
+      this.verMas.set(true);
       this.formulario.controls.codigo.disable();
       this.formulario.controls.tipo.disable();
       this.formulario.controls.control.disable();
@@ -300,8 +368,11 @@ export class ArticuloDetalle implements OnInit {
     try {
       const almacenes = await firstValueFrom(this.inventarioApi.almacenes());
       this.almacenesInventario.set(almacenes);
-      if (almacenes.length === 1 && almacenes[0]) {
-        this.ingreso.controls.almacenId.setValue(almacenes[0].id);
+      const sucursal = this.sesion.sucursalActiva()?.id;
+      const propio =
+        almacenes.length === 1 ? almacenes[0] : almacenes.find((a) => a.sucursalId === sucursal);
+      if (propio) {
+        this.ingreso.controls.almacenId.setValue(propio.id);
       }
     } catch (e) {
       this.error.set(aProblema(e));
@@ -386,9 +457,11 @@ export class ArticuloDetalle implements OnInit {
     }
   }
 
-  private limpiarIngreso(): void {
+  private limpiarIngreso(conservarAlmacen = false): void {
     const almacen =
-      this.almacenesInventario().length === 1 ? this.ingreso.controls.almacenId.value : '';
+      conservarAlmacen || this.almacenesInventario().length === 1
+        ? this.ingreso.controls.almacenId.value
+        : '';
     this.ingreso.reset({ almacenId: almacen, cantidad: null, costoUnitario: null, series: '' });
     this.ingreso.controls.lotes.clear();
   }
@@ -420,7 +493,7 @@ export class ArticuloDetalle implements OnInit {
         descripcion: a.descripcion,
         descripcionCorta: a.descripcionCorta ?? '',
         numeroParte: this.numeroParte() ?? '',
-        marcaId: a.marca?.id ?? '',
+        marca: a.marca?.nombre ?? '',
         origen: a.origen ?? '',
         categoriaId: a.categoria.id,
         tipo: a.tipo,
@@ -443,6 +516,7 @@ export class ArticuloDetalle implements OnInit {
       Object.entries(a.propiedades).forEach(([clave, valor]) =>
         this.propiedadesForm.get(clave)?.setValue(valor),
       );
+      this.descripcionManual.set(true);
       this.copiadoDe.set(a.codigo);
     } catch (e) {
       this.error.set(aProblema(e));
@@ -466,6 +540,8 @@ export class ArticuloDetalle implements OnInit {
         if (v.tipoExistencia) f.tipoExistencia.setValue(v.tipoExistencia);
         if (v.unidad) f.unidadBaseId.setValue(v.unidad.id);
         if (v.afectacionIgv) f.afectacionIgv.setValue(v.afectacionIgv);
+        f.control.setValue(v.control ?? 'NINGUNO');
+        f.centroBeneficioId.setValue(v.centroBeneficioId ?? '');
       }
       this.armarPropiedades(v.propiedades, this.formulario.controls.propiedades.getRawValue());
     } catch (e) {
@@ -505,7 +581,7 @@ export class ArticuloDetalle implements OnInit {
       descripcion: a.descripcion,
       descripcionCorta: a.descripcionCorta ?? '',
       numeroParte: a.numeroParte ?? '',
-      marcaId: a.marca?.id ?? '',
+      marca: a.marca?.nombre ?? '',
       origen: a.origen ?? '',
       categoriaId: a.categoria.id,
       tipo: a.tipo,
@@ -551,6 +627,63 @@ export class ArticuloDetalle implements OnInit {
     });
   }
 
+  /** Escribir la descripción a mano deja de armarla sola; borrarla toda vuelve a armarla. */
+  protected escribioDescripcion(evento: Event): void {
+    this.descripcionManual.set((evento.target as HTMLInputElement).value.trim() !== '');
+  }
+
+  protected armarDescripcion(): void {
+    this.descripcionManual.set(false);
+  }
+
+  /** El lector de barras termina con Enter: revisa el código en vez de enviar el formulario. */
+  protected alEscanear(evento: Event): void {
+    evento.preventDefault();
+    void this.revisarBarra();
+  }
+
+  protected async revisarBarra(): Promise<void> {
+    const codigo = this.barra.value.trim();
+    this.barraExistente.set(null);
+    if (!codigo || this.barra.invalid) {
+      return;
+    }
+    try {
+      this.barraExistente.set(await firstValueFrom(this.api.porCodigo(codigo)));
+    } catch {
+      // 404: el código está libre.
+    }
+  }
+
+  /** Avisa si ya hay artículos con el N.° de parte: duplicado (misma marca) o equivalente. */
+  protected async revisarParte(): Promise<void> {
+    const parte = this.formulario.controls.numeroParte.value.trim();
+    if (!parte) {
+      this.coincidencias.set([]);
+      return;
+    }
+    try {
+      const marca = this.marcaElegida(this.formulario.controls.marca.value);
+      this.coincidencias.set(
+        await firstValueFrom(this.api.coincidencias(parte, marca.marcaId, this.id() ?? null)),
+      );
+    } catch {
+      this.coincidencias.set([]);
+    }
+  }
+
+  /** La marca existente con ese nombre, o el nombre para crearla. */
+  private marcaElegida(texto: string): { marcaId: string | null; marcaNombre: string | null } {
+    const nombre = normalizarMarca(texto);
+    if (!nombre) {
+      return { marcaId: null, marcaNombre: null };
+    }
+    const existente = this.marcas().find((m) => m.nombre === nombre);
+    return existente
+      ? { marcaId: existente.id, marcaNombre: null }
+      : { marcaId: null, marcaNombre: nombre };
+  }
+
   protected agregarBarra(): void {
     this.formulario.controls.codigosBarras.push(this.nuevaBarra());
   }
@@ -563,8 +696,8 @@ export class ArticuloDetalle implements OnInit {
     this.formulario.controls.unidadesAlternas.push(this.nuevaUnidad());
   }
 
-  protected async guardar(): Promise<void> {
-    if (this.formulario.invalid) {
+  protected async guardar(otro = false): Promise<void> {
+    if (this.formulario.invalid || this.barra.invalid) {
       const f = this.formulario.controls;
       if (
         [f.tipoExistencia, f.afectacionIgv, f.codigoProductoSunat, f.pesoKg, f.volumenM3].some(
@@ -573,10 +706,30 @@ export class ArticuloDetalle implements OnInit {
       ) {
         this.verTributario.set(true);
       }
+      const visibles = new Set([
+        'categoriaId',
+        'descripcion',
+        'marca',
+        'numeroParte',
+        'propiedades',
+      ]);
+      const oculto = Object.entries(f).some(([clave, c]) => c.invalid && !visibles.has(clave));
+      if (oculto) {
+        this.verMas.set(true);
+      }
       this.formulario.markAllAsTouched();
+      this.barra.markAsTouched();
       return;
     }
     const v = this.formulario.getRawValue();
+    const barraRapida = this.esNuevo() ? this.barra.value.trim() : '';
+    const barras = v.codigosBarras.map((b) => ({
+      codigo: b.codigo,
+      unidadSunat: b.unidadSunat || null,
+    }));
+    if (barraRapida && !barras.some((b) => b.codigo === barraRapida)) {
+      barras.unshift({ codigo: barraRapida, unidadSunat: null });
+    }
     const propiedades = Object.fromEntries(
       Object.entries(v.propiedades).filter(([, valor]) => valor !== ''),
     );
@@ -584,7 +737,7 @@ export class ArticuloDetalle implements OnInit {
       descripcion: v.descripcion,
       descripcionCorta: v.descripcionCorta || null,
       numeroParte: v.numeroParte || null,
-      marcaId: v.marcaId || null,
+      ...this.marcaElegida(v.marca),
       origen: v.origen || null,
       categoriaId: v.categoriaId,
       tipoExistencia: v.tipo === 'SERVICIO' ? null : v.tipoExistencia || null,
@@ -595,10 +748,7 @@ export class ArticuloDetalle implements OnInit {
       centroBeneficioId: v.centroBeneficioId || null,
       pesoKg: v.pesoKg,
       volumenM3: v.volumenM3,
-      codigosBarras: v.codigosBarras.map((b) => ({
-        codigo: b.codigo,
-        unidadSunat: b.unidadSunat || null,
-      })),
+      codigosBarras: barras,
       codigosAlternos: v.codigosAlternos.map((c) => ({
         codigo: c.codigo,
         referencia: c.referencia || null,
@@ -644,13 +794,38 @@ export class ArticuloDetalle implements OnInit {
             );
           }
         }
-        await this.router.navigate(['/articulos', creado.id]);
+        if (otro) {
+          this.prepararOtro();
+        } else {
+          await this.router.navigate(['/articulos', creado.id]);
+        }
       }
     } catch (e) {
       this.error.set(aProblema(e));
     } finally {
       this.guardando.set(false);
     }
+  }
+
+  /**
+   * Deja el formulario listo para el siguiente artículo de la misma caja: conserva categoría,
+   * propiedades, marca, unidades y almacén; limpia lo que identifica a cada uno.
+   */
+  private prepararOtro(): void {
+    const f = this.formulario.controls;
+    f.codigo.setValue('');
+    f.numeroParte.setValue('');
+    f.descripcionCorta.setValue('');
+    f.codigosBarras.clear();
+    f.codigosAlternos.clear();
+    this.barra.reset('');
+    this.barraExistente.set(null);
+    this.coincidencias.set([]);
+    this.copiadoDe.set(null);
+    this.descripcionManual.set(false);
+    this.limpiarIngreso(true);
+    this.formulario.markAsUntouched();
+    document.getElementById('ar-barra-rapida')?.focus();
   }
 
   protected async guardarEstado(): Promise<void> {
