@@ -12,6 +12,7 @@ export const TIPOS_MOVIMIENTO: Record<TipoMovimiento, string> = {
   REVALORIZACION: 'Revalorización',
   COMPRA: 'Compra',
   DEVOLUCION_PROVEEDOR: 'Devolución al proveedor',
+  AJUSTE_COSTO_COMPRA: 'Ajuste de costo por compra',
 };
 
 export const ESTADOS_TRASLADO: Record<EstadoTraslado, string> = {

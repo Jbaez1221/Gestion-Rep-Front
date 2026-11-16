@@ -48,4 +48,10 @@ export const PERMISOS = {
   inventarioTrasladoSolicitar: 'inventario.traslado:solicitar',
   inventarioTrasladoEnviar: 'inventario.traslado:enviar',
   inventarioTrasladoRecibir: 'inventario.traslado:recibir',
+  comprasLeer: 'compras:read',
+  comprasRegistrar: 'compras:registrar',
+  comprasAnular: 'compras:anular',
+  comprasOrdenCrear: 'compras.orden:create',
+  comprasOrdenAprobar: 'compras.orden:aprobar',
+  comprasTipoCambio: 'compras.tipo-cambio:update',
 } as const;

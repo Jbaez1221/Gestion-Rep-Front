@@ -1215,3 +1215,30 @@ describe('CatalogosArticulos · control y centro de beneficio', () => {
     );
   });
 });
+
+describe('ArticuloDetalle · dentro de otra pantalla', () => {
+  it('al crear emite el artículo, sin abrirlo ni registrar stock', async () => {
+    const api = configurar();
+    const inventario = TestBed.inject(InventarioApi) as unknown as {
+      registrar: ReturnType<typeof vi.fn>;
+    };
+    const { fixture, html, escribir, boton, estable } = await crear(ArticuloDetalle, {
+      enDialogo: true,
+    });
+    const navegar = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    const creados: string[] = [];
+    fixture.componentInstance.creado.subscribe((a) => creados.push(a.codigo));
+    expect(html.textContent).not.toContain('Stock inicial');
+    expect(html.textContent).not.toContain('Volver a la lista');
+    expect(boton('Crear y agregar otro')).toBeUndefined();
+    escribir('#ar-categoria', 'aire');
+    await estable();
+    escribir('#ar-prop-viscosidad', '10W40');
+    boton('Crear artículo')?.click();
+    await estable();
+    expect(api.crear).toHaveBeenCalled();
+    expect(creados).toEqual(['FIL-000009']);
+    expect(navegar).not.toHaveBeenCalled();
+    expect(inventario.registrar).not.toHaveBeenCalled();
+  });
+});

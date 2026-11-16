@@ -1,0 +1,170 @@
+import { DecimalPipe, DatePipe } from '@angular/common';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
+
+import { PERMISOS } from '../../core/auth/permisos';
+import { SesionService } from '../../core/auth/sesion.service';
+import { Problema, aProblema } from '../../core/http/problema';
+import {
+  CompraListado,
+  EstadoCompra,
+  Pagina,
+  TipoComprobante,
+} from '../../core/modelos/api.modelos';
+import { ErrorApi } from '../../shared/ui/error-api';
+import { Paginador } from '../../shared/ui/paginador';
+import { NOMBRE_COMPROBANTE } from './calculo';
+import { ComprasApi } from './compras.api';
+
+@Component({
+  selector: 'app-compras-lista',
+  imports: [ReactiveFormsModule, RouterLink, ErrorApi, Paginador, DecimalPipe, DatePipe],
+  template: `
+    <div class="space-y-4">
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
+          <div class="min-w-64">
+            <label for="c-texto" class="etiqueta">Buscar</label>
+            <input
+              id="c-texto"
+              type="search"
+              class="campo"
+              formControlName="texto"
+              placeholder="Proveedor, RUC, serie-número o CO-…"
+            />
+          </div>
+          <div>
+            <label for="c-tipo" class="etiqueta">Comprobante</label>
+            <select id="c-tipo" class="campo" formControlName="tipo">
+              <option value="">Todos</option>
+              @for (t of tipos; track t) {
+                <option [value]="t">{{ nombres[t] }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label for="c-estado" class="etiqueta">Estado</label>
+            <select id="c-estado" class="campo" formControlName="estado">
+              <option value="">Todos</option>
+              <option value="REGISTRADA">Registradas</option>
+              <option value="ANULADA">Anuladas</option>
+            </select>
+          </div>
+          <div>
+            <label for="c-desde" class="etiqueta">Emitidas desde</label>
+            <input id="c-desde" type="date" class="campo" formControlName="desde" />
+          </div>
+          <div>
+            <label for="c-hasta" class="etiqueta">Hasta</label>
+            <input id="c-hasta" type="date" class="campo" formControlName="hasta" />
+          </div>
+          <button type="submit" class="btn-secundario">Buscar</button>
+        </form>
+        @if (sesion.tiene(permisos.comprasRegistrar)) {
+          <a routerLink="/compras/registrar" class="btn-primario">Registrar compra</a>
+        }
+      </div>
+
+      <app-error-api [problema]="error()" />
+
+      <div class="tarjeta overflow-x-auto p-0 sm:p-0">
+        <table class="tabla">
+          <thead>
+            <tr>
+              <th scope="col">Emisión</th>
+              <th scope="col">Comprobante</th>
+              <th scope="col">Proveedor</th>
+              <th scope="col" class="text-right">Total</th>
+              <th scope="col" class="text-right">En soles</th>
+              <th scope="col">Estado</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            @for (c of pagina()?.contenido ?? []; track c.id) {
+              <tr>
+                <td class="whitespace-nowrap">{{ c.fechaEmision | date: 'dd/MM/yyyy' }}</td>
+                <td class="whitespace-nowrap">
+                  <a
+                    [routerLink]="['/compras/documento', c.id]"
+                    class="text-marca-700 hover:underline"
+                  >
+                    {{ nombres[c.tipoComprobante] }}
+                    <span class="font-mono">{{ c.comprobante }}</span>
+                  </a>
+                  <span class="block font-mono text-xs text-slate-500">{{ c.numero }}</span>
+                </td>
+                <td>
+                  {{ c.proveedor.nombre }}
+                  <span class="block font-mono text-xs text-slate-500">{{
+                    c.proveedor.documento
+                  }}</span>
+                </td>
+                <td class="whitespace-nowrap text-right">
+                  {{ c.moneda === 'USD' ? 'US$' : 'S/' }} {{ c.total | number: '1.2-2' }}
+                </td>
+                <td class="text-right">{{ c.totalSoles | number: '1.2-2' }}</td>
+                <td class="space-x-1 whitespace-nowrap">
+                  <span [class]="c.estado === 'REGISTRADA' ? 'insignia-ok' : 'insignia-neutra'">{{
+                    c.estado === 'REGISTRADA' ? 'Registrada' : 'Anulada'
+                  }}</span>
+                  @if (!c.creditoFiscal && c.estado === 'REGISTRADA') {
+                    <span class="insignia-alerta">Sin crédito fiscal</span>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="py-6 text-center text-slate-500">
+                  No hay compras con esos filtros.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <app-paginador [pagina]="pagina()" (cambiar)="buscar($event)" />
+    </div>
+  `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class ComprasLista implements OnInit {
+  private readonly api = inject(ComprasApi);
+  private readonly fb = inject(NonNullableFormBuilder);
+  protected readonly sesion = inject(SesionService);
+  protected readonly permisos = PERMISOS;
+  protected readonly nombres = NOMBRE_COMPROBANTE;
+  protected readonly tipos: TipoComprobante[] = [
+    'FACTURA',
+    'BOLETA',
+    'NOTA_CREDITO',
+    'NOTA_DEBITO',
+  ];
+
+  protected readonly pagina = signal<Pagina<CompraListado> | null>(null);
+  protected readonly error = signal<Problema | null>(null);
+
+  protected readonly filtros = this.fb.group({
+    texto: [''],
+    tipo: ['' as TipoComprobante | ''],
+    estado: ['' as EstadoCompra | ''],
+    desde: [''],
+    hasta: [''],
+  });
+
+  ngOnInit(): void {
+    void this.buscar(0);
+  }
+
+  protected async buscar(numero = 0): Promise<void> {
+    try {
+      this.error.set(null);
+      this.pagina.set(
+        await firstValueFrom(this.api.listar({ ...this.filtros.getRawValue(), pagina: numero })),
+      );
+    } catch (e) {
+      this.error.set(aProblema(e));
+    }
+  }
+}

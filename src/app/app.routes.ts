@@ -174,6 +174,75 @@ export const routes: Routes = [
         ],
       },
       {
+        path: 'compras/registrar',
+        title: 'Registrar compra · Repuestos',
+        data: { permisos: [PERMISOS.comprasRegistrar] },
+        loadComponent: () =>
+          import('./features/compras/compra-registro').then((m) => m.CompraRegistro),
+      },
+      {
+        path: 'compras/documento/:id',
+        title: 'Compra · Repuestos',
+        data: { permisos: [PERMISOS.comprasLeer] },
+        loadComponent: () =>
+          import('./features/compras/compra-detalle').then((m) => m.CompraDetalle),
+      },
+      {
+        path: 'compras/recepcion/nueva',
+        title: 'Recibir con guía · Repuestos',
+        data: { permisos: [PERMISOS.comprasRegistrar] },
+        loadComponent: () =>
+          import('./features/compras/recepcion-detalle').then((m) => m.RecepcionDetalle),
+      },
+      {
+        path: 'compras/recepcion/:id',
+        title: 'Recepción · Repuestos',
+        data: { permisos: [PERMISOS.comprasLeer] },
+        loadComponent: () =>
+          import('./features/compras/recepcion-detalle').then((m) => m.RecepcionDetalle),
+      },
+      {
+        path: 'compras/orden/nueva',
+        title: 'Nueva orden de compra · Repuestos',
+        data: { permisos: [PERMISOS.comprasOrdenCrear] },
+        loadComponent: () => import('./features/compras/orden-detalle').then((m) => m.OrdenDetalle),
+      },
+      {
+        path: 'compras/orden/:id',
+        title: 'Orden de compra · Repuestos',
+        data: { permisos: [PERMISOS.comprasLeer] },
+        loadComponent: () => import('./features/compras/orden-detalle').then((m) => m.OrdenDetalle),
+      },
+      {
+        path: 'compras',
+        title: 'Compras · Repuestos',
+        data: { permisos: [PERMISOS.comprasLeer] },
+        loadComponent: () => import('./features/compras/compras').then((m) => m.Compras),
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'lista' },
+          {
+            path: 'lista',
+            loadComponent: () =>
+              import('./features/compras/compras-lista').then((m) => m.ComprasLista),
+          },
+          {
+            path: 'ordenes',
+            loadComponent: () =>
+              import('./features/compras/ordenes-lista').then((m) => m.OrdenesLista),
+          },
+          {
+            path: 'recepciones',
+            loadComponent: () =>
+              import('./features/compras/recepciones-lista').then((m) => m.RecepcionesLista),
+          },
+          {
+            path: 'tipo-cambio',
+            loadComponent: () =>
+              import('./features/compras/tipos-cambio').then((m) => m.TiposCambio),
+          },
+        ],
+      },
+      {
         path: 'inventario',
         title: 'Inventario · Repuestos',
         data: { permisos: [PERMISOS.inventarioLeer] },
