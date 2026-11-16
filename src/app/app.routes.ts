@@ -243,6 +243,83 @@ export const routes: Routes = [
         ],
       },
       {
+        path: 'ventas/pedido/nuevo',
+        title: 'Nuevo pedido · Repuestos',
+        data: { permisos: [PERMISOS.ventasPedido] },
+        loadComponent: () =>
+          import('./features/ventas/pedido-detalle').then((m) => m.PedidoDetalle),
+      },
+      {
+        path: 'ventas/pedido/:id',
+        title: 'Pedido · Repuestos',
+        data: { permisos: [PERMISOS.ventasLeer] },
+        loadComponent: () =>
+          import('./features/ventas/pedido-detalle').then((m) => m.PedidoDetalle),
+      },
+      {
+        path: 'ventas',
+        title: 'Ventas · Repuestos',
+        data: { permisos: [PERMISOS.ventasLeer] },
+        loadComponent: () => import('./features/ventas/ventas').then((m) => m.Ventas),
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'pedidos' },
+          {
+            path: 'pedidos',
+            loadComponent: () =>
+              import('./features/ventas/pedidos-lista').then((m) => m.PedidosLista),
+          },
+          {
+            path: 'listas',
+            loadComponent: () =>
+              import('./features/ventas/listas-precios').then((m) => m.ListasPrecios),
+          },
+        ],
+      },
+      {
+        path: 'caja/sesion/:id',
+        title: 'Sesión de caja · Repuestos',
+        data: { permisos: [PERMISOS.cajaLeer] },
+        loadComponent: () => import('./features/caja/sesion-detalle').then((m) => m.SesionDetalle),
+      },
+      {
+        path: 'caja',
+        title: 'Caja · Repuestos',
+        data: { permisos: [PERMISOS.cajaLeer] },
+        loadComponent: () => import('./features/caja/caja').then((m) => m.CajaPagina),
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'sesiones' },
+          {
+            path: 'operar',
+            data: { permisos: [PERMISOS.cajaOperar] },
+            loadComponent: () => import('./features/caja/caja-operar').then((m) => m.CajaOperar),
+          },
+          {
+            path: 'sesiones',
+            loadComponent: () =>
+              import('./features/caja/sesiones-lista').then((m) => m.SesionesLista),
+          },
+          {
+            path: 'configuracion',
+            loadComponent: () =>
+              import('./features/caja/configuracion-caja').then((m) => m.ConfiguracionCaja),
+          },
+        ],
+      },
+      {
+        path: 'facturacion/comprobante/:id',
+        title: 'Comprobante · Repuestos',
+        data: { permisos: [PERMISOS.facturacionLeer] },
+        loadComponent: () =>
+          import('./features/facturacion/comprobante-detalle').then((m) => m.ComprobanteDetalle),
+      },
+      {
+        path: 'facturacion',
+        title: 'Comprobantes · Repuestos',
+        data: { permisos: [PERMISOS.facturacionLeer] },
+        loadComponent: () =>
+          import('./features/facturacion/comprobantes').then((m) => m.Comprobantes),
+      },
+      {
         path: 'inventario',
         title: 'Inventario · Repuestos',
         data: { permisos: [PERMISOS.inventarioLeer] },

@@ -43,6 +43,24 @@
         <p class="mt-1 text-sm text-slate-600">Facturas de proveedores, órdenes y tipo de cambio</p>
       </a>
     }
+    @if (sesion.tiene(permisos.ventasLeer)) {
+      <a routerLink="/ventas" class="tarjeta hover:border-marca-500">
+        <h2 class="font-semibold">Ventas</h2>
+        <p class="mt-1 text-sm text-slate-600">Notas de pedido y listas de precios por cliente</p>
+      </a>
+    }
+    @if (sesion.tiene(permisos.cajaLeer)) {
+      <a routerLink="/caja" class="tarjeta hover:border-marca-500">
+        <h2 class="font-semibold">Caja</h2>
+        <p class="mt-1 text-sm text-slate-600">Cobro de pedidos, apertura y cierre con arqueo</p>
+      </a>
+    }
+    @if (sesion.tiene(permisos.facturacionLeer)) {
+      <a routerLink="/facturacion" class="tarjeta hover:border-marca-500">
+        <h2 class="font-semibold">Comprobantes</h2>
+        <p class="mt-1 text-sm text-slate-600">Boletas y facturas emitidas</p>
+      </a>
+    }
     @if (sesion.tiene(permisos.centrosLeer)) {
       <a routerLink="/centros" class="tarjeta hover:border-marca-500">
         <h2 class="font-semibold">Centros de costo</h2>

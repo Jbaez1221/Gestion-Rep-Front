@@ -1,0 +1,280 @@
+<div class="space-y-4">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h1 class="titulo-pagina">
+      @if (pedido(); as p) {
+        Pedido <span class="font-mono">{{ p.numero }}</span>
+        <span [class]="clase(p.estado)" class="ml-2 align-middle">{{ nombres[p.estado] }}</span>
+      } @else {
+        Nuevo pedido
+      }
+    </h1>
+    <a routerLink="/ventas/pedidos" class="btn-enlace">Volver a los pedidos</a>
+  </div>
+
+  <app-error-api [problema]="error()" />
+
+  @if (pedido()?.avisos?.length) {
+    <ul
+      class="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
+      role="status"
+    >
+      @for (a of pedido()?.avisos ?? []; track a) {
+        <li>{{ a }}</li>
+      }
+    </ul>
+  }
+
+  <div class="grid gap-4 xl:grid-cols-[1fr_26rem]">
+    <section class="tarjeta space-y-4">
+      <form [formGroup]="cabecera" class="grid gap-3 sm:grid-cols-3" novalidate>
+        <div class="sm:col-span-2">
+          @if (cliente(); as c) {
+            <p class="etiqueta">Cliente</p>
+            <p>
+              <span class="font-mono">{{ sigla(c.tipoDocumento) }} {{ c.documento }}</span> ·
+              {{ c.nombre }}
+              @if (editable()) {
+                <button type="button" class="btn-enlace ml-2" (click)="clientesVarios()">
+                  Clientes varios
+                </button>
+              }
+            </p>
+          } @else if (editable()) {
+            <app-buscador-cliente (elegido)="elegirCliente($event)" />
+            <p class="mt-1 text-xs text-slate-500">Sin elegir: clientes varios (boleta).</p>
+          } @else {
+            <p class="etiqueta">Cliente</p>
+            <p>Clientes varios</p>
+          }
+          @if (resultado()?.lista; as l) {
+            <p class="mt-1 text-xs text-slate-500">
+              Lista de precios: {{ l.nombre }} · descuento sin autorización hasta
+              {{ descuentoMaximo() }} %
+            </p>
+          }
+        </div>
+        <div>
+          <label for="pv-comprobante" class="etiqueta">Comprobante</label>
+          <select id="pv-comprobante" class="campo" formControlName="tipoComprobante">
+            <option value="BOLETA">Boleta</option>
+            <option value="FACTURA">Factura</option>
+          </select>
+        </div>
+        <div>
+          <label for="pv-almacen" class="etiqueta">Almacén</label>
+          <select id="pv-almacen" class="campo" formControlName="almacenId" (change)="buscar()">
+            <option value="">Elija…</option>
+            @for (a of almacenes(); track a.id) {
+              <option [value]="a.id">{{ a.sucursalNombre }} · {{ a.nombre }}</option>
+            }
+          </select>
+        </div>
+        <div class="sm:col-span-2">
+          <label for="pv-observacion" class="etiqueta">Observación</label>
+          <input id="pv-observacion" class="campo" formControlName="observacion" />
+        </div>
+      </form>
+
+      @if (avisoComprobante(); as aviso) {
+        <p
+          class="rounded-md border border-amber-200 bg-amber-50 p-2 text-sm text-amber-900"
+          role="status"
+        >
+          {{ aviso }}
+        </p>
+      }
+
+      <div class="overflow-x-auto">
+        <table class="tabla">
+          <thead>
+            <tr>
+              <th scope="col">Artículo</th>
+              <th scope="col">Unidad</th>
+              <th scope="col" class="text-right">Cantidad</th>
+              <th scope="col" class="text-right">Desc. %</th>
+              <th scope="col" class="text-right">Precio</th>
+              <th scope="col" class="text-right">Total</th>
+              <th scope="col"><span class="sr-only">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            @for (l of lineas.controls; track l; let i = $index) {
+              <tr [formGroup]="l">
+                <td>
+                  <span class="font-mono">{{ l.controls.codigo.value }}</span> ·
+                  {{ l.controls.descripcion.value }}
+                  @if (sinStock(i)) {
+                    <span class="insignia-alerta ml-1">Sin stock suficiente</span>
+                  }
+                </td>
+                <td>
+                  <label [for]="'pv-unidad-' + i" class="sr-only">Unidad</label>
+                  <select [id]="'pv-unidad-' + i" class="campo w-24" formControlName="unidad">
+                    @for (u of l.controls.unidades.value; track u.unidad) {
+                      <option [value]="u.unidad">{{ u.unidad }}</option>
+                    }
+                  </select>
+                </td>
+                <td>
+                  <label [for]="'pv-cant-' + i" class="sr-only">Cantidad</label>
+                  <input
+                    [id]="'pv-cant-' + i"
+                    type="number"
+                    min="0.0001"
+                    step="1"
+                    class="campo w-24 text-right"
+                    formControlName="cantidad"
+                  />
+                </td>
+                <td>
+                  <label [for]="'pv-desc-' + i" class="sr-only">Descuento</label>
+                  <input
+                    [id]="'pv-desc-' + i"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                    class="campo w-20 text-right"
+                    formControlName="descuento"
+                  />
+                  @if (sobreTope(i)) {
+                    <span class="block text-xs text-amber-800">Requiere autorización</span>
+                  }
+                </td>
+                <td class="text-right">{{ importes()[i]?.unitario | number: '1.2-2' }}</td>
+                <td class="text-right">{{ importes()[i]?.total | number: '1.2-2' }}</td>
+                <td>
+                  @if (editable()) {
+                    <button type="button" class="btn-enlace" (click)="lineas.removeAt(i)">
+                      Quitar
+                    </button>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="7" class="py-6 text-center text-slate-500">
+                  Busque y agregue artículos.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <dl class="ml-auto grid max-w-xs grid-cols-2 gap-1 text-sm">
+        <dt>IGV incluido</dt>
+        <dd class="text-right">{{ igv() | number: '1.2-2' }}</dd>
+        <dt class="font-semibold">Total</dt>
+        <dd class="text-right text-lg font-semibold">S/ {{ total() | number: '1.2-2' }}</dd>
+      </dl>
+      <p class="text-xs text-slate-500">
+        El precio final lo confirma el servidor con la lista del cliente al guardar.
+      </p>
+
+      <div class="flex flex-wrap gap-2">
+        @if (editable()) {
+          <button
+            type="button"
+            class="btn-primario"
+            [disabled]="guardando()"
+            (click)="guardar(true)"
+          >
+            Enviar a caja
+          </button>
+          <button type="button" class="btn-secundario" [disabled]="guardando()" (click)="guardar()">
+            Guardar borrador
+          </button>
+        }
+        @if (pedido(); as p) {
+          @if (p.estado === 'ENVIADO' && sesion.tiene(permisos.ventasPedido)) {
+            <button type="button" class="btn-secundario" (click)="devolver()">
+              Devolver a borrador
+            </button>
+          }
+          @if (
+            (p.estado === 'BORRADOR' || p.estado === 'ENVIADO') &&
+            sesion.tiene(permisos.ventasAnular)
+          ) {
+            <button type="button" class="btn-enlace" (click)="anular()">Anular</button>
+          }
+        }
+      </div>
+    </section>
+
+    @if (editable()) {
+      <section class="tarjeta space-y-3 self-start">
+        <form (submit)="alBuscar($event)" class="flex gap-2">
+          <label for="pv-buscar" class="sr-only">Buscar artículo</label>
+          <input
+            id="pv-buscar"
+            type="search"
+            class="campo"
+            [formControl]="busqueda"
+            placeholder="Código, barras, N.° de parte o descripción"
+          />
+          <button type="submit" class="btn-secundario">Buscar</button>
+        </form>
+        <ul class="space-y-2">
+          @for (a of resultado()?.articulos ?? []; track a.articuloId) {
+            <li class="rounded-md border border-slate-200 p-2 text-sm">
+              <p>
+                <span class="font-mono">{{ a.codigo }}</span> · {{ a.descripcion }}
+                <span class="block text-xs text-slate-500">
+                  {{ a.numeroParte ?? 'sin N.° de parte' }} · {{ a.marca ?? 'sin marca' }} ·
+                  @if (a.disponible !== null) {
+                    disponible {{ a.disponible | number: '1.0-2' }} {{ a.unidadBase }}
+                  } @else {
+                    servicio
+                  }
+                </span>
+              </p>
+              <div class="mt-1 flex flex-wrap gap-1">
+                @for (u of a.unidades; track u.unidad) {
+                  @if (u.precio !== null) {
+                    <button
+                      type="button"
+                      class="btn-secundario px-2 py-1 text-xs"
+                      (click)="agregar(a, u)"
+                    >
+                      + {{ u.unidad }} · S/ {{ u.precio | number: '1.2-2' }}
+                    </button>
+                  } @else {
+                    <span class="text-xs text-slate-500">{{ u.unidad }}: sin precio</span>
+                  }
+                }
+              </div>
+              @if (a.alternativas.length > 0) {
+                <p class="mt-2 text-xs font-semibold text-amber-800">
+                  Sin stock. Equivalentes disponibles:
+                </p>
+                @for (e of a.alternativas; track e.articuloId) {
+                  <div class="mt-1 flex flex-wrap items-center gap-1 text-xs">
+                    <span class="font-mono">{{ e.codigo }}</span> · {{ e.descripcion }} ({{
+                      e.disponible | number: '1.0-2'
+                    }})
+                    @for (u of e.unidades; track u.unidad) {
+                      @if (u.precio !== null) {
+                        <button
+                          type="button"
+                          class="btn-secundario px-2 py-1 text-xs"
+                          (click)="agregar(e, u)"
+                        >
+                          + {{ u.unidad }} · S/ {{ u.precio | number: '1.2-2' }}
+                        </button>
+                      }
+                    }
+                  </div>
+                }
+              }
+            </li>
+          } @empty {
+            @if (resultado()) {
+              <li class="text-sm text-slate-500">Sin resultados.</li>
+            }
+          }
+        </ul>
+      </section>
+    }
+  </div>
+</div>
