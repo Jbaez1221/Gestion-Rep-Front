@@ -18,6 +18,9 @@ const MENU: ItemMenu[] = [
   { ruta: '/articulos', texto: 'Artículos', permisos: [PERMISOS.articulosLeer] },
   { ruta: '/inventario', texto: 'Inventario', permisos: [PERMISOS.inventarioLeer] },
   { ruta: '/compras', texto: 'Compras', permisos: [PERMISOS.comprasLeer] },
+  { ruta: '/ventas', texto: 'Ventas', permisos: [PERMISOS.ventasLeer] },
+  { ruta: '/caja', texto: 'Caja', permisos: [PERMISOS.cajaLeer] },
+  { ruta: '/facturacion', texto: 'Comprobantes', permisos: [PERMISOS.facturacionLeer] },
   { ruta: '/centros', texto: 'Centros de costo', permisos: [PERMISOS.centrosLeer] },
   { ruta: '/roles', texto: 'Roles y permisos', permisos: [PERMISOS.rolesLeer] },
   {

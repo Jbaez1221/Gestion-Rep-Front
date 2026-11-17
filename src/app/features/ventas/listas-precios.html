@@ -1,0 +1,203 @@
+<div class="space-y-4">
+  <app-error-api [problema]="error()" />
+  <div class="grid gap-4 lg:grid-cols-[18rem_1fr]">
+    <section class="tarjeta space-y-2 self-start">
+      <h2 class="font-semibold">Listas</h2>
+      <ul class="space-y-1">
+        @for (l of listas(); track l.id) {
+          <li>
+            <button type="button" class="btn-enlace text-left" (click)="editar(l)">
+              {{ l.nombre }}
+              @if (l.porDefecto) {
+                <span class="insignia-ok">Por defecto</span>
+              }
+              @if (!l.activo) {
+                <span class="insignia-neutra">Inactiva</span>
+              }
+            </button>
+          </li>
+        }
+      </ul>
+      @if (puedeEditar()) {
+        <button type="button" class="btn-secundario" (click)="editar('nueva')">Nueva lista</button>
+      }
+    </section>
+
+    @if (elegida(); as actual) {
+      <div class="space-y-4">
+        <form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate class="tarjeta space-y-3">
+          <h2 class="font-semibold">{{ actual === 'nueva' ? 'Nueva lista' : actual.nombre }}</h2>
+          <div class="grid gap-3 sm:grid-cols-3">
+            @if (actual === 'nueva') {
+              <div>
+                <label for="lp-codigo" class="etiqueta">Código</label>
+                <input id="lp-codigo" class="campo font-mono uppercase" formControlName="codigo" />
+              </div>
+            }
+            <div>
+              <label for="lp-nombre" class="etiqueta">Nombre</label>
+              <input id="lp-nombre" class="campo" formControlName="nombre" />
+            </div>
+            <div>
+              <label for="lp-margen" class="etiqueta">Margen por defecto (%)</label>
+              <input
+                id="lp-margen"
+                type="number"
+                min="0"
+                step="0.5"
+                class="campo text-right"
+                formControlName="margenDefecto"
+              />
+            </div>
+            <div>
+              <label for="lp-descuento" class="etiqueta">Descuento sin autorización (%)</label>
+              <input
+                id="lp-descuento"
+                type="number"
+                min="0"
+                max="100"
+                step="0.5"
+                class="campo text-right"
+                formControlName="descuentoMaximo"
+              />
+            </div>
+            <label class="flex items-center gap-2 text-sm">
+              <input type="checkbox" formControlName="porDefecto" /> Por defecto (clientes sin lista
+              y clientes varios)
+            </label>
+            <label class="flex items-center gap-2 text-sm">
+              <input type="checkbox" formControlName="activo" /> Activa
+            </label>
+          </div>
+          <fieldset class="space-y-1">
+            <legend class="font-semibold">
+              Margen por categoría (vacío: el de la categoría superior o el por defecto)
+            </legend>
+            <div class="grid gap-x-4 gap-y-1 sm:grid-cols-2">
+              @for (n of arbol(); track n.categoria.id) {
+                <div class="flex items-center justify-between gap-2 text-sm">
+                  <label [for]="'lp-cat-' + n.categoria.id">{{ etiquetaCategoria(n) }}</label>
+                  <input
+                    [id]="'lp-cat-' + n.categoria.id"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    class="campo w-24 text-right"
+                    [formControl]="margenes.controls[n.categoria.id]"
+                  />
+                </div>
+              }
+            </div>
+          </fieldset>
+          @if (puedeEditar()) {
+            <button type="submit" class="btn-primario">Guardar lista</button>
+          }
+        </form>
+
+        @if (actual !== 'nueva') {
+          <section class="tarjeta space-y-2">
+            <h2 class="font-semibold">Precios fijos (con IGV): mandan sobre el margen</h2>
+            @if (puedeEditar()) {
+              <app-buscador-articulo
+                etiqueta="Artículo con precio fijo"
+                (elegido)="elegirArticulo($event)"
+              />
+              @if (articuloPrecio(); as a) {
+                <form
+                  [formGroup]="precio"
+                  (ngSubmit)="fijarPrecio()"
+                  class="flex flex-wrap items-end gap-2"
+                >
+                  <p class="w-full text-sm">
+                    <span class="font-mono">{{ a.codigo }}</span> · {{ a.descripcion }}
+                  </p>
+                  <div>
+                    <label for="lp-unidad" class="etiqueta">Unidad</label>
+                    <select id="lp-unidad" class="campo w-24" formControlName="unidad">
+                      @for (u of unidades(a); track u) {
+                        <option [value]="u">{{ u }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div>
+                    <label for="lp-precio" class="etiqueta">Precio S/</label>
+                    <input
+                      id="lp-precio"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      class="campo w-32 text-right"
+                      formControlName="monto"
+                    />
+                  </div>
+                  <button type="submit" class="btn-secundario">Fijar precio</button>
+                </form>
+              }
+            }
+            <table class="tabla">
+              <thead>
+                <tr>
+                  <th scope="col">Artículo</th>
+                  <th scope="col">Unidad</th>
+                  <th scope="col" class="text-right">Precio</th>
+                  <th scope="col"><span class="sr-only">Acciones</span></th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                @for (p of precios(); track p.id) {
+                  <tr>
+                    <td class="font-mono">{{ p.articuloCodigo }}</td>
+                    <td>{{ p.unidad }}</td>
+                    <td class="text-right">{{ p.precio | number: '1.2-2' }}</td>
+                    <td>
+                      @if (puedeEditar()) {
+                        <button type="button" class="btn-enlace" (click)="quitarPrecio(p)">
+                          Quitar
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="4" class="py-4 text-center text-slate-500">
+                      Sin precios fijos: todo se calcula con el margen.
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </section>
+        }
+      </div>
+    }
+  </div>
+
+  <section class="tarjeta space-y-2">
+    <h2 class="font-semibold">Lista de un cliente</h2>
+    <div class="max-w-md">
+      <app-buscador-cliente (elegido)="elegirCliente($event)" />
+    </div>
+    @if (cliente(); as c) {
+      <div class="flex flex-wrap items-end gap-2">
+        <p class="w-full text-sm">
+          {{ c.nombre }}: usa <strong>{{ listaCliente()?.lista?.nombre }}</strong>
+          {{ listaCliente()?.asignada ? '(asignada)' : '(por defecto)' }}
+        </p>
+        <div>
+          <label for="lp-asignar" class="etiqueta">Lista</label>
+          <select id="lp-asignar" class="campo" [formControl]="listaAsignada">
+            <option value="">La de por defecto</option>
+            @for (l of listas(); track l.id) {
+              @if (l.activo) {
+                <option [value]="l.id">{{ l.nombre }}</option>
+              }
+            }
+          </select>
+        </div>
+        @if (puedeEditar()) {
+          <button type="button" class="btn-secundario" (click)="asignar()">Asignar</button>
+        }
+      </div>
+    }
+  </section>
+</div>

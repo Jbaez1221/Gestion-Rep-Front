@@ -1,0 +1,257 @@
+<div class="space-y-4">
+  <app-error-api [problema]="error()" />
+
+  @if (ultimoCobro(); as c) {
+    <div
+      class="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900"
+      role="status"
+    >
+      {{ c.tipoComprobante === 'FACTURA' ? 'Factura' : 'Boleta' }}
+      <span class="font-mono font-semibold">{{ c.comprobante }}</span> emitida a
+      {{ c.clienteNombre }} por S/ {{ c.total | number: '1.2-2' }}.
+      @if (c.vuelto > 0) {
+        <span class="font-semibold">Vuelto: S/ {{ c.vuelto | number: '1.2-2' }}</span>
+      }
+    </div>
+  }
+
+  @if (cargando()) {
+    <p class="text-sm text-slate-500">Cargando…</p>
+  } @else if (sesion(); as s) {
+    <section class="tarjeta grid gap-3 text-sm sm:grid-cols-4">
+      <div>
+        <p class="etiqueta">Caja</p>
+        <p>
+          {{ s.caja }} · <span class="font-mono">{{ s.numero }}</span>
+        </p>
+      </div>
+      <div>
+        <p class="etiqueta">Abierta</p>
+        <p>
+          {{ s.apertura | date: 'dd/MM/yyyy HH:mm' }} con S/ {{ s.montoApertura | number: '1.2-2' }}
+        </p>
+      </div>
+      <div>
+        <p class="etiqueta">Cobrado</p>
+        <p>{{ s.cobros }} cobros · S/ {{ s.totalCobrado | number: '1.2-2' }}</p>
+      </div>
+      <div>
+        <p class="etiqueta">Efectivo en caja</p>
+        <p class="font-semibold">S/ {{ s.efectivoEsperado | number: '1.2-2' }}</p>
+      </div>
+    </section>
+
+    <div class="grid gap-4 xl:grid-cols-[1fr_24rem]">
+      <section class="tarjeta space-y-2">
+        <div class="flex items-center justify-between">
+          <h2 class="font-semibold">Pedidos por cobrar</h2>
+          <button type="button" class="btn-enlace" (click)="actualizar()">Actualizar</button>
+        </div>
+        <ul class="divide-y divide-slate-100">
+          @for (p of pendientes(); track p.id) {
+            <li class="py-2 text-sm">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <p>
+                  <span class="font-mono">{{ p.numero }}</span> · {{ p.clienteNombre }}
+                  <span class="block text-xs text-slate-500">
+                    {{ p.tipoComprobante === 'FACTURA' ? 'Factura' : 'Boleta' }} ·
+                    {{ p.vendedor }} · {{ p.lineas.length }} artículos
+                  </span>
+                </p>
+                <p class="flex items-center gap-2">
+                  <span class="font-semibold">S/ {{ p.total | number: '1.2-2' }}</span>
+                  <button type="button" class="btn-primario" (click)="empezarCobro(p)">
+                    Cobrar
+                  </button>
+                </p>
+              </div>
+            </li>
+          } @empty {
+            <li class="py-6 text-center text-sm text-slate-500">
+              No hay pedidos esperando en caja.
+            </li>
+          }
+        </ul>
+      </section>
+
+      <div class="space-y-4">
+        @if (cobrando(); as p) {
+          <section class="tarjeta space-y-2" aria-labelledby="titulo-cobro">
+            <h2 id="titulo-cobro" class="font-semibold">
+              Cobrar <span class="font-mono">{{ p.numero }}</span> · S/
+              {{ p.total | number: '1.2-2' }}
+            </h2>
+            <ul class="text-xs text-slate-600">
+              @for (l of p.lineas; track $index) {
+                <li>
+                  {{ l.cantidad | number: '1.0-2' }} {{ l.unidad }} · {{ l.descripcion }} ·
+                  {{ l.total | number: '1.2-2' }}
+                </li>
+              }
+            </ul>
+            @for (g of pagos.controls; track g; let i = $index) {
+              <div [formGroup]="g" class="flex flex-wrap items-center gap-1">
+                <label [for]="'cj-medio-' + i" class="sr-only">Medio de pago</label>
+                <select [id]="'cj-medio-' + i" class="campo w-36" formControlName="medio">
+                  @for (m of listaMedios; track m) {
+                    <option [value]="m">{{ medios[m] }}</option>
+                  }
+                </select>
+                <label [for]="'cj-monto-' + i" class="sr-only">Monto</label>
+                <input
+                  [id]="'cj-monto-' + i"
+                  type="number"
+                  min="0.01"
+                  step="0.10"
+                  class="campo w-28 text-right"
+                  formControlName="monto"
+                />
+                @if (g.controls.medio.value !== 'EFECTIVO') {
+                  <label [for]="'cj-ref-' + i" class="sr-only">N.° de operación</label>
+                  <input
+                    [id]="'cj-ref-' + i"
+                    class="campo w-32"
+                    formControlName="referencia"
+                    placeholder="N.° operación"
+                  />
+                }
+                @if (pagos.length > 1) {
+                  <button type="button" class="btn-enlace" (click)="pagos.removeAt(i)">
+                    Quitar
+                  </button>
+                }
+              </div>
+            }
+            <button type="button" class="btn-enlace" (click)="agregarPago()">
+              + Otro medio de pago
+            </button>
+            <dl class="grid grid-cols-2 gap-1 text-sm">
+              <dt>Recibido</dt>
+              <dd class="text-right">S/ {{ recibido() | number: '1.2-2' }}</dd>
+              @if (falta() > 0) {
+                <dt class="text-red-700">Falta</dt>
+                <dd class="text-right text-red-700">S/ {{ falta() | number: '1.2-2' }}</dd>
+              } @else {
+                <dt class="font-semibold">Vuelto</dt>
+                <dd class="text-right text-lg font-semibold">
+                  S/ {{ vuelto() | number: '1.2-2' }}
+                </dd>
+              }
+            </dl>
+            <div class="flex gap-2">
+              <button
+                type="button"
+                class="btn-primario"
+                [disabled]="falta() > 0"
+                (click)="cobrar()"
+              >
+                Cobrar y emitir
+              </button>
+              <button type="button" class="btn-secundario" (click)="cobrando.set(null)">
+                Cancelar
+              </button>
+            </div>
+          </section>
+        }
+
+        <form
+          [formGroup]="movimiento"
+          (ngSubmit)="registrarMovimiento()"
+          class="tarjeta space-y-2"
+          novalidate
+        >
+          <h2 class="font-semibold">Ingreso o egreso de efectivo</h2>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label for="cj-mtipo" class="etiqueta">Tipo</label>
+              <select id="cj-mtipo" class="campo" formControlName="tipo">
+                <option value="EGRESO">Egreso</option>
+                <option value="INGRESO">Ingreso</option>
+              </select>
+            </div>
+            <div>
+              <label for="cj-mmonto" class="etiqueta">Monto</label>
+              <input
+                id="cj-mmonto"
+                type="number"
+                min="0.01"
+                step="0.10"
+                class="campo text-right"
+                formControlName="monto"
+              />
+            </div>
+          </div>
+          <div>
+            <label for="cj-mmotivo" class="etiqueta">Motivo</label>
+            <input
+              id="cj-mmotivo"
+              class="campo"
+              formControlName="motivo"
+              placeholder="Gasto menor, retiro a bóveda, sencillo…"
+            />
+          </div>
+          <button type="submit" class="btn-secundario">Registrar</button>
+        </form>
+
+        <form [formGroup]="cierre" (ngSubmit)="cerrar()" class="tarjeta space-y-2" novalidate>
+          <h2 class="font-semibold">Cerrar caja</h2>
+          <p class="text-xs text-slate-500">
+            Cuente el efectivo: la diferencia con lo esperado queda registrada.
+          </p>
+          <div>
+            <label for="cj-contado" class="etiqueta">Efectivo contado</label>
+            <input
+              id="cj-contado"
+              type="number"
+              min="0"
+              step="0.10"
+              class="campo text-right"
+              formControlName="contado"
+            />
+          </div>
+          @if (diferencia(); as d) {
+            <p [class]="d < 0 ? 'text-sm text-red-700' : 'text-sm text-emerald-700'">
+              {{ d < 0 ? 'Faltante' : 'Sobrante' }}: S/ {{ (d < 0 ? -d : d) | number: '1.2-2' }}
+            </p>
+          } @else if (diferencia() === 0) {
+            <p class="text-sm text-emerald-700">Cuadra.</p>
+          }
+          <div>
+            <label for="cj-obs" class="etiqueta">Observación</label>
+            <input id="cj-obs" class="campo" formControlName="observacion" />
+          </div>
+          <button type="submit" class="btn-secundario">Cerrar caja</button>
+        </form>
+        <a [routerLink]="['/caja/sesion', s.id]" class="btn-enlace">Ver el detalle del turno</a>
+      </div>
+    </div>
+  } @else {
+    <form [formGroup]="apertura" (ngSubmit)="abrir()" class="tarjeta max-w-md space-y-3" novalidate>
+      <h2 class="font-semibold">Abrir caja</h2>
+      <div>
+        <label for="cj-caja" class="etiqueta">Caja</label>
+        <select id="cj-caja" class="campo" formControlName="cajaId">
+          <option value="">Elija…</option>
+          @for (c of cajasLibres(); track c.id) {
+            <option [value]="c.id">{{ c.nombre }} ({{ c.codigo }})</option>
+          }
+        </select>
+        @if (cajasLibres().length === 0) {
+          <p class="mt-1 text-xs text-slate-500">No hay cajas libres en sus sucursales.</p>
+        }
+      </div>
+      <div>
+        <label for="cj-monto-apertura" class="etiqueta">Efectivo inicial (sencillo)</label>
+        <input
+          id="cj-monto-apertura"
+          type="number"
+          min="0"
+          step="0.10"
+          class="campo text-right"
+          formControlName="monto"
+        />
+      </div>
+      <button type="submit" class="btn-primario">Abrir</button>
+    </form>
+  }
+</div>

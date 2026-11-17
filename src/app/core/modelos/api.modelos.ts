@@ -1387,3 +1387,308 @@ export interface CatalogosCompras {
   }[];
   readonly tasaIgv: number;
 }
+
+// --- Ventas ---
+
+export type TipoComprobanteVenta = 'BOLETA' | 'FACTURA';
+export type EstadoPedido = 'BORRADOR' | 'ENVIADO' | 'COBRADO' | 'ANULADO' | 'VENCIDO';
+export type OrigenPrecio = 'FIJO' | 'MARGEN';
+
+export interface Referencia {
+  readonly id: string;
+  readonly nombre: string;
+}
+
+export interface ClienteRef {
+  readonly id: string;
+  /** Código del catálogo 06 de SUNAT: 6 RUC, 1 DNI, 0 sin documento. */
+  readonly tipoDocumento: string;
+  readonly documento: string;
+  readonly nombre: string;
+}
+
+export interface MargenCategoria {
+  categoriaId: string;
+  margen: number;
+}
+
+export interface ListaPrecios {
+  readonly id: string;
+  readonly codigo: string;
+  readonly nombre: string;
+  readonly margenDefecto: number | null;
+  readonly descuentoMaximo: number;
+  readonly porDefecto: boolean;
+  readonly activo: boolean;
+  readonly margenes: MargenCategoria[];
+}
+
+export interface ListaGuardar {
+  codigo: string | null;
+  nombre: string;
+  margenDefecto: number | null;
+  descuentoMaximo: number;
+  porDefecto: boolean;
+  activo: boolean;
+  margenes: MargenCategoria[];
+}
+
+export interface PrecioFijo {
+  readonly id: string;
+  readonly articuloId: string;
+  readonly articuloCodigo: string;
+  readonly unidad: string;
+  readonly precio: number;
+  readonly modificadoPor: string | null;
+}
+
+export interface ClienteLista {
+  readonly socioId: string;
+  readonly lista: Referencia;
+  readonly asignada: boolean;
+}
+
+export interface PrecioUnidad {
+  readonly unidad: string;
+  readonly factor: number;
+  readonly precio: number | null;
+  readonly origen: OrigenPrecio | null;
+  readonly bajoCosto: boolean;
+}
+
+export interface ArticuloVenta {
+  readonly articuloId: string;
+  readonly codigo: string;
+  readonly descripcion: string;
+  readonly numeroParte: string | null;
+  readonly marca: string | null;
+  readonly unidadBase: string;
+  readonly unidadVenta: string;
+  readonly afectacionIgv: AfectacionCompra;
+  readonly disponible: number | null;
+  readonly unidades: PrecioUnidad[];
+  readonly alternativas: ArticuloVenta[];
+}
+
+export interface Mostrador {
+  readonly lista: Referencia;
+  readonly cliente: ClienteRef;
+  readonly descuentoMaximo: number;
+  readonly articulos: ArticuloVenta[];
+}
+
+export interface LineaPedido {
+  readonly linea: number;
+  readonly articuloId: string;
+  readonly articuloCodigo: string;
+  readonly descripcion: string;
+  readonly unidad: string;
+  readonly factor: number;
+  readonly cantidad: number;
+  readonly precioLista: number;
+  readonly origenPrecio: OrigenPrecio;
+  readonly descuento: number;
+  readonly precioUnitario: number;
+  readonly afectacion: AfectacionCompra;
+  readonly valorVenta: number;
+  readonly igv: number;
+  readonly total: number;
+}
+
+export interface PedidoVenta {
+  readonly id: string;
+  readonly numero: string;
+  readonly sucursalId: string;
+  readonly almacen: AlmacenCompraRef | null;
+  readonly vendedor: string;
+  readonly cliente: ClienteRef;
+  readonly lista: Referencia;
+  readonly tipoComprobante: TipoComprobanteVenta;
+  readonly estado: EstadoPedido;
+  readonly fecha: string;
+  readonly fechaEnvio: string | null;
+  readonly gravado: number;
+  readonly exonerado: number;
+  readonly inafecto: number;
+  readonly igv: number;
+  readonly total: number;
+  readonly descuento: number;
+  readonly autorizadoPor: string | null;
+  readonly observacion: string | null;
+  readonly cobroId: string | null;
+  readonly fechaCierre: string | null;
+  readonly cerradoPor: string | null;
+  readonly motivoAnulacion: string | null;
+  readonly lineas: LineaPedido[];
+  readonly avisos: string[];
+  readonly creadoPor: string | null;
+  readonly fechaCreacion: string | null;
+}
+
+export interface PedidoListado {
+  readonly id: string;
+  readonly numero: string;
+  readonly fecha: string;
+  readonly cliente: ClienteRef;
+  readonly vendedor: string;
+  readonly tipoComprobante: TipoComprobanteVenta;
+  readonly total: number;
+  readonly estado: EstadoPedido;
+}
+
+export interface PedidoGuardar {
+  almacenId: string;
+  clienteId: string | null;
+  tipoComprobante: TipoComprobanteVenta;
+  observacion: string | null;
+  lineas: { articuloId: string; unidad: string; cantidad: number; descuento: number }[];
+}
+
+// --- Facturación ---
+
+export interface SerieComprobante {
+  readonly serie: string;
+  readonly tipo: TipoComprobanteVenta;
+  readonly sucursalId: string;
+  readonly sucursal: string | null;
+  readonly ultimoNumero: number;
+  readonly activo: boolean;
+}
+
+export interface ComprobanteVentaListado {
+  readonly id: string;
+  readonly tipo: TipoComprobanteVenta;
+  readonly comprobante: string;
+  readonly fechaEmision: string;
+  readonly clienteDocumento: string;
+  readonly clienteNombre: string;
+  readonly total: number;
+  readonly origenNumero: string;
+  readonly estado: 'PENDIENTE_ENVIO';
+}
+
+export interface ComprobanteVenta extends ComprobanteVentaListado {
+  readonly sucursalId: string;
+  readonly clienteTipoDocumento: string;
+  readonly clienteDireccion: string | null;
+  readonly moneda: Moneda;
+  readonly gravado: number;
+  readonly exonerado: number;
+  readonly inafecto: number;
+  readonly igv: number;
+  readonly origenTipo: string;
+  readonly origenId: string;
+  readonly lineas: {
+    readonly codigo: string;
+    readonly descripcion: string;
+    readonly unidad: string;
+    readonly cantidad: number;
+    readonly precioUnitario: number;
+    readonly afectacionIgv: string;
+    readonly valorVenta: number;
+    readonly igv: number;
+    readonly total: number;
+  }[];
+  readonly creadoPor: string | null;
+}
+
+// --- Caja ---
+
+export type MedioPago = 'EFECTIVO' | 'TARJETA' | 'YAPE_PLIN' | 'TRANSFERENCIA';
+export type EstadoSesion = 'ABIERTA' | 'CERRADA';
+export type TipoMovimientoCaja = 'INGRESO' | 'EGRESO';
+
+export interface Caja {
+  readonly id: string;
+  readonly codigo: string;
+  readonly nombre: string;
+  readonly sucursalId: string;
+  readonly serieBoleta: string;
+  readonly serieFactura: string;
+  readonly activo: boolean;
+  readonly sesionAbierta: string | null;
+}
+
+export interface Pago {
+  medio: MedioPago;
+  monto: number;
+  referencia: string | null;
+}
+
+export interface Cobro {
+  readonly id: string;
+  readonly numero: string;
+  readonly pedidoNumero: string;
+  readonly tipoComprobante: TipoComprobanteVenta;
+  readonly comprobante: string;
+  readonly comprobanteId: string;
+  readonly clienteNombre: string;
+  readonly total: number;
+  readonly recibido: number;
+  readonly vuelto: number;
+  readonly pagos: Pago[];
+  readonly fecha: string;
+  readonly cajero: string;
+}
+
+export interface MovimientoCaja {
+  readonly id: string;
+  readonly tipo: TipoMovimientoCaja;
+  readonly monto: number;
+  readonly motivo: string;
+  readonly fecha: string;
+  readonly usuario: string;
+}
+
+export interface SesionCaja {
+  readonly id: string;
+  readonly numero: string;
+  readonly cajaId: string;
+  readonly caja: string | null;
+  readonly sucursalId: string;
+  readonly cajero: string;
+  readonly apertura: string;
+  readonly montoApertura: number;
+  readonly estado: EstadoSesion;
+  readonly cierre: string | null;
+  readonly cobros: number;
+  readonly totalCobrado: number;
+  readonly porMedio: { readonly medio: MedioPago; readonly monto: number }[];
+  readonly ingresos: number;
+  readonly egresos: number;
+  readonly efectivoEsperado: number;
+  readonly efectivoContado: number | null;
+  readonly diferencia: number | null;
+  readonly observacionCierre: string | null;
+  readonly detalleCobros: Cobro[];
+  readonly movimientos: MovimientoCaja[];
+}
+
+export interface SesionListado {
+  readonly id: string;
+  readonly numero: string;
+  readonly caja: string | null;
+  readonly cajero: string;
+  readonly apertura: string;
+  readonly cierre: string | null;
+  readonly estado: EstadoSesion;
+  readonly diferencia: number | null;
+}
+
+export interface PedidoPendiente {
+  readonly id: string;
+  readonly numero: string;
+  readonly clienteDocumento: string;
+  readonly clienteNombre: string;
+  readonly tipoComprobante: TipoComprobanteVenta;
+  readonly vendedor: string;
+  readonly total: number;
+  readonly lineas: {
+    readonly codigo: string;
+    readonly descripcion: string;
+    readonly unidad: string;
+    readonly cantidad: number;
+    readonly precioUnitario: number;
+    readonly total: number;
+  }[];
+}
