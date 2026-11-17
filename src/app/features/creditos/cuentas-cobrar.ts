@@ -15,14 +15,11 @@ import { CreditosApi } from './creditos.api';
   selector: 'app-cuentas-cobrar',
   imports: [ReactiveFormsModule, RouterLink, DatePipe, DecimalPipe, ErrorApi, Paginador],
   template: `
-    <section class="space-y-4">
-      <div>
-        <h1 class="titulo-pagina">Créditos</h1>
-        <p class="mt-1 text-sm text-slate-600">
-          Cada venta al crédito deja una cuenta por cobrar que vence según los días de crédito del
-          cliente. Se cancela con abonos en caja o con notas de crédito.
-        </p>
-      </div>
+    <div class="space-y-4">
+      <p class="text-sm text-slate-600">
+        Cada venta al crédito deja una cuenta por cobrar que vence según los días de crédito del
+        cliente. Se cancela con abonos en caja o con notas de crédito.
+      </p>
       <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
         <div class="min-w-64">
           <label for="cr-texto" class="etiqueta">Buscar</label>
@@ -107,7 +104,7 @@ import { CreditosApi } from './creditos.api';
         </table>
       </div>
       <app-paginador [pagina]="pagina()" (cambiar)="buscar($event)" />
-    </section>
+    </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

@@ -83,6 +83,17 @@
                 Devoluciones
               </button>
             }
+            @if (puedePagarProveedores()) {
+              <button
+                type="button"
+                class="pestana"
+                [class.border-marca-600]="seccion() === 'proveedores'"
+                [attr.aria-pressed]="seccion() === 'proveedores'"
+                (click)="seccion.set('proveedores')"
+              >
+                Pagos a proveedores
+              </button>
+            }
           </nav>
           @if (seccion() === 'pedidos') {
             <button type="button" class="btn-enlace" (click)="actualizar()">Actualizar</button>
@@ -92,6 +103,8 @@
           <app-abono-caja [sesionId]="s.id" (registrado)="actualizar()" />
         } @else if (seccion() === 'devoluciones') {
           <app-devolucion-caja [sesionId]="s.id" (registrado)="actualizar()" />
+        } @else if (seccion() === 'proveedores') {
+          <app-pago-proveedor-caja [sesionId]="s.id" (registrado)="actualizar()" />
         } @else {
           <ul class="divide-y divide-slate-100">
             @for (p of pendientes(); track p.id) {

@@ -10,6 +10,8 @@ import {
   Cobro,
   CobroDevolvible,
   CuentaPendiente,
+  CuentaProveedorCaja,
+  PagoProveedorCaja,
   DevolucionCaja,
   MotivoNotaCredito,
   MedioPago,
@@ -140,6 +142,19 @@ export class CajaApi {
     return this.http.post<SesionCaja>(`${BASE}/sesiones/${sesionId}/cerrar`, {
       efectivoContado,
       observacion,
+    });
+  }
+
+  proveedores(sesionId: string, texto: string): Observable<CuentaProveedorCaja[]> {
+    return this.http.get<CuentaProveedorCaja[]>(`${BASE}/sesiones/${sesionId}/proveedores`, {
+      params: aParametros({ texto: texto.trim() || undefined }),
+    });
+  }
+
+  pagarProveedor(sesionId: string, cuentaId: string, monto: number): Observable<PagoProveedorCaja> {
+    return this.http.post<PagoProveedorCaja>(`${BASE}/sesiones/${sesionId}/pagos-proveedor`, {
+      cuentaId,
+      monto,
     });
   }
 }

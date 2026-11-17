@@ -28,11 +28,12 @@ import { ErrorApi } from '../../shared/ui/error-api';
 import { AbonoCajaPanel } from './abono-caja';
 import { CajaApi } from './caja.api';
 import { DevolucionCajaPanel } from './devolucion-caja';
+import { PagoProveedorCajaPanel } from './pago-proveedor-caja';
 import { NOMBRE_MEDIO, centimos } from './medios';
 
 export { NOMBRE_MEDIO } from './medios';
 
-type Seccion = 'pedidos' | 'abonos' | 'devoluciones';
+type Seccion = 'pedidos' | 'abonos' | 'devoluciones' | 'proveedores';
 
 /** El turno del cajero: abrir, cobrar los pedidos en caja, mover efectivo y cerrar con arqueo. */
 @Component({
@@ -45,6 +46,7 @@ type Seccion = 'pedidos' | 'abonos' | 'devoluciones';
     ErrorApi,
     AbonoCajaPanel,
     DevolucionCajaPanel,
+    PagoProveedorCajaPanel,
   ],
   templateUrl: './caja-operar.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -70,6 +72,9 @@ export class CajaOperar implements OnInit {
     this.permisos.tiene(PERMISOS.creditosAutorizar),
   );
   protected readonly puedeDevolver = computed(() => this.permisos.tiene(PERMISOS.cajaDevolver));
+  protected readonly puedePagarProveedores = computed(() =>
+    this.permisos.tiene(PERMISOS.cajaPagarProveedores),
+  );
   protected readonly cajasLibres = computed(() =>
     this.cajas().filter((c) => c.activo && !c.sesionAbierta),
   );
