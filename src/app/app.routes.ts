@@ -306,6 +306,20 @@ export const routes: Routes = [
         ],
       },
       {
+        path: 'creditos/cuenta/:id',
+        title: 'Cuenta por cobrar · Repuestos',
+        data: { permisos: [PERMISOS.creditosLeer] },
+        loadComponent: () =>
+          import('./features/creditos/cuenta-detalle').then((m) => m.CuentaDetalle),
+      },
+      {
+        path: 'creditos',
+        title: 'Créditos · Repuestos',
+        data: { permisos: [PERMISOS.creditosLeer] },
+        loadComponent: () =>
+          import('./features/creditos/cuentas-cobrar').then((m) => m.CuentasCobrar),
+      },
+      {
         path: 'facturacion/comprobante/:id',
         title: 'Comprobante · Repuestos',
         data: { permisos: [PERMISOS.facturacionLeer] },

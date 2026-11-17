@@ -46,9 +46,46 @@ const COMPROBANTE: ComprobanteVenta = {
     },
   ],
   creadoPor: 'ana',
+  formaPago: 'CONTADO',
+  fechaVencimiento: null,
+  cuotas: [],
+  referencia: null,
+  motivoNota: null,
+  descripcionMotivo: null,
+  codigoSunat: null,
+  descripcionSunat: null,
+  observacionesSunat: null,
+  intentos: 0,
+  ultimoError: null,
+  fechaEnvio: null,
+  notas: [],
 };
 
-function configurar() {
+const ACEPTADA: ComprobanteVenta = {
+  ...COMPROBANTE,
+  estado: 'OBSERVADO',
+  formaPago: 'CREDITO',
+  fechaVencimiento: '2026-12-15',
+  cuotas: [{ monto: 46.2, fechaPago: '2026-12-15' }],
+  codigoSunat: '4287',
+  descripcionSunat: 'Observación de prueba',
+  observacionesSunat: 'Revise la dirección',
+  fechaEnvio: '2026-11-15T14:00:00Z',
+  notas: [{ id: 'nc1', tipo: 'NOTA_CREDITO', comprobante: 'FC01-00000001' }],
+};
+
+const NOTA: ComprobanteVenta = {
+  ...COMPROBANTE,
+  id: 'nc1',
+  tipo: 'NOTA_CREDITO',
+  comprobante: 'FC01-00000001',
+  estado: 'ENVIADO',
+  referencia: { id: 'cv1', tipo: 'FACTURA', comprobante: 'F001-00000001' },
+  motivoNota: '07',
+  descripcionMotivo: 'No corresponde',
+};
+
+function configurar(permisos = ['facturacion:read']) {
   const api = {
     comprobantes: vi.fn(() =>
       of(
@@ -59,11 +96,15 @@ function configurar() {
       ),
     ),
     comprobante: vi.fn(() => of(COMPROBANTE)),
+    enviar: vi.fn(() => of({ ...COMPROBANTE, estado: 'ACEPTADO' as const })),
+    urlArchivo: vi.fn(
+      (id: string, tipo: string) => `/api/v1/facturacion/comprobantes/${id}/archivos/${tipo}`,
+    ),
   };
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]),
-      sesionFalsa(['facturacion:read']).proveedor,
+      sesionFalsa(permisos).proveedor,
       { provide: FacturacionApi, useValue: api },
     ],
   });
@@ -111,6 +152,9 @@ describe('FacturacionApi (contrato)', () => {
     espera('GET', '/api/v1/facturacion/comprobantes?texto=B001&tipo=BOLETA&pagina=1');
     api.comprobante('cv1').subscribe();
     espera('GET', '/api/v1/facturacion/comprobantes/cv1');
+    api.enviar('cv1').subscribe();
+    espera('POST', '/api/v1/facturacion/comprobantes/cv1/enviar');
+    expect(api.urlArchivo('cv1', 'CDR')).toBe('/api/v1/facturacion/comprobantes/cv1/archivos/CDR');
     http.verify();
   });
 });
@@ -134,6 +178,64 @@ describe('Comprobantes', () => {
     expect(detalle.html.textContent).toContain('Av. Sol 123');
     expect(detalle.html.textContent).toContain('Op. exoneradas');
     expect(detalle.html.textContent).toContain('Op. inafectas');
+    expect(detalle.html.textContent).toContain('Pendiente de envío');
+    expect(detalle.html.querySelector('a[download]')).toBeNull();
+    expect(detalle.html.textContent).not.toContain('Enviar ahora');
+  });
+
+  it('muestra la respuesta de SUNAT, las cuotas, las notas y los archivos', async () => {
+    const api = configurar();
+    api.comprobante.mockReturnValue(of(ACEPTADA));
+    const { html } = await crear(ComprobanteDetalle, { id: 'cv1' });
+    expect(html.textContent).toContain('Aceptado con observaciones');
+    expect(html.textContent).toContain('Código 4287: Observación de prueba');
+    expect(html.textContent).toContain('Revise la dirección');
+    expect(html.textContent).toContain('Cuota 1: S/ 46.20');
+    expect(html.textContent).toContain('FC01-00000001');
+    expect([...html.querySelectorAll('a[download]')].map((a) => a.getAttribute('href'))).toEqual([
+      '/api/v1/facturacion/comprobantes/cv1/archivos/PDF',
+      '/api/v1/facturacion/comprobantes/cv1/archivos/XML',
+      '/api/v1/facturacion/comprobantes/cv1/archivos/CDR',
+    ]);
+  });
+
+  it('la nota de crédito muestra el comprobante que modifica y espera el CDR', async () => {
+    const api = configurar();
+    api.comprobante.mockReturnValue(of(NOTA));
+    const { html } = await crear(ComprobanteDetalle, { id: 'nc1' });
+    expect(html.textContent).toContain('Nota de crédito');
+    expect(html.textContent).toContain('Modifica a');
+    expect(html.textContent).toContain('Devolución por ítem: No corresponde');
+    expect([...html.querySelectorAll('a[download]')].map((a) => a.textContent?.trim())).toEqual([
+      'PDF',
+      'XML',
+    ]);
+  });
+
+  it('reenvía un comprobante con error si tiene el permiso', async () => {
+    const api = configurar(['facturacion:read', 'facturacion:enviar']);
+    api.comprobante.mockReturnValue(
+      of({ ...COMPROBANTE, estado: 'ERROR', intentos: 1, ultimoError: 'num_doc inválido' }),
+    );
+    const { html, estable } = await crear(ComprobanteDetalle, { id: 'cv1' });
+    expect(html.textContent).toContain('Error de datos');
+    expect(html.textContent).toContain('1 intento');
+    const enviar = [...html.querySelectorAll('button')].find((b) =>
+      b.textContent?.includes('Enviar ahora'),
+    );
+    enviar?.click();
+    await estable();
+    expect(api.enviar).toHaveBeenCalledWith('cv1');
+    expect(html.textContent).toContain('Aceptado');
+    api.comprobante.mockReturnValue(of({ ...COMPROBANTE, intentos: 2, ultimoError: 'caído' }));
+    api.enviar.mockReturnValue(throwError(() => new Error('x')));
+    const otro = await crear(ComprobanteDetalle, { id: 'cv1' });
+    expect(otro.html.textContent).toContain('2 intentos');
+    [...otro.html.querySelectorAll('button')]
+      .find((b) => b.textContent?.includes('Enviar ahora'))
+      ?.click();
+    await otro.estable();
+    expect(otro.html.querySelector('[role=alert]')).not.toBeNull();
   });
 
   it('muestra los errores', async () => {

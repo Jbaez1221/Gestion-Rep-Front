@@ -5,11 +5,12 @@ import { Observable } from 'rxjs';
 import { API } from '../../core/http/api';
 import { aParametros } from '../../core/http/parametros';
 import {
+  ArchivoComprobante,
   ComprobanteVenta,
   ComprobanteVentaListado,
   Pagina,
   SerieComprobante,
-  TipoComprobanteVenta,
+  TipoComprobanteEmitido,
 } from '../../core/modelos/api.modelos';
 
 const BASE = `${API}/facturacion`;
@@ -24,7 +25,7 @@ export class FacturacionApi {
 
   crearSerie(
     serie: string,
-    tipo: TipoComprobanteVenta,
+    tipo: TipoComprobanteEmitido,
     sucursalId: string,
   ): Observable<SerieComprobante> {
     return this.http.post<SerieComprobante>(`${BASE}/series`, { serie, tipo, sucursalId });
@@ -36,7 +37,7 @@ export class FacturacionApi {
 
   comprobantes(f: {
     texto?: string;
-    tipo?: TipoComprobanteVenta | '';
+    tipo?: TipoComprobanteEmitido | '';
     desde?: string;
     hasta?: string;
     pagina?: number;
@@ -54,5 +55,15 @@ export class FacturacionApi {
 
   comprobante(id: string): Observable<ComprobanteVenta> {
     return this.http.get<ComprobanteVenta>(`${BASE}/comprobantes/${id}`);
+  }
+
+  /** Lo envía ya al facturador (también uno con error de datos ya corregido). */
+  enviar(id: string): Observable<ComprobanteVenta> {
+    return this.http.post<ComprobanteVenta>(`${BASE}/comprobantes/${id}/enviar`, {});
+  }
+
+  /** Enlace de descarga: la cookie de sesión viaja con el enlace (mismo origen). */
+  urlArchivo(id: string, tipo: ArchivoComprobante): string {
+    return `${BASE}/comprobantes/${id}/archivos/${tipo}`;
   }
 }

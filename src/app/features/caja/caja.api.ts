@@ -5,8 +5,14 @@ import { Observable, map } from 'rxjs';
 import { API } from '../../core/http/api';
 import { aParametros } from '../../core/http/parametros';
 import {
+  AbonoCaja,
   Caja,
   Cobro,
+  CobroDevolvible,
+  CuentaPendiente,
+  DevolucionCaja,
+  MotivoNotaCredito,
+  MedioPago,
   MovimientoCaja,
   Pago,
   Pagina,
@@ -22,7 +28,18 @@ export interface CajaGuardar {
   sucursalId: string | null;
   serieBoleta: string;
   serieFactura: string;
+  serieNcBoleta: string | null;
+  serieNcFactura: string | null;
   activo: boolean;
+}
+
+export interface DevolucionGuardar {
+  cobroId: string;
+  motivo: MotivoNotaCredito;
+  descripcion: string;
+  /** Solo en 07: línea del comprobante (desde 1) y cantidad. */
+  lineas: { linea: number; cantidad: number }[];
+  medioReembolso: MedioPago;
 }
 
 const BASE = `${API}/caja`;
@@ -68,8 +85,38 @@ export class CajaApi {
     return this.http.get<PedidoPendiente[]>(`${BASE}/sesiones/${sesionId}/pendientes`);
   }
 
-  cobrar(sesionId: string, pedidoId: string, pagos: Pago[]): Observable<Cobro> {
-    return this.http.post<Cobro>(`${BASE}/sesiones/${sesionId}/cobros`, { pedidoId, pagos });
+  /** {@code autorizarCredito}: confirma la venta al crédito sobre el límite o con deuda vencida. */
+  cobrar(
+    sesionId: string,
+    pedidoId: string,
+    pagos: Pago[],
+    autorizarCredito = false,
+  ): Observable<Cobro> {
+    return this.http.post<Cobro>(`${BASE}/sesiones/${sesionId}/cobros`, {
+      pedidoId,
+      pagos,
+      autorizarCredito,
+    });
+  }
+
+  cuentas(sesionId: string, texto: string): Observable<CuentaPendiente[]> {
+    return this.http.get<CuentaPendiente[]>(`${BASE}/sesiones/${sesionId}/cuentas`, {
+      params: aParametros({ texto: texto.trim() || undefined }),
+    });
+  }
+
+  abonar(sesionId: string, cuentaId: string, pagos: Pago[]): Observable<AbonoCaja> {
+    return this.http.post<AbonoCaja>(`${BASE}/sesiones/${sesionId}/abonos`, { cuentaId, pagos });
+  }
+
+  devolvible(sesionId: string, comprobante: string): Observable<CobroDevolvible> {
+    return this.http.get<CobroDevolvible>(`${BASE}/sesiones/${sesionId}/devolucion`, {
+      params: aParametros({ comprobante: comprobante.trim() }),
+    });
+  }
+
+  devolver(sesionId: string, datos: DevolucionGuardar): Observable<DevolucionCaja> {
+    return this.http.post<DevolucionCaja>(`${BASE}/sesiones/${sesionId}/devoluciones`, datos);
   }
 
   movimiento(

@@ -12,6 +12,9 @@
       @if (c.vuelto > 0) {
         <span class="font-semibold">Vuelto: S/ {{ c.vuelto | number: '1.2-2' }}</span>
       }
+      @if (creditoDe(c) > 0) {
+        <span>Al crédito: S/ {{ creditoDe(c) | number: '1.2-2' }}.</span>
+      }
     </div>
   }
 
@@ -38,40 +41,84 @@
       <div>
         <p class="etiqueta">Efectivo en caja</p>
         <p class="font-semibold">S/ {{ s.efectivoEsperado | number: '1.2-2' }}</p>
+        @if (s.abonos > 0 || s.totalReembolsado > 0) {
+          <p class="text-xs text-slate-500">
+            {{ s.abonos }} abonos · S/ {{ s.totalAbonos | number: '1.2-2' }} · reembolsado S/
+            {{ s.totalReembolsado | number: '1.2-2' }}
+          </p>
+        }
       </div>
     </section>
 
     <div class="grid gap-4 xl:grid-cols-[1fr_24rem]">
       <section class="tarjeta space-y-2">
-        <div class="flex items-center justify-between">
-          <h2 class="font-semibold">Pedidos por cobrar</h2>
-          <button type="button" class="btn-enlace" (click)="actualizar()">Actualizar</button>
-        </div>
-        <ul class="divide-y divide-slate-100">
-          @for (p of pendientes(); track p.id) {
-            <li class="py-2 text-sm">
-              <div class="flex flex-wrap items-center justify-between gap-2">
-                <p>
-                  <span class="font-mono">{{ p.numero }}</span> · {{ p.clienteNombre }}
-                  <span class="block text-xs text-slate-500">
-                    {{ p.tipoComprobante === 'FACTURA' ? 'Factura' : 'Boleta' }} ·
-                    {{ p.vendedor }} · {{ p.lineas.length }} artículos
-                  </span>
-                </p>
-                <p class="flex items-center gap-2">
-                  <span class="font-semibold">S/ {{ p.total | number: '1.2-2' }}</span>
-                  <button type="button" class="btn-primario" (click)="empezarCobro(p)">
-                    Cobrar
-                  </button>
-                </p>
-              </div>
-            </li>
-          } @empty {
-            <li class="py-6 text-center text-sm text-slate-500">
-              No hay pedidos esperando en caja.
-            </li>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <nav class="flex gap-1 border-b border-slate-200" aria-label="Qué cobrar">
+            <button
+              type="button"
+              class="pestana"
+              [class.border-marca-600]="seccion() === 'pedidos'"
+              [attr.aria-pressed]="seccion() === 'pedidos'"
+              (click)="seccion.set('pedidos')"
+            >
+              Pedidos
+            </button>
+            <button
+              type="button"
+              class="pestana"
+              [class.border-marca-600]="seccion() === 'abonos'"
+              [attr.aria-pressed]="seccion() === 'abonos'"
+              (click)="seccion.set('abonos')"
+            >
+              Abonos de crédito
+            </button>
+            @if (puedeDevolver()) {
+              <button
+                type="button"
+                class="pestana"
+                [class.border-marca-600]="seccion() === 'devoluciones'"
+                [attr.aria-pressed]="seccion() === 'devoluciones'"
+                (click)="seccion.set('devoluciones')"
+              >
+                Devoluciones
+              </button>
+            }
+          </nav>
+          @if (seccion() === 'pedidos') {
+            <button type="button" class="btn-enlace" (click)="actualizar()">Actualizar</button>
           }
-        </ul>
+        </div>
+        @if (seccion() === 'abonos') {
+          <app-abono-caja [sesionId]="s.id" (registrado)="actualizar()" />
+        } @else if (seccion() === 'devoluciones') {
+          <app-devolucion-caja [sesionId]="s.id" (registrado)="actualizar()" />
+        } @else {
+          <ul class="divide-y divide-slate-100">
+            @for (p of pendientes(); track p.id) {
+              <li class="py-2 text-sm">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <p>
+                    <span class="font-mono">{{ p.numero }}</span> · {{ p.clienteNombre }}
+                    <span class="block text-xs text-slate-500">
+                      {{ p.tipoComprobante === 'FACTURA' ? 'Factura' : 'Boleta' }} ·
+                      {{ p.vendedor }} · {{ p.lineas.length }} artículos
+                    </span>
+                  </p>
+                  <p class="flex items-center gap-2">
+                    <span class="font-semibold">S/ {{ p.total | number: '1.2-2' }}</span>
+                    <button type="button" class="btn-primario" (click)="empezarCobro(p)">
+                      Cobrar
+                    </button>
+                  </p>
+                </div>
+              </li>
+            } @empty {
+              <li class="py-6 text-center text-sm text-slate-500">
+                No hay pedidos esperando en caja.
+              </li>
+            }
+          </ul>
+        }
       </section>
 
       <div class="space-y-4">
@@ -106,7 +153,9 @@
                   class="campo w-28 text-right"
                   formControlName="monto"
                 />
-                @if (g.controls.medio.value !== 'EFECTIVO') {
+                @if (
+                  g.controls.medio.value !== 'EFECTIVO' && g.controls.medio.value !== 'CREDITO'
+                ) {
                   <label [for]="'cj-ref-' + i" class="sr-only">N.° de operación</label>
                   <input
                     [id]="'cj-ref-' + i"
@@ -125,6 +174,22 @@
             <button type="button" class="btn-enlace" (click)="agregarPago()">
               + Otro medio de pago
             </button>
+            @if (alCredito() > 0) {
+              <p class="text-xs text-slate-600">
+                S/ {{ alCredito() | number: '1.2-2' }} quedan como deuda del cliente, con los días
+                de crédito de su ficha.
+              </p>
+              @if (puedeAutorizar()) {
+                <label class="flex items-center gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    [checked]="autorizarCredito()"
+                    (change)="autorizarCredito.set($any($event.target).checked)"
+                  />
+                  Autorizo si supera el límite o tiene deuda vencida
+                </label>
+              }
+            }
             <dl class="grid grid-cols-2 gap-1 text-sm">
               <dt>Recibido</dt>
               <dd class="text-right">S/ {{ recibido() | number: '1.2-2' }}</dd>
