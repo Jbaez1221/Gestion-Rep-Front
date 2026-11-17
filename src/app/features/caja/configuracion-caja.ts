@@ -31,8 +31,8 @@ import { CajaApi } from './caja.api';
           <h2 class="font-semibold">Series de comprobantes</h2>
           <p class="text-xs text-slate-500">
             Por establecimiento: la factura electrónica empieza con F y la boleta con B; la nota de
-            crédito, con la letra del comprobante que modifica (FC01, BC01). El número avanza sin
-            huecos al emitir.
+            crédito, con la letra del comprobante que modifica (FC01, BC01); la guía de remisión,
+            con T (T001). El número avanza sin huecos al emitir.
           </p>
           <table class="tabla">
             <thead>
@@ -92,6 +92,7 @@ import { CajaApi } from './caja.api';
                   <option value="BOLETA">Boleta</option>
                   <option value="FACTURA">Factura</option>
                   <option value="NOTA_CREDITO">Nota de crédito</option>
+                  <option value="GUIA_REMISION">Guía de remisión</option>
                 </select>
               </div>
               <div>

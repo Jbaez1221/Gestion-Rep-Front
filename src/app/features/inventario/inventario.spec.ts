@@ -246,6 +246,9 @@ const TRASLADO = {
   movimientoDevolucionId: null,
   puedeEnviar: true,
   puedeRecibir: false,
+  guiaId: null,
+  guia: null,
+  requiereGuia: true,
 };
 
 const TRASLADO_LISTADO = {
@@ -402,6 +405,8 @@ function apiFalsa() {
         puedeEnviar: false,
         puedeRecibir: true,
         valorEnTransito: 24,
+        guiaId: 'g1',
+        guia: 'T001-00000001',
       }),
     ),
     recibirTraslado: vi.fn(() =>
@@ -946,7 +951,14 @@ describe('Traslados', () => {
 
     boton('Enviar')?.click();
     await estable();
+    expect(html.textContent).toContain('va con guía de remisión');
     escribir('#p-cant-0', '8');
+    escribir('#p-guia-placa', 'abc123');
+    escribir('#p-guia-cdoc', '44004400');
+    escribir('#p-guia-licencia', 'q44004400');
+    escribir('#p-guia-cnombres', 'ROBERTO');
+    escribir('#p-guia-capellidos', 'RODRIGUEZ');
+    escribir('#p-guia-peso', '12.5');
     boton('Confirmar envío')?.click();
     await estable();
     expect(api.enviarTraslado).toHaveBeenCalledWith(
@@ -956,9 +968,27 @@ describe('Traslados', () => {
           { articuloId: 'a1', cantidad: 8, lotes: [], series: [] },
           { articuloId: 'a3', cantidad: 2, lotes: [], series: [] },
         ],
+        guia: {
+          transporte: {
+            modalidad: '02',
+            vehiculoM1L: false,
+            transportista: null,
+            placa: 'ABC123',
+            conductor: {
+              tipoDocumento: '1',
+              documento: '44004400',
+              nombres: 'ROBERTO',
+              apellidos: 'RODRIGUEZ',
+              licencia: 'Q44004400',
+            },
+          },
+          pesoTotal: 12.5,
+          bultos: null,
+        },
       }),
     );
     expect(html.textContent).toContain('En tránsito');
+    expect(html.textContent).toContain('T001-00000001');
 
     boton('Recibir')?.click();
     await estable();
@@ -971,6 +1001,24 @@ describe('Traslados', () => {
       expect.objectContaining({ observacion: 'faltó uno', devolverDiferencia: true }),
     );
     expect(html.textContent).toContain('Faltante no devuelto');
+  });
+
+  it('dentro de la misma sucursal envía sin guía', async () => {
+    const api = configurar();
+    api.traslado.mockReturnValue(of({ ...TRASLADO, requiereGuia: false }));
+    const { html, boton, estable } = await crear(Traslados);
+    boton('TR-000001')?.click();
+    await estable();
+    boton('Enviar')?.click();
+    await estable();
+    expect(html.textContent).not.toContain('va con guía de remisión');
+    expect(html.querySelector('#p-guia-placa')).toBeNull();
+    boton('Confirmar envío')?.click();
+    await estable();
+    expect(api.enviarTraslado).toHaveBeenCalledWith(
+      't1',
+      expect.not.objectContaining({ guia: expect.anything() }),
+    );
   });
 
   it('anula con confirmación y muestra errores', async () => {
