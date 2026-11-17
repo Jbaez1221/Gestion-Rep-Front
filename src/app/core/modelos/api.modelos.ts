@@ -834,6 +834,11 @@ export interface Traslado {
   readonly movimientoDevolucionId: string | null;
   readonly puedeEnviar: boolean;
   readonly puedeRecibir: boolean;
+  /** Guía de remisión que sustenta el traslado entre sucursales. */
+  readonly guiaId: string | null;
+  readonly guia: string | null;
+  /** Entre sucursales: el envío va con guía de remisión. */
+  readonly requiereGuia: boolean;
 }
 
 export interface SolicitudTraslado {
@@ -846,6 +851,7 @@ export interface SolicitudTraslado {
 export interface EnvioTraslado {
   fecha: string;
   lineas: LineaConDetalle[];
+  guia?: DatosGuia & { fechaTraslado?: string | null };
 }
 
 export interface RecepcionTraslado {
@@ -1546,8 +1552,8 @@ export interface PedidoGuardar {
 
 // --- Facturación ---
 
-/** Lo que emite facturación: boletas, facturas y notas de crédito (tipo 07). */
-export type TipoComprobanteEmitido = TipoComprobanteVenta | 'NOTA_CREDITO';
+/** Lo que emite facturación: boletas, facturas, notas de crédito (07) y guías de remisión (09). */
+export type TipoComprobanteEmitido = TipoComprobanteVenta | 'NOTA_CREDITO' | 'GUIA_REMISION';
 
 /**
  * PENDIENTE_ENVIO: aún no lo recibe el facturador (se reintenta solo). ENVIADO: espera respuesta
@@ -1623,6 +1629,103 @@ export interface ComprobanteVenta extends ComprobanteVentaListado {
   readonly fechaEnvio: string | null;
   /** Notas de crédito que lo modifican. */
   readonly notas: ReferenciaComprobante[];
+  /** Guías de remisión que sustentan su traslado. */
+  readonly guias: ReferenciaComprobante[];
+}
+
+/** Catálogo 20: 01 venta, 04 traslado entre establecimientos de la empresa, 13 otros. */
+export type MotivoTraslado = '01' | '04' | '13';
+/** Catálogo 18: 01 transporte público, 02 privado. */
+export type ModalidadTransporte = '01' | '02';
+
+export interface TransporteGuia {
+  modalidad: ModalidadTransporte;
+  vehiculoM1L: boolean;
+  transportista: { ruc: string; razonSocial: string; registroMtc: string | null } | null;
+  placa: string | null;
+  conductor: {
+    tipoDocumento: string;
+    documento: string;
+    nombres: string;
+    apellidos: string;
+    licencia: string;
+  } | null;
+}
+
+/** Transporte, peso bruto (kg; null lo calcula con el peso de los artículos) y bultos. */
+export interface DatosGuia {
+  transporte: TransporteGuia;
+  pesoTotal: number | null;
+  bultos: number | null;
+}
+
+export interface GuiaVenta extends DatosGuia {
+  fechaTraslado: string;
+  llegadaUbigeo: string;
+  llegadaDireccion: string;
+}
+
+export interface GuiaRemisionListado {
+  readonly id: string;
+  readonly guia: string;
+  readonly fechaEmision: string;
+  readonly fechaTraslado: string;
+  readonly motivo: MotivoTraslado;
+  readonly destinatarioNombre: string;
+  readonly llegadaDireccion: string;
+  readonly origenNumero: string;
+  readonly estado: EstadoComprobante;
+}
+
+export interface PuntoGuia {
+  readonly ubigeo: string;
+  readonly direccion: string;
+  readonly establecimiento: string | null;
+}
+
+export interface GuiaRemision {
+  readonly id: string;
+  readonly guia: string;
+  readonly fechaEmision: string;
+  readonly fechaTraslado: string;
+  readonly sucursalId: string;
+  readonly motivo: MotivoTraslado;
+  readonly descripcionMotivo: string | null;
+  readonly destinatarioTipoDocumento: string;
+  readonly destinatarioDocumento: string;
+  readonly destinatarioNombre: string;
+  readonly partida: PuntoGuia;
+  readonly llegada: PuntoGuia;
+  readonly modalidad: ModalidadTransporte;
+  readonly vehiculoM1L: boolean;
+  readonly transportistaRuc: string | null;
+  readonly transportistaNombre: string | null;
+  readonly transportistaMtc: string | null;
+  readonly vehiculoPlaca: string | null;
+  readonly conductor: string | null;
+  readonly conductorDocumento: string | null;
+  readonly conductorLicencia: string | null;
+  readonly pesoTotal: number;
+  readonly bultos: number | null;
+  readonly documentoId: string | null;
+  readonly documento: string | null;
+  readonly origenTipo: string;
+  readonly origenId: string;
+  readonly origenNumero: string;
+  readonly estado: EstadoComprobante;
+  readonly lineas: {
+    readonly codigo: string;
+    readonly descripcion: string;
+    readonly unidad: string;
+    readonly cantidad: number;
+  }[];
+  readonly codigoSunat: string | null;
+  readonly descripcionSunat: string | null;
+  readonly observacionesSunat: string | null;
+  readonly intentos: number;
+  readonly ultimoError: string | null;
+  readonly fechaEnvio: string | null;
+  readonly creadoPor: string | null;
 }
 
 // --- Caja ---

@@ -62,6 +62,7 @@ export const PERMISOS = {
   facturacionLeer: 'facturacion:read',
   facturacionSeries: 'facturacion.series:update',
   facturacionEnviar: 'facturacion:enviar',
+  facturacionGuia: 'facturacion.guia:create',
   cajaLeer: 'caja:read',
   cajaOperar: 'caja:operar',
   cajaSupervisar: 'caja:supervisar',

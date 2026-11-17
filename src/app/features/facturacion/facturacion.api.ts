@@ -8,6 +8,10 @@ import {
   ArchivoComprobante,
   ComprobanteVenta,
   ComprobanteVentaListado,
+  GuiaRemision,
+  GuiaRemisionListado,
+  GuiaVenta,
+  MotivoTraslado,
   Pagina,
   SerieComprobante,
   TipoComprobanteEmitido,
@@ -65,5 +69,40 @@ export class FacturacionApi {
   /** Enlace de descarga: la cookie de sesión viaja con el enlace (mismo origen). */
   urlArchivo(id: string, tipo: ArchivoComprobante): string {
     return `${BASE}/comprobantes/${id}/archivos/${tipo}`;
+  }
+
+  /** Guía de remisión de la venta (motivo 01). */
+  guiaDeVenta(comprobanteId: string, datos: GuiaVenta): Observable<GuiaRemision> {
+    return this.http.post<GuiaRemision>(`${BASE}/comprobantes/${comprobanteId}/guia`, datos);
+  }
+
+  guias(f: {
+    texto?: string;
+    motivo?: MotivoTraslado | '';
+    desde?: string;
+    hasta?: string;
+    pagina?: number;
+  }): Observable<Pagina<GuiaRemisionListado>> {
+    return this.http.get<Pagina<GuiaRemisionListado>>(`${BASE}/guias`, {
+      params: aParametros({
+        texto: f.texto?.trim(),
+        motivo: f.motivo,
+        desde: f.desde,
+        hasta: f.hasta,
+        pagina: f.pagina,
+      }),
+    });
+  }
+
+  guia(id: string): Observable<GuiaRemision> {
+    return this.http.get<GuiaRemision>(`${BASE}/guias/${id}`);
+  }
+
+  enviarGuia(id: string): Observable<GuiaRemision> {
+    return this.http.post<GuiaRemision>(`${BASE}/guias/${id}/enviar`, {});
+  }
+
+  urlArchivoGuia(id: string, tipo: ArchivoComprobante): string {
+    return `${BASE}/guias/${id}/archivos/${tipo}`;
   }
 }

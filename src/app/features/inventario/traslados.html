@@ -140,6 +140,16 @@
         @if (t.observacionRecepcion) {
           <p class="text-sm text-slate-600">Observación: {{ t.observacionRecepcion }}</p>
         }
+        @if (t.guiaId) {
+          <p class="text-sm">
+            Guía de remisión:
+            <a
+              [routerLink]="['/facturacion/guia', t.guiaId]"
+              class="font-mono text-marca-700 hover:underline"
+              >{{ t.guia }}</a
+            >
+          </p>
+        }
       </div>
       <div class="flex flex-wrap gap-2">
         @if (
@@ -220,6 +230,12 @@
             </div>
           }
         </div>
+        @if (a === 'enviar' && t.requiereGuia) {
+          <p class="text-xs text-slate-500">
+            Entre sucursales el traslado va con guía de remisión (motivo 04): se emite al confirmar.
+          </p>
+          <app-transporte-guia [grupo]="transporte" prefijo="p-guia" />
+        }
         @if (a === 'recibir') {
           <p class="text-xs text-slate-500">
             Si un artículo con lotes o series llega incompleto, indique cuáles llegaron; si llega

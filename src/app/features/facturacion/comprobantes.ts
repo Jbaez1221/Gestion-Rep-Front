@@ -20,12 +20,15 @@ import { FacturacionApi } from './facturacion.api';
   imports: [ReactiveFormsModule, RouterLink, DatePipe, DecimalPipe, ErrorApi, Paginador],
   template: `
     <section class="space-y-4">
-      <div>
-        <h1 class="titulo-pagina">Comprobantes de venta</h1>
-        <p class="mt-1 text-sm text-slate-600">
-          Boletas, facturas y notas de crédito emitidas en caja, con su estado en SUNAT. Se envían
-          solas al facturador electrónico; las que fallan se reintentan.
-        </p>
+      <div class="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h1 class="titulo-pagina">Comprobantes de venta</h1>
+          <p class="mt-1 text-sm text-slate-600">
+            Boletas, facturas y notas de crédito emitidas en caja, con su estado en SUNAT. Se envían
+            solas al facturador electrónico; las que fallan se reintentan.
+          </p>
+        </div>
+        <a routerLink="/facturacion/guias" class="btn-enlace">Guías de remisión</a>
       </div>
       <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
         <div class="min-w-64">

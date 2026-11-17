@@ -320,6 +320,19 @@ export const routes: Routes = [
           import('./features/creditos/cuentas-cobrar').then((m) => m.CuentasCobrar),
       },
       {
+        path: 'facturacion/guia/:id',
+        title: 'Guía de remisión · Repuestos',
+        data: { permisos: [PERMISOS.facturacionLeer] },
+        loadComponent: () =>
+          import('./features/facturacion/guia-detalle').then((m) => m.GuiaDetalle),
+      },
+      {
+        path: 'facturacion/guias',
+        title: 'Guías de remisión · Repuestos',
+        data: { permisos: [PERMISOS.facturacionLeer] },
+        loadComponent: () => import('./features/facturacion/guias').then((m) => m.Guias),
+      },
+      {
         path: 'facturacion/comprobante/:id',
         title: 'Comprobante · Repuestos',
         data: { permisos: [PERMISOS.facturacionLeer] },
