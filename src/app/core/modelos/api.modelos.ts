@@ -1961,3 +1961,109 @@ export interface PedidoPendiente {
     readonly total: number;
   }[];
 }
+
+// --- Cuentas por pagar ---
+
+export type EstadoCuentaPagar = 'PENDIENTE' | 'PAGADA' | 'ANULADA';
+export type MedioPagoProveedor = 'EFECTIVO' | 'TRANSFERENCIA' | 'DEPOSITO' | 'CHEQUE';
+
+export interface CuentaPagarListado {
+  readonly id: string;
+  readonly numero: string;
+  readonly proveedorId: string;
+  readonly proveedorDocumento: string;
+  readonly proveedorNombre: string;
+  readonly comprobante: string;
+  readonly fechaEmision: string;
+  readonly fechaVencimiento: string;
+  readonly moneda: Moneda;
+  readonly monto: number;
+  /** Lo que falta pagar al proveedor (sin la detracción). */
+  readonly saldo: number;
+  readonly estado: EstadoCuentaPagar;
+  readonly vencida: boolean;
+  readonly diasVencida: number;
+  readonly detraccionSoles: number | null;
+  readonly detraccionPendiente: boolean;
+  readonly detraccionVence: string | null;
+}
+
+export interface CuentaPagar {
+  readonly id: string;
+  readonly numero: string;
+  readonly proveedorId: string;
+  readonly proveedorDocumento: string;
+  readonly proveedorNombre: string;
+  readonly compraId: string;
+  readonly compraNumero: string;
+  readonly comprobante: string;
+  readonly tipoComprobante: string;
+  readonly fechaEmision: string;
+  readonly fechaVencimiento: string;
+  readonly fechaContable: string;
+  readonly moneda: Moneda;
+  readonly tipoCambio: number;
+  readonly monto: number;
+  readonly saldo: number;
+  readonly estado: EstadoCuentaPagar;
+  readonly vencida: boolean;
+  /** Bajo el umbral de bancarización (S/ 2,000 o US$ 500). */
+  readonly admiteEfectivo: boolean;
+  readonly detraccionSoles: number | null;
+  readonly detraccionMoneda: number | null;
+  readonly cuentaDetracciones: string | null;
+  readonly detraccionEstado: 'PENDIENTE' | 'DEPOSITADA' | null;
+  readonly detraccionConstancia: string | null;
+  readonly detraccionFecha: string | null;
+  readonly detraccionVence: string | null;
+  readonly pagos: {
+    readonly id: string;
+    readonly fecha: string;
+    readonly monto: number;
+    readonly tipo: 'PAGO' | 'NOTA_CREDITO' | 'ANULACION_NOTA';
+    readonly medio: MedioPagoProveedor | null;
+    readonly referencia: string | null;
+    readonly banco: string | null;
+    readonly usuario: string;
+    readonly registrado: string;
+  }[];
+  readonly avisos: string[];
+}
+
+export interface ResumenPagar {
+  readonly porMoneda: {
+    readonly moneda: Moneda;
+    readonly porVencer: number;
+    readonly vencido1a30: number;
+    readonly vencido31a60: number;
+    readonly vencido61a90: number;
+    readonly vencidoMas90: number;
+    readonly total: number;
+  }[];
+  readonly detraccionesPendientes: number;
+  readonly detraccionesVencidas: number;
+  readonly vencenEn7Dias: number;
+}
+
+export interface CuentaProveedorCaja {
+  readonly id: string;
+  readonly numero: string;
+  readonly proveedorNombre: string;
+  readonly comprobante: string;
+  readonly fechaVencimiento: string;
+  readonly monto: number;
+  readonly saldo: number;
+  readonly vencida: boolean;
+  /** Bajo el umbral de bancarización: se puede pagar en efectivo. */
+  readonly efectivo: boolean;
+}
+
+export interface PagoProveedorCaja {
+  readonly movimientoId: string;
+  readonly cuentaNumero: string;
+  readonly comprobante: string;
+  readonly proveedorNombre: string;
+  readonly monto: number;
+  readonly saldo: number;
+  readonly fecha: string;
+}

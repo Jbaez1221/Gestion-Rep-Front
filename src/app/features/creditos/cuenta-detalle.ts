@@ -18,7 +18,7 @@ import { CreditosApi } from './creditos.api';
         <h1 class="titulo-pagina">
           Cuenta por cobrar <span class="font-mono">{{ cuenta()?.numero }}</span>
         </h1>
-        <a routerLink="/creditos" class="btn-enlace">Volver a créditos</a>
+        <a routerLink="/creditos/cobrar" class="btn-enlace">Volver a cuentas por cobrar</a>
       </div>
       <app-error-api [problema]="error()" />
       @if (cuenta(); as c) {

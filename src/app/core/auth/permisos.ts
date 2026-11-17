@@ -70,4 +70,7 @@ export const PERMISOS = {
   cajaDevolver: 'caja:devolver',
   creditosLeer: 'creditos:read',
   creditosAutorizar: 'creditos:autorizar',
+  creditosPagarLeer: 'creditos.pagar:read',
+  creditosPagarRegistrar: 'creditos.pagar:registrar',
+  cajaPagarProveedores: 'caja.proveedores:pagar',
 } as const;

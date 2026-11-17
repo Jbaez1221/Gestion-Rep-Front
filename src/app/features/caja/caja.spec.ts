@@ -21,6 +21,7 @@ const TODOS = [
   'caja:operar',
   'caja:configurar',
   'caja:devolver',
+  'caja.proveedores:pagar',
   'creditos:autorizar',
   'facturacion:read',
   'facturacion.series:update',
@@ -260,6 +261,43 @@ function configurar(permisos = TODOS, abierta: SesionCaja | null = SESION) {
     abonar: vi.fn(() => of({ ...SESION.detalleAbonos[0], saldo: 5 })),
     devolvible: vi.fn(() => of(DEVOLVIBLE)),
     devolver: vi.fn(() => of(SESION.detalleDevoluciones[0])),
+    proveedores: vi.fn(() =>
+      of([
+        {
+          id: 'cp1',
+          numero: 'CP-00000001',
+          proveedorNombre: 'DISTRIBUIDORA SAC',
+          comprobante: 'F001-123',
+          fechaVencimiento: '2026-11-10',
+          monto: 118,
+          saldo: 118,
+          vencida: true,
+          efectivo: true,
+        },
+        {
+          id: 'cp2',
+          numero: 'CP-00000002',
+          proveedorNombre: 'MAYORISTA SAC',
+          comprobante: 'F002-9',
+          fechaVencimiento: '2026-12-10',
+          monto: 2950,
+          saldo: 2950,
+          vencida: false,
+          efectivo: false,
+        },
+      ]),
+    ),
+    pagarProveedor: vi.fn(() =>
+      of({
+        movimientoId: 'm9',
+        cuentaNumero: 'CP-00000001',
+        comprobante: 'F001-123',
+        proveedorNombre: 'DISTRIBUIDORA SAC',
+        monto: 50,
+        saldo: 68,
+        fecha: '2026-11-16T15:00:00Z',
+      }),
+    ),
   };
   const facturacion = {
     series: vi.fn(() =>
@@ -390,6 +428,12 @@ describe('CajaApi (contrato)', () => {
     espera('GET', '/api/v1/caja/sesiones/se1/devolucion?comprobante=B001-1');
     api.devolver('se1', {} as never).subscribe();
     espera('POST', '/api/v1/caja/sesiones/se1/devoluciones');
+    api.proveedores('se1', ' dist ').subscribe();
+    espera('GET', '/api/v1/caja/sesiones/se1/proveedores?texto=dist');
+    api.proveedores('se1', '').subscribe();
+    espera('GET', '/api/v1/caja/sesiones/se1/proveedores');
+    api.pagarProveedor('se1', 'cp1', 50).subscribe();
+    espera('POST', '/api/v1/caja/sesiones/se1/pagos-proveedor', { cuentaId: 'cp1', monto: 50 });
     api.movimiento('se1', 'EGRESO', 5, 'x').subscribe();
     espera('POST', '/api/v1/caja/sesiones/se1/movimientos', {
       tipo: 'EGRESO',
@@ -775,5 +819,63 @@ describe('Caja', () => {
     boton('Buscar')?.click();
     await estable();
     expect(html.textContent).not.toContain('Emitir nota de crédito');
+  });
+
+  it('paga en efectivo a un proveedor y deja por banco lo que supera la bancarización', async () => {
+    const { api } = configurar();
+    const { html, boton, escribir, estable } = await crear(CajaOperar);
+    boton('Pagos a proveedores')?.click();
+    await estable();
+    escribir('#pv-texto', 'dist');
+    boton('Buscar')?.click();
+    await estable();
+    expect(api.proveedores).toHaveBeenCalledWith('se1', 'dist');
+    expect(html.textContent).toContain('Por banco');
+    expect(html.textContent).toContain('(vencida)');
+    boton('Pagar')?.click();
+    await estable();
+    expect(html.querySelector<HTMLInputElement>('#pv-monto')?.value).toBe('118');
+    escribir('#pv-monto', '');
+    boton('Pagar y registrar egreso')?.click();
+    await estable();
+    expect(api.pagarProveedor).not.toHaveBeenCalled();
+    escribir('#pv-monto', '50');
+    boton('Pagar y registrar egreso')?.click();
+    await estable();
+    expect(api.pagarProveedor).toHaveBeenCalledWith('se1', 'cp1', 50);
+    expect(api.actual).toHaveBeenCalledTimes(2);
+
+    api.pagarProveedor.mockReturnValue(
+      of({
+        movimientoId: 'm10',
+        cuentaNumero: 'CP-00000001',
+        comprobante: 'F001-123',
+        proveedorNombre: 'DISTRIBUIDORA SAC',
+        monto: 68,
+        saldo: 0,
+        fecha: '2026-11-16T15:00:00Z',
+      }),
+    );
+    boton('Pagar')?.click();
+    await estable();
+    boton('Pagar y registrar egreso')?.click();
+    await estable();
+    boton('Pagar')?.click();
+    await estable();
+    api.pagarProveedor.mockReturnValue(throwError(() => new Error('x')));
+    boton('Pagar y registrar egreso')?.click();
+    await estable();
+    expect(html.querySelector('[role=alert]')).not.toBeNull();
+    boton('Cancelar')?.click();
+    await estable();
+    expect(html.querySelector('#pv-monto')).toBeNull();
+    api.proveedores.mockReturnValue(of([]));
+    boton('Buscar')?.click();
+    await estable();
+    expect(html.textContent).toContain('No hay deudas en soles');
+    api.proveedores.mockReturnValue(throwError(() => new Error('x')));
+    boton('Buscar')?.click();
+    await estable();
+    expect(html.querySelector('[role=alert]')).not.toBeNull();
   });
 });
