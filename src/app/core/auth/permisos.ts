@@ -61,8 +61,12 @@ export const PERMISOS = {
   ventasAutorizar: 'ventas.descuento:autorizar',
   facturacionLeer: 'facturacion:read',
   facturacionSeries: 'facturacion.series:update',
+  facturacionEnviar: 'facturacion:enviar',
   cajaLeer: 'caja:read',
   cajaOperar: 'caja:operar',
   cajaSupervisar: 'caja:supervisar',
   cajaConfigurar: 'caja:configurar',
+  cajaDevolver: 'caja:devolver',
+  creditosLeer: 'creditos:read',
+  creditosAutorizar: 'creditos:autorizar',
 } as const;

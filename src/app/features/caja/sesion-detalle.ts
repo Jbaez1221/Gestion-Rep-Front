@@ -6,10 +6,10 @@ import { firstValueFrom } from 'rxjs';
 import { Problema, aProblema } from '../../core/http/problema';
 import { SesionCaja } from '../../core/modelos/api.modelos';
 import { ErrorApi } from '../../shared/ui/error-api';
-import { NOMBRE_MEDIO } from './caja-operar';
+import { NOMBRE_MEDIO } from './medios';
 import { CajaApi } from './caja.api';
 
-/** Reporte del turno: cobros, totales por medio de pago, movimientos y arqueo. */
+/** Reporte del turno: cobros, abonos, devoluciones, totales por medio de pago, movimientos y arqueo. */
 @Component({
   selector: 'app-sesion-detalle',
   imports: [RouterLink, DatePipe, DecimalPipe, ErrorApi],
@@ -92,6 +92,14 @@ import { CajaApi } from './caja.api';
                 <dt>{{ medios[m.medio] }}</dt>
                 <dd class="text-right">{{ m.monto | number: '1.2-2' }}</dd>
               }
+              @if (s.totalAbonos > 0) {
+                <dt>Abonos ({{ s.abonos }})</dt>
+                <dd class="text-right">{{ s.totalAbonos | number: '1.2-2' }}</dd>
+              }
+              @if (s.totalReembolsado > 0) {
+                <dt>Reembolsado</dt>
+                <dd class="text-right">−{{ s.totalReembolsado | number: '1.2-2' }}</dd>
+              }
               <dt>Ingresos</dt>
               <dd class="text-right">{{ s.ingresos | number: '1.2-2' }}</dd>
               <dt>Egresos</dt>
@@ -109,6 +117,39 @@ import { CajaApi } from './caja.api';
             </dl>
             @if (s.observacionCierre) {
               <p class="text-xs text-slate-600">{{ s.observacionCierre }}</p>
+            }
+            @if (s.detalleAbonos.length > 0) {
+              <h3 class="font-semibold">Abonos de crédito</h3>
+              <ul class="text-xs">
+                @for (a of s.detalleAbonos; track a.id) {
+                  <li>
+                    <span class="font-mono">{{ a.numero }}</span> · {{ a.clienteNombre }} ·
+                    {{ a.comprobante }} · S/ {{ a.monto | number: '1.2-2' }}
+                  </li>
+                }
+              </ul>
+            }
+            @if (s.detalleDevoluciones.length > 0) {
+              <h3 class="font-semibold">Devoluciones</h3>
+              <ul class="text-xs">
+                @for (d of s.detalleDevoluciones; track d.id) {
+                  <li>
+                    <a
+                      [routerLink]="['/facturacion/comprobante', d.notaId]"
+                      class="font-mono text-marca-700 hover:underline"
+                      >{{ d.nota }}</a
+                    >
+                    de {{ d.comprobante }} · S/ {{ d.total | number: '1.2-2' }}
+                    @if (d.medioReembolso) {
+                      · reembolso {{ medios[d.medioReembolso] }}
+                      {{ d.reembolso | number: '1.2-2' }}
+                    }
+                    @if (d.aplicadoCredito > 0) {
+                      · a la deuda {{ d.aplicadoCredito | number: '1.2-2' }}
+                    }
+                  </li>
+                }
+              </ul>
             }
             @if (s.movimientos.length > 0) {
               <h3 class="font-semibold">Movimientos</h3>

@@ -1546,9 +1546,21 @@ export interface PedidoGuardar {
 
 // --- Facturación ---
 
+/** Lo que emite facturación: boletas, facturas y notas de crédito (tipo 07). */
+export type TipoComprobanteEmitido = TipoComprobanteVenta | 'NOTA_CREDITO';
+
+/**
+ * PENDIENTE_ENVIO: aún no lo recibe el facturador (se reintenta solo). ENVIADO: espera respuesta
+ * de SUNAT. ACEPTADO / OBSERVADO: válido. RECHAZADO: sin valor tributario. ERROR: datos inválidos.
+ */
+export type EstadoComprobante =
+  'PENDIENTE_ENVIO' | 'ENVIADO' | 'ACEPTADO' | 'OBSERVADO' | 'RECHAZADO' | 'ERROR';
+
+export type ArchivoComprobante = 'PDF' | 'XML' | 'CDR';
+
 export interface SerieComprobante {
   readonly serie: string;
-  readonly tipo: TipoComprobanteVenta;
+  readonly tipo: TipoComprobanteEmitido;
   readonly sucursalId: string;
   readonly sucursal: string | null;
   readonly ultimoNumero: number;
@@ -1557,14 +1569,20 @@ export interface SerieComprobante {
 
 export interface ComprobanteVentaListado {
   readonly id: string;
-  readonly tipo: TipoComprobanteVenta;
+  readonly tipo: TipoComprobanteEmitido;
   readonly comprobante: string;
   readonly fechaEmision: string;
   readonly clienteDocumento: string;
   readonly clienteNombre: string;
   readonly total: number;
   readonly origenNumero: string;
-  readonly estado: 'PENDIENTE_ENVIO';
+  readonly estado: EstadoComprobante;
+}
+
+export interface ReferenciaComprobante {
+  readonly id: string;
+  readonly tipo: TipoComprobanteEmitido;
+  readonly comprobante: string;
 }
 
 export interface ComprobanteVenta extends ComprobanteVentaListado {
@@ -1590,11 +1608,29 @@ export interface ComprobanteVenta extends ComprobanteVentaListado {
     readonly total: number;
   }[];
   readonly creadoPor: string | null;
+  readonly formaPago: 'CONTADO' | 'CREDITO';
+  readonly fechaVencimiento: string | null;
+  readonly cuotas: { readonly monto: number; readonly fechaPago: string }[];
+  /** En una nota de crédito, el comprobante que modifica. */
+  readonly referencia: ReferenciaComprobante | null;
+  readonly motivoNota: string | null;
+  readonly descripcionMotivo: string | null;
+  readonly codigoSunat: string | null;
+  readonly descripcionSunat: string | null;
+  readonly observacionesSunat: string | null;
+  readonly intentos: number;
+  readonly ultimoError: string | null;
+  readonly fechaEnvio: string | null;
+  /** Notas de crédito que lo modifican. */
+  readonly notas: ReferenciaComprobante[];
 }
 
 // --- Caja ---
 
-export type MedioPago = 'EFECTIVO' | 'TARJETA' | 'YAPE_PLIN' | 'TRANSFERENCIA';
+/** CREDITO: la parte vendida al crédito, que queda como cuenta por cobrar del cliente. */
+export type MedioPago = 'EFECTIVO' | 'TARJETA' | 'YAPE_PLIN' | 'TRANSFERENCIA' | 'CREDITO';
+/** Catálogo 09: 01 anulación de la operación, 06 devolución total, 07 devolución por ítem. */
+export type MotivoNotaCredito = '01' | '06' | '07';
 export type EstadoSesion = 'ABIERTA' | 'CERRADA';
 export type TipoMovimientoCaja = 'INGRESO' | 'EGRESO';
 
@@ -1605,6 +1641,8 @@ export interface Caja {
   readonly sucursalId: string;
   readonly serieBoleta: string;
   readonly serieFactura: string;
+  readonly serieNcBoleta: string | null;
+  readonly serieNcFactura: string | null;
   readonly activo: boolean;
   readonly sesionAbierta: string | null;
 }
@@ -1662,6 +1700,134 @@ export interface SesionCaja {
   readonly observacionCierre: string | null;
   readonly detalleCobros: Cobro[];
   readonly movimientos: MovimientoCaja[];
+  readonly abonos: number;
+  readonly totalAbonos: number;
+  readonly detalleAbonos: AbonoCaja[];
+  readonly totalReembolsado: number;
+  readonly detalleDevoluciones: DevolucionCaja[];
+}
+
+export interface AbonoCaja {
+  readonly id: string;
+  readonly numero: string;
+  readonly cuentaNumero: string;
+  readonly comprobante: string;
+  readonly clienteNombre: string;
+  readonly monto: number;
+  /** Saldo que queda; null en el detalle de la sesión. */
+  readonly saldo: number | null;
+  readonly pagos: Pago[];
+  readonly fecha: string;
+  readonly usuario: string;
+}
+
+export interface CuentaPendiente {
+  readonly id: string;
+  readonly numero: string;
+  readonly clienteNombre: string;
+  readonly comprobante: string;
+  readonly fechaVencimiento: string;
+  readonly monto: number;
+  readonly saldo: number;
+  readonly vencida: boolean;
+}
+
+export interface DevolucionCaja {
+  readonly id: string;
+  readonly numero: string;
+  readonly cobroNumero: string;
+  readonly comprobante: string;
+  readonly notaId: string;
+  readonly nota: string;
+  readonly motivo: MotivoNotaCredito;
+  readonly descripcion: string;
+  readonly clienteNombre: string;
+  readonly total: number;
+  readonly aplicadoCredito: number;
+  readonly reembolso: number;
+  readonly medioReembolso: MedioPago | null;
+  readonly fecha: string;
+  readonly usuario: string;
+}
+
+export interface CobroDevolvible {
+  readonly cobroId: string;
+  readonly cobroNumero: string;
+  readonly comprobanteId: string;
+  readonly comprobante: string;
+  readonly tipoComprobante: TipoComprobanteVenta;
+  readonly estadoComprobante: EstadoComprobante;
+  readonly clienteNombre: string;
+  readonly total: number;
+  readonly devuelto: number;
+  readonly alCredito: number;
+  readonly serieNota: string | null;
+  readonly lineas: {
+    readonly linea: number;
+    readonly codigo: string;
+    readonly descripcion: string;
+    readonly unidad: string;
+    readonly cantidad: number;
+    readonly devuelta: number;
+    readonly precioUnitario: number;
+    readonly total: number;
+  }[];
+}
+
+// --- Créditos ---
+
+export type EstadoCuenta = 'PENDIENTE' | 'PAGADA';
+
+export interface CuentaPorCobrarListado {
+  readonly id: string;
+  readonly numero: string;
+  readonly clienteId: string;
+  readonly clienteDocumento: string;
+  readonly clienteNombre: string;
+  readonly comprobante: string;
+  readonly fechaEmision: string;
+  readonly fechaVencimiento: string;
+  readonly monto: number;
+  readonly saldo: number;
+  readonly estado: EstadoCuenta;
+  readonly vencida: boolean;
+  readonly diasVencida: number;
+}
+
+export interface CuentaPorCobrar {
+  readonly id: string;
+  readonly numero: string;
+  readonly clienteId: string;
+  readonly clienteDocumento: string;
+  readonly clienteNombre: string;
+  readonly comprobanteId: string;
+  readonly comprobante: string;
+  readonly fechaEmision: string;
+  readonly fechaVencimiento: string;
+  readonly monto: number;
+  readonly saldo: number;
+  readonly estado: EstadoCuenta;
+  readonly vencida: boolean;
+  readonly autorizadoPor: string | null;
+  readonly abonos: {
+    readonly id: string;
+    readonly fecha: string;
+    readonly monto: number;
+    readonly tipo: 'ABONO' | 'NOTA_CREDITO';
+    readonly detalle: string;
+    readonly usuario: string;
+  }[];
+  readonly creadoPor: string | null;
+}
+
+export interface EstadoCredito {
+  readonly clienteId: string;
+  readonly diasCredito: number;
+  readonly limite: number | null;
+  readonly usado: number;
+  readonly disponible: number;
+  readonly vencido: number;
+  readonly cuentas: CuentaPorCobrarListado[];
 }
 
 export interface SesionListado {

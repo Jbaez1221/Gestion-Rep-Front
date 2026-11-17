@@ -5,7 +5,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 
-import { Caja, PedidoPendiente, SesionCaja } from '../../core/modelos/api.modelos';
+import { Caja, CobroDevolvible, PedidoPendiente, SesionCaja } from '../../core/modelos/api.modelos';
 import { pagina } from '../../testing/datos';
 import { sesionFalsa } from '../../testing/sesion-falsa';
 import { FacturacionApi } from '../facturacion/facturacion.api';
@@ -20,6 +20,8 @@ const TODOS = [
   'caja:read',
   'caja:operar',
   'caja:configurar',
+  'caja:devolver',
+  'creditos:autorizar',
   'facturacion:read',
   'facturacion.series:update',
 ];
@@ -31,6 +33,8 @@ const CAJA: Caja = {
   sucursalId: 's1',
   serieBoleta: 'B001',
   serieFactura: 'F001',
+  serieNcBoleta: 'BC01',
+  serieNcFactura: null,
   activo: true,
   sesionAbierta: null,
 };
@@ -88,6 +92,68 @@ const SESION: SesionCaja = {
       motivo: 'Sencillo',
       fecha: '2026-11-15T15:10:00Z',
       usuario: 'ana',
+    },
+  ],
+  abonos: 1,
+  totalAbonos: 15,
+  detalleAbonos: [
+    {
+      id: 'ab1',
+      numero: 'AB-00000001',
+      cuentaNumero: 'CC-00000001',
+      comprobante: 'F001-00000009',
+      clienteNombre: 'TALLER SAC',
+      monto: 15,
+      saldo: null,
+      pagos: [{ medio: 'EFECTIVO', monto: 15, referencia: null }],
+      fecha: '2026-11-15T16:00:00Z',
+      usuario: 'ana',
+    },
+  ],
+  totalReembolsado: 16.6,
+  detalleDevoluciones: [
+    {
+      id: 'dv1',
+      numero: 'DV-00000001',
+      cobroNumero: 'CB-00000001',
+      comprobante: 'B001-00000001',
+      notaId: 'nc1',
+      nota: 'BC01-00000001',
+      motivo: '07',
+      descripcion: 'No corresponde',
+      clienteNombre: 'CLIENTES VARIOS',
+      total: 26.6,
+      aplicadoCredito: 10,
+      reembolso: 16.6,
+      medioReembolso: 'EFECTIVO',
+      fecha: '2026-11-15T17:00:00Z',
+      usuario: 'ana',
+    },
+  ],
+};
+
+const DEVOLVIBLE: CobroDevolvible = {
+  cobroId: 'co1',
+  cobroNumero: 'CB-00000001',
+  comprobanteId: 'cv1',
+  comprobante: 'B001-00000001',
+  tipoComprobante: 'BOLETA',
+  estadoComprobante: 'ACEPTADO',
+  clienteNombre: 'CLIENTES VARIOS',
+  total: 49.8,
+  devuelto: 16.6,
+  alCredito: 20,
+  serieNota: 'BC01',
+  lineas: [
+    {
+      linea: 1,
+      codigo: 'FIL-1',
+      descripcion: 'Filtro',
+      unidad: 'NIU',
+      cantidad: 3,
+      devuelta: 1,
+      precioUnitario: 16.6,
+      total: 49.8,
     },
   ],
 };
@@ -177,6 +243,23 @@ function configurar(permisos = TODOS, abierta: SesionCaja | null = SESION) {
     ),
     movimiento: vi.fn(() => of({})),
     cerrar: vi.fn(() => of({ ...SESION, estado: 'CERRADA' })),
+    cuentas: vi.fn(() =>
+      of([
+        {
+          id: 'cc1',
+          numero: 'CC-00000001',
+          clienteNombre: 'TALLER SAC',
+          comprobante: 'F001-00000009',
+          fechaVencimiento: '2026-12-15',
+          monto: 33.2,
+          saldo: 20,
+          vencida: true,
+        },
+      ]),
+    ),
+    abonar: vi.fn(() => of({ ...SESION.detalleAbonos[0], saldo: 5 })),
+    devolvible: vi.fn(() => of(DEVOLVIBLE)),
+    devolver: vi.fn(() => of(SESION.detalleDevoluciones[0])),
   };
   const facturacion = {
     series: vi.fn(() =>
@@ -195,6 +278,22 @@ function configurar(permisos = TODOS, abierta: SesionCaja | null = SESION) {
           sucursalId: 's1',
           sucursal: 'Cusco',
           ultimoNumero: 2,
+          activo: true,
+        },
+        {
+          serie: 'BC01',
+          tipo: 'NOTA_CREDITO',
+          sucursalId: 's1',
+          sucursal: 'Cusco',
+          ultimoNumero: 1,
+          activo: true,
+        },
+        {
+          serie: 'FC01',
+          tipo: 'NOTA_CREDITO',
+          sucursalId: 's1',
+          sucursal: 'Cusco',
+          ultimoNumero: 0,
           activo: true,
         },
         {
@@ -276,7 +375,21 @@ describe('CajaApi (contrato)', () => {
     api.pendientes('se1').subscribe();
     espera('GET', '/api/v1/caja/sesiones/se1/pendientes');
     api.cobrar('se1', 'p1', []).subscribe();
-    espera('POST', '/api/v1/caja/sesiones/se1/cobros', { pedidoId: 'p1', pagos: [] });
+    espera('POST', '/api/v1/caja/sesiones/se1/cobros', {
+      pedidoId: 'p1',
+      pagos: [],
+      autorizarCredito: false,
+    });
+    api.cuentas('se1', ' taller ').subscribe();
+    espera('GET', '/api/v1/caja/sesiones/se1/cuentas?texto=taller');
+    api.cuentas('se1', ' ').subscribe();
+    espera('GET', '/api/v1/caja/sesiones/se1/cuentas');
+    api.abonar('se1', 'cc1', []).subscribe();
+    espera('POST', '/api/v1/caja/sesiones/se1/abonos', { cuentaId: 'cc1', pagos: [] });
+    api.devolvible('se1', ' B001-1 ').subscribe();
+    espera('GET', '/api/v1/caja/sesiones/se1/devolucion?comprobante=B001-1');
+    api.devolver('se1', {} as never).subscribe();
+    espera('POST', '/api/v1/caja/sesiones/se1/devoluciones');
     api.movimiento('se1', 'EGRESO', 5, 'x').subscribe();
     espera('POST', '/api/v1/caja/sesiones/se1/movimientos', {
       tipo: 'EGRESO',
@@ -343,10 +456,15 @@ describe('Caja', () => {
     expect(html.textContent).toContain('6.80');
     boton('Cobrar y emitir')?.click();
     await estable();
-    expect(api.cobrar).toHaveBeenCalledWith('se1', 'p2', [
-      { medio: 'EFECTIVO', monto: 20, referencia: null },
-      { medio: 'TARJETA', monto: 20, referencia: 'OP-1' },
-    ]);
+    expect(api.cobrar).toHaveBeenCalledWith(
+      'se1',
+      'p2',
+      [
+        { medio: 'EFECTIVO', monto: 20, referencia: null },
+        { medio: 'TARJETA', monto: 20, referencia: 'OP-1' },
+      ],
+      false,
+    );
     expect(html.textContent).toContain('F001-00000001');
     expect(html.textContent).toContain('Vuelto: S/ 6.80');
   });
@@ -394,6 +512,10 @@ describe('Caja', () => {
     expect(detalle.html.textContent).toContain('B001-00000001');
     expect(detalle.html.textContent).toContain('Faltan céntimos');
     expect(detalle.html.textContent).toContain('Útiles');
+    expect(detalle.html.textContent).toContain('AB-00000001');
+    expect(detalle.html.textContent).toContain('BC01-00000001');
+    expect(detalle.html.textContent).toContain('Reembolsado');
+    expect(detalle.html.textContent).toContain('a la deuda 10.00');
     api.sesion.mockReturnValue(throwError(() => new Error('x')));
     api.sesiones.mockReturnValue(throwError(() => new Error('x')));
     expect(
@@ -419,14 +541,29 @@ describe('Caja', () => {
     expect(
       [...html.querySelectorAll('#cf-sboleta option')].map((o) => o.textContent?.trim()),
     ).toEqual(['Elija…', 'B001']);
+    expect(
+      [...html.querySelectorAll('#cf-ncboleta option')].map((o) => o.textContent?.trim()),
+    ).toEqual(['Sin devoluciones', 'BC01']);
+    expect(
+      [...html.querySelectorAll('#cf-ncfactura option')].map((o) => o.textContent?.trim()),
+    ).toEqual(['Sin devoluciones', 'FC01']);
+    expect(html.textContent).toContain('NC BC01 / —');
+    expect(html.textContent).toContain('Nota de crédito');
     escribir('#cf-codigo', 'c3');
     escribir('#cf-nombre', 'Caja 3');
     escribir('#cf-sboleta', 'B001');
     escribir('#cf-sfactura', 'F001');
+    escribir('#cf-ncfactura', 'FC01');
     boton('Crear caja')?.click();
     await estable();
     expect(api.crearCaja).toHaveBeenCalledWith(
-      expect.objectContaining({ codigo: 'C3', sucursalId: 's1', serieBoleta: 'B001' }),
+      expect.objectContaining({
+        codigo: 'C3',
+        sucursalId: 's1',
+        serieBoleta: 'B001',
+        serieNcBoleta: null,
+        serieNcFactura: 'FC01',
+      }),
     );
     boton('Editar')?.click();
     await estable();
@@ -435,7 +572,7 @@ describe('Caja', () => {
     await estable();
     expect(api.actualizarCaja).toHaveBeenCalledWith(
       'cj1',
-      expect.objectContaining({ codigo: null, nombre: 'Caja 1' }),
+      expect.objectContaining({ codigo: null, nombre: 'Caja 1', serieNcBoleta: 'BC01' }),
     );
     api.crearCaja.mockReturnValue(throwError(() => new Error('x')));
     escribir('#cf-codigo', 'c4');
@@ -445,5 +582,198 @@ describe('Caja', () => {
     boton('Crear caja')?.click();
     await estable();
     expect(html.querySelector('[role=alert]')).not.toBeNull();
+  });
+
+  it('vende al crédito y lo autoriza quien tiene el permiso', async () => {
+    const { api } = configurar();
+    api.cobrar.mockReturnValue(
+      of({
+        ...SESION.detalleCobros[0],
+        comprobante: 'F001-00000001',
+        tipoComprobante: 'FACTURA',
+        vuelto: 0,
+        pagos: [{ medio: 'CREDITO', monto: 33.2, referencia: null }],
+      }),
+    );
+    const { html, boton, escribir, estable } = await crear(CajaOperar);
+    boton('Cobrar')?.click();
+    await estable();
+    escribir('#cj-medio-0', 'CREDITO');
+    await estable();
+    expect(html.querySelector('#cj-ref-0')).toBeNull();
+    expect(html.textContent).toContain('quedan como deuda del cliente');
+    const autoriza = html.querySelector<HTMLInputElement>('input[type=checkbox]');
+    if (!autoriza) throw new Error('sin casilla');
+    autoriza.checked = true;
+    autoriza.dispatchEvent(new Event('change'));
+    boton('Cobrar y emitir')?.click();
+    await estable();
+    expect(api.cobrar).toHaveBeenCalledWith(
+      'se1',
+      'p2',
+      [{ medio: 'CREDITO', monto: 33.2, referencia: null }],
+      true,
+    );
+    expect(html.textContent).toContain('Al crédito: S/ 33.20');
+  });
+
+  it('sin permiso de créditos no ofrece autorizar ni devolver', async () => {
+    configurar(['caja:read', 'caja:operar']);
+    const { html, boton, escribir, estable } = await crear(CajaOperar);
+    expect(boton('Devoluciones')).toBeUndefined();
+    boton('Cobrar')?.click();
+    await estable();
+    escribir('#cj-medio-0', 'CREDITO');
+    await estable();
+    expect(html.textContent).toContain('quedan como deuda del cliente');
+    expect(html.querySelector('input[type=checkbox]')).toBeNull();
+  });
+
+  it('cobra un abono a una cuenta por cobrar', async () => {
+    const { api } = configurar();
+    const { html, boton, escribir, estable } = await crear(CajaOperar);
+    boton('Abonos de crédito')?.click();
+    await estable();
+    escribir('#ab-texto', 'taller');
+    boton('Buscar')?.click();
+    await estable();
+    expect(api.cuentas).toHaveBeenCalledWith('se1', 'taller');
+    expect(html.textContent).toContain('(vencida)');
+    boton('Abonar')?.click();
+    await estable();
+    expect(html.querySelector<HTMLInputElement>('#ab-monto')?.value).toBe('20');
+    escribir('#ab-medio', 'YAPE_PLIN');
+    await estable();
+    escribir('#ab-ref', 'OP-7');
+    escribir('#ab-monto', '15');
+    boton('Registrar abono')?.click();
+    await estable();
+    expect(api.abonar).toHaveBeenCalledWith('se1', 'cc1', [
+      { medio: 'YAPE_PLIN', monto: 15, referencia: 'OP-7' },
+    ]);
+    expect(api.actual).toHaveBeenCalledTimes(2);
+
+    api.cuentas.mockReturnValue(of([]));
+    boton('Buscar')?.click();
+    await estable();
+    expect(html.textContent).toContain('No hay cuentas pendientes');
+    api.cuentas.mockReturnValue(throwError(() => new Error('x')));
+    boton('Buscar')?.click();
+    await estable();
+    expect(html.querySelector('[role=alert]')).not.toBeNull();
+  });
+
+  it('valida y avisa los errores del abono', async () => {
+    const { api } = configurar();
+    api.abonar.mockReturnValue(of({ ...SESION.detalleAbonos[0], saldo: 0 }));
+    const { html, boton, escribir, estable } = await crear(CajaOperar);
+    boton('Abonos de crédito')?.click();
+    await estable();
+    boton('Buscar')?.click();
+    await estable();
+    boton('Abonar')?.click();
+    await estable();
+    escribir('#ab-monto', '');
+    boton('Registrar abono')?.click();
+    await estable();
+    expect(api.abonar).not.toHaveBeenCalled();
+    escribir('#ab-monto', '20');
+    boton('Registrar abono')?.click();
+    await estable();
+    expect(api.abonar).toHaveBeenCalled();
+    boton('Abonar')?.click();
+    await estable();
+    api.abonar.mockReturnValue(throwError(() => new Error('x')));
+    boton('Registrar abono')?.click();
+    await estable();
+    expect(html.querySelector('[role=alert]')).not.toBeNull();
+    boton('Cancelar')?.click();
+    await estable();
+    expect(html.textContent).not.toContain('Registrar abono');
+  });
+
+  it('devuelve por ítem o todo lo que queda con nota de crédito', async () => {
+    const { api } = configurar();
+    const { html, boton, escribir, estable } = await crear(CajaOperar);
+    boton('Devoluciones')?.click();
+    await estable();
+    boton('Buscar')?.click();
+    await estable();
+    expect(api.devolvible).not.toHaveBeenCalled();
+    escribir('#dv-comprobante', 'b001-1');
+    boton('Buscar')?.click();
+    await estable();
+    expect(api.devolvible).toHaveBeenCalledWith('se1', 'b001-1');
+    expect(html.textContent).toContain('Ya devuelto: S/ 16.60');
+    expect(html.textContent).toContain('primero se descuenta de la deuda');
+    expect(boton('Emitir nota de crédito')?.disabled).toBe(true);
+    escribir('#dv-cant-0', '1');
+    escribir('#dv-desc', 'No corresponde');
+    await estable();
+    expect(html.textContent).toContain('S/ 16.60');
+    boton('Emitir nota de crédito')?.click();
+    await estable();
+    expect(api.devolver).toHaveBeenCalledWith('se1', {
+      cobroId: 'co1',
+      motivo: '07',
+      descripcion: 'No corresponde',
+      lineas: [{ linea: 1, cantidad: 1 }],
+      medioReembolso: 'EFECTIVO',
+    });
+    expect(html.querySelector('#dv-cant-0')).toBeNull();
+
+    escribir('#dv-comprobante', 'B001-1');
+    boton('Buscar')?.click();
+    await estable();
+    escribir('#dv-motivo', '06');
+    escribir('#dv-medio', 'TARJETA');
+    escribir('#dv-desc', 'Devuelve todo');
+    await estable();
+    expect(html.querySelector('#dv-cant-0')).toBeNull();
+    expect(html.textContent).toContain('S/ 33.20');
+    boton('Emitir nota de crédito')?.click();
+    await estable();
+    expect(api.devolver).toHaveBeenLastCalledWith(
+      'se1',
+      expect.objectContaining({ motivo: '06', lineas: [], medioReembolso: 'TARJETA' }),
+    );
+  });
+
+  it('avisa si la caja no tiene serie de nota y muestra los errores', async () => {
+    const { api } = configurar();
+    api.devolvible.mockReturnValue(
+      of({ ...DEVOLVIBLE, serieNota: null, devuelto: 0, alCredito: 0 }),
+    );
+    const { html, boton, escribir, estable } = await crear(CajaOperar);
+    boton('Devoluciones')?.click();
+    await estable();
+    escribir('#dv-comprobante', 'B001-1');
+    boton('Buscar')?.click();
+    await estable();
+    expect(html.textContent).toContain('no tiene serie de nota de crédito');
+    escribir('#dv-motivo', '01');
+    await estable();
+    expect(boton('Emitir nota de crédito')?.disabled).toBe(true);
+    boton('Cancelar')?.click();
+    await estable();
+    expect(html.textContent).not.toContain('Emitir nota de crédito');
+
+    api.devolvible.mockReturnValue(of(DEVOLVIBLE));
+    boton('Buscar')?.click();
+    await estable();
+    escribir('#dv-motivo', '06');
+    await estable();
+    boton('Emitir nota de crédito')?.click();
+    await estable();
+    expect(api.devolver).not.toHaveBeenCalled();
+    escribir('#dv-desc', 'x');
+    api.devolver.mockReturnValue(throwError(() => new Error('x')));
+    boton('Emitir nota de crédito')?.click();
+    await estable();
+    expect(html.querySelector('[role=alert]')).not.toBeNull();
+    api.devolvible.mockReturnValue(throwError(() => new Error('x')));
+    boton('Buscar')?.click();
+    await estable();
+    expect(html.textContent).not.toContain('Emitir nota de crédito');
   });
 });

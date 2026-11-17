@@ -12,9 +12,10 @@ import { firstValueFrom } from 'rxjs';
 import { PERMISOS } from '../../core/auth/permisos';
 import { SesionService } from '../../core/auth/sesion.service';
 import { Problema, aProblema } from '../../core/http/problema';
-import { Caja, SerieComprobante, TipoComprobanteVenta } from '../../core/modelos/api.modelos';
+import { Caja, SerieComprobante, TipoComprobanteEmitido } from '../../core/modelos/api.modelos';
 import { NotificacionesService } from '../../core/ui/notificaciones.service';
 import { ErrorApi } from '../../shared/ui/error-api';
+import { NOMBRE_TIPO } from '../facturacion/etiquetas';
 import { FacturacionApi } from '../facturacion/facturacion.api';
 import { CajaApi } from './caja.api';
 
@@ -29,8 +30,9 @@ import { CajaApi } from './caja.api';
         <section class="tarjeta space-y-2">
           <h2 class="font-semibold">Series de comprobantes</h2>
           <p class="text-xs text-slate-500">
-            Por establecimiento: la factura electrónica empieza con F y la boleta con B. El número
-            avanza sin huecos al cobrar.
+            Por establecimiento: la factura electrónica empieza con F y la boleta con B; la nota de
+            crédito, con la letra del comprobante que modifica (FC01, BC01). El número avanza sin
+            huecos al emitir.
           </p>
           <table class="tabla">
             <thead>
@@ -46,7 +48,7 @@ import { CajaApi } from './caja.api';
               @for (s of series(); track s.serie) {
                 <tr>
                   <td class="font-mono">{{ s.serie }}</td>
-                  <td>{{ s.tipo === 'FACTURA' ? 'Factura' : 'Boleta' }}</td>
+                  <td>{{ tipos[s.tipo] }}</td>
                   <td>{{ s.sucursal ?? '—' }}</td>
                   <td class="text-right">{{ s.ultimoNumero }}</td>
                   <td>
@@ -89,6 +91,7 @@ import { CajaApi } from './caja.api';
                 <select id="cf-tipo" class="campo" formControlName="tipo">
                   <option value="BOLETA">Boleta</option>
                   <option value="FACTURA">Factura</option>
+                  <option value="NOTA_CREDITO">Nota de crédito</option>
                 </select>
               </div>
               <div>
@@ -112,6 +115,9 @@ import { CajaApi } from './caja.api';
                 <span>
                   {{ c.nombre }} <span class="font-mono text-xs">({{ c.codigo }})</span> ·
                   {{ c.serieBoleta }} / {{ c.serieFactura }}
+                  @if (c.serieNcBoleta || c.serieNcFactura) {
+                    · NC {{ c.serieNcBoleta ?? '—' }} / {{ c.serieNcFactura ?? '—' }}
+                  }
                   @if (!c.activo) {
                     <span class="insignia-neutra">Inactiva</span>
                   }
@@ -177,6 +183,24 @@ import { CajaApi } from './caja.api';
                   }
                 </select>
               </div>
+              <div>
+                <label for="cf-ncboleta" class="etiqueta">Notas de crédito de boletas</label>
+                <select id="cf-ncboleta" class="campo" formControlName="serieNcBoleta">
+                  <option value="">Sin devoluciones</option>
+                  @for (s of seriesNota('B'); track s.serie) {
+                    <option [value]="s.serie">{{ s.serie }}</option>
+                  }
+                </select>
+              </div>
+              <div>
+                <label for="cf-ncfactura" class="etiqueta">Notas de crédito de facturas</label>
+                <select id="cf-ncfactura" class="campo" formControlName="serieNcFactura">
+                  <option value="">Sin devoluciones</option>
+                  @for (s of seriesNota('F'); track s.serie) {
+                    <option [value]="s.serie">{{ s.serie }}</option>
+                  }
+                </select>
+              </div>
               <label class="flex items-center gap-2 text-sm">
                 <input type="checkbox" formControlName="activo" /> Activa
               </label>
@@ -202,6 +226,7 @@ export class ConfiguracionCaja implements OnInit {
   private readonly avisos = inject(NotificacionesService);
   private readonly fb = inject(NonNullableFormBuilder);
   protected readonly sesion = inject(SesionService);
+  protected readonly tipos = NOMBRE_TIPO;
 
   protected readonly series = signal<SerieComprobante[]>([]);
   protected readonly cajas = signal<Caja[]>([]);
@@ -212,7 +237,7 @@ export class ConfiguracionCaja implements OnInit {
 
   protected readonly serie = this.fb.group({
     serie: ['', [Validators.required, Validators.pattern(/^[A-Za-z][A-Za-z0-9]{3}$/)]],
-    tipo: ['BOLETA' as TipoComprobanteVenta],
+    tipo: ['BOLETA' as TipoComprobanteEmitido],
     sucursalId: ['', Validators.required],
   });
   protected readonly caja = this.fb.group({
@@ -221,6 +246,8 @@ export class ConfiguracionCaja implements OnInit {
     nombre: ['', [Validators.required, Validators.maxLength(80)]],
     serieBoleta: ['', Validators.required],
     serieFactura: ['', Validators.required],
+    serieNcBoleta: [''],
+    serieNcFactura: [''],
     activo: [true],
   });
   private readonly sucursalCaja = signal('');
@@ -234,9 +261,14 @@ export class ConfiguracionCaja implements OnInit {
     void this.cargar();
   }
 
-  protected seriesDe(tipo: TipoComprobanteVenta): SerieComprobante[] {
+  protected seriesDe(tipo: TipoComprobanteEmitido): SerieComprobante[] {
     const sucursal = this.editando()?.sucursalId ?? this.sucursalCaja();
     return this.series().filter((s) => s.tipo === tipo && s.activo && s.sucursalId === sucursal);
+  }
+
+  /** Series de nota de crédito de la sucursal que empiezan con la letra del comprobante. */
+  protected seriesNota(letra: 'B' | 'F'): SerieComprobante[] {
+    return this.seriesDe('NOTA_CREDITO').filter((s) => s.serie.startsWith(letra));
   }
 
   private async cargar(): Promise<void> {
@@ -288,6 +320,8 @@ export class ConfiguracionCaja implements OnInit {
       nombre: c.nombre,
       serieBoleta: c.serieBoleta,
       serieFactura: c.serieFactura,
+      serieNcBoleta: c.serieNcBoleta ?? '',
+      serieNcFactura: c.serieNcFactura ?? '',
       activo: c.activo,
     });
   }
@@ -300,6 +334,8 @@ export class ConfiguracionCaja implements OnInit {
       nombre: '',
       serieBoleta: '',
       serieFactura: '',
+      serieNcBoleta: '',
+      serieNcFactura: '',
       activo: true,
     });
   }
@@ -317,6 +353,8 @@ export class ConfiguracionCaja implements OnInit {
       sucursalId: actual ? null : v.sucursalId,
       serieBoleta: v.serieBoleta,
       serieFactura: v.serieFactura,
+      serieNcBoleta: v.serieNcBoleta || null,
+      serieNcFactura: v.serieNcFactura || null,
       activo: v.activo,
     };
     try {
