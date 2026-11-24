@@ -109,7 +109,7 @@ import { FacturacionApi } from './facturacion.api';
 export class Guias implements OnInit {
   private readonly api = inject(FacturacionApi);
   private readonly fb = inject(NonNullableFormBuilder);
-  protected readonly motivos: MotivoTraslado[] = ['01', '04', '13'];
+  protected readonly motivos: MotivoTraslado[] = ['01', '04'];
   protected readonly nombresMotivo = MOTIVO_TRASLADO;
   protected readonly estados = ESTADO_COMPROBANTE;
   protected readonly pagina = signal<Pagina<GuiaRemisionListado> | null>(null);
