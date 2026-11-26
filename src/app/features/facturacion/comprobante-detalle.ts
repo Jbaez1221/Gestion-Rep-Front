@@ -24,7 +24,7 @@ import { NotificacionesService } from '../../core/ui/notificaciones.service';
 import { ErrorApi } from '../../shared/ui/error-api';
 import { hoyEnLima } from '../centros/arbol';
 import { siglaDocumento } from '../ventas/calculo-venta';
-import { ESTADO_COMPROBANTE, MOTIVO_NOTA, NOMBRE_TIPO } from './etiquetas';
+import { ESTADO_COMPROBANTE, MOTIVO_NOTA, NOMBRE_BAJA, NOMBRE_TIPO } from './etiquetas';
 import { FacturacionApi } from './facturacion.api';
 import { TransporteGuiaForm, datosGuia, formTransporte } from './transporte-guia';
 
@@ -88,6 +88,34 @@ import { TransporteGuiaForm, datosGuia, formTransporte } from './transporte-guia
             <p class="text-xs text-slate-500">
               Enviado el {{ c.fechaEnvio | date: 'dd/MM/yyyy HH:mm' }}
             </p>
+          }
+          @if (c.baja; as b) {
+            <div class="border-t border-slate-100 pt-2 text-xs" aria-label="Baja ante SUNAT">
+              <p>
+                <span class="font-semibold">{{ bajas[b.tipo] }}:</span>
+                <span [class]="estados[b.estado].clase">{{ estados[b.estado].texto }}</span>
+                · {{ b.motivo }}
+                @if (b.codigoSunat) {
+                  <span class="text-slate-600">
+                    · Código {{ b.codigoSunat
+                    }}{{ b.descripcionSunat ? ': ' + b.descripcionSunat : '' }}
+                  </span>
+                }
+              </p>
+              @if (b.ultimoError) {
+                <p class="text-red-700">{{ b.ultimoError }}</p>
+              }
+              @if (b.nota; as n) {
+                <p>
+                  No procedió; se regularizó con la nota de crédito
+                  <a
+                    [routerLink]="['/facturacion/comprobante', n.id]"
+                    class="font-mono text-marca-700 hover:underline"
+                    >{{ n.comprobante }}</a
+                  >.
+                </p>
+              }
+            </div>
           }
         </section>
 
@@ -267,6 +295,7 @@ export class ComprobanteDetalle implements OnInit {
   protected readonly sigla = siglaDocumento;
   protected readonly tipos = NOMBRE_TIPO;
   protected readonly estados = ESTADO_COMPROBANTE;
+  protected readonly bajas = NOMBRE_BAJA;
   readonly id = input.required<string>();
   protected readonly comprobante = signal<ComprobanteVenta | null>(null);
   protected readonly error = signal<Problema | null>(null);
@@ -294,7 +323,14 @@ export class ComprobanteDetalle implements OnInit {
   /** Ya está en el facturador: hay PDF y XML; el CDR solo cuando SUNAT respondió. */
   protected readonly enFacturador = computed(() => {
     const e = this.comprobante()?.estado;
-    return e === 'ENVIADO' || e === 'ACEPTADO' || e === 'OBSERVADO' || e === 'RECHAZADO';
+    return (
+      e === 'ENVIADO' ||
+      e === 'ACEPTADO' ||
+      e === 'OBSERVADO' ||
+      e === 'RECHAZADO' ||
+      e === 'BAJA_EN_CURSO' ||
+      e === 'ANULADO'
+    );
   });
   protected readonly archivos = computed<ArchivoComprobante[]>(() =>
     this.comprobante()?.estado === 'ENVIADO' ? ['PDF', 'XML'] : ['PDF', 'XML', 'CDR'],

@@ -62,6 +62,7 @@ const COMPROBANTE: ComprobanteVenta = {
   fechaEnvio: null,
   notas: [],
   guias: [],
+  baja: null,
 };
 
 const GUIA: GuiaRemision = {
@@ -273,6 +274,54 @@ describe('Comprobantes', () => {
       '/api/v1/facturacion/comprobantes/cv1/archivos/XML',
       '/api/v1/facturacion/comprobantes/cv1/archivos/CDR',
     ]);
+  });
+
+  it('muestra la baja ante SUNAT y la nota que la regularizó si no procedió', async () => {
+    const api = configurar();
+    api.comprobante.mockReturnValue(
+      of({
+        ...ACEPTADA,
+        estado: 'ANULADO' as const,
+        baja: {
+          id: 'bj1',
+          tipo: 'COMUNICACION_BAJA' as const,
+          estado: 'ACEPTADO' as const,
+          motivo: 'Error en el RUC',
+          codigoSunat: '0',
+          descripcionSunat: 'La comunicación de baja ha sido aceptada',
+          ultimoError: null,
+          fechaEnvio: '2026-11-25T15:00:00Z',
+          nota: null,
+        },
+      }),
+    );
+    const anulada = await crear(ComprobanteDetalle, { id: 'cv1' });
+    expect(anulada.html.textContent).toContain('Anulado (baja SUNAT)');
+    expect(anulada.html.textContent).toContain('Comunicación de baja:');
+    expect(anulada.html.textContent).toContain('Error en el RUC');
+    expect(anulada.html.querySelectorAll('a[download]')).toHaveLength(3);
+
+    api.comprobante.mockReturnValue(
+      of({
+        ...ACEPTADA,
+        baja: {
+          id: 'bj2',
+          tipo: 'RESUMEN_ANULACION' as const,
+          estado: 'RECHAZADO' as const,
+          motivo: 'Venta duplicada',
+          codigoSunat: '2324',
+          descripcionSunat: 'Rechazo de prueba',
+          ultimoError: null,
+          fechaEnvio: null,
+          nota: { id: 'nc9', tipo: 'NOTA_CREDITO' as const, comprobante: 'BC01-00000009' },
+        },
+      }),
+    );
+    const { html } = await crear(ComprobanteDetalle, { id: 'cv1' });
+    expect(html.textContent).toContain('Resumen diario de anulación:');
+    expect(html.textContent).toContain('Código 2324: Rechazo de prueba');
+    expect(html.textContent).toContain('se regularizó con la nota de crédito');
+    expect(html.querySelector('a[href="/facturacion/comprobante/nc9"]')).not.toBeNull();
   });
 
   it('la nota de crédito muestra el comprobante que modifica y espera el CDR', async () => {

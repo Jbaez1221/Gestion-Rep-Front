@@ -31,8 +31,9 @@ import { CajaApi } from './caja.api';
 import { MEDIOS_DINERO, NOMBRE_MEDIO, centimos } from './medios';
 
 /**
- * Devolución o anulación de una venta: emite la nota de crédito, reingresa el stock y reembolsa
- * (o descuenta de la deuda si se vendió al crédito).
+ * Devolución o anulación de una venta: emite la nota de crédito (o, al anular un comprobante aceptado
+ * dentro del plazo, pide su baja a SUNAT), reingresa el stock y reembolsa (o descuenta de la deuda si
+ * se vendió al crédito).
  */
 @Component({
   selector: 'app-devolucion-caja',
@@ -93,6 +94,18 @@ import { MEDIOS_DINERO, NOMBRE_MEDIO, centimos } from './medios';
               </select>
             </div>
           </div>
+          @if (valores().motivo === '01') {
+            @if (porBaja()) {
+              <p class="text-xs text-slate-600" role="status">
+                Se dará de baja ante SUNAT, sin nota de crédito. Si SUNAT no la acepta, el sistema
+                emitirá la nota de crédito de anulación.
+              </p>
+            } @else {
+              <p class="text-xs text-slate-600" role="status">
+                Se anulará con nota de crédito: {{ c.impedimentoBaja }}
+              </p>
+            }
+          }
           <div>
             <label for="dv-desc" class="etiqueta">Sustento</label>
             <input
@@ -142,7 +155,7 @@ import { MEDIOS_DINERO, NOMBRE_MEDIO, centimos } from './medios';
             </tbody>
           </table>
           <p>
-            Nota de crédito por aprox.
+            {{ porBaja() ? 'Se anula por' : 'Nota de crédito por aprox.' }}
             <span class="font-semibold">S/ {{ estimado() | number: '1.2-2' }}</span>
             @if (c.alCredito > 0) {
               <span class="block text-xs text-slate-600">
@@ -153,7 +166,7 @@ import { MEDIOS_DINERO, NOMBRE_MEDIO, centimos } from './medios';
           </p>
           <div class="flex gap-2">
             <button type="submit" class="btn-primario" [disabled]="!c.serieNota || estimado() <= 0">
-              Emitir nota de crédito
+              {{ porBaja() ? 'Anular ante SUNAT' : 'Emitir nota de crédito' }}
             </button>
             <button type="button" class="btn-secundario" (click)="cobro.set(null)">Cancelar</button>
           </div>
@@ -188,6 +201,9 @@ export class DevolucionCajaPanel {
     initialValue: this.form.getRawValue(),
   });
   protected readonly porItem = computed(() => this.valores().motivo === '07');
+  protected readonly porBaja = computed(
+    () => this.valores().motivo === '01' && this.cobro()?.impedimentoBaja === null,
+  );
   /** Por ítem, lo marcado; anulación o devolución total, todo lo que queda. */
   protected readonly estimado = computed(() => {
     const c = this.cobro();
@@ -240,7 +256,11 @@ export class DevolucionCajaPanel {
           medioReembolso: v.medio,
         }),
       );
-      const partes = [`Nota de crédito ${d.nota} emitida por S/ ${d.total.toFixed(2)}`];
+      const partes = [
+        d.bajaId
+          ? `Baja de ${d.comprobante} pedida a SUNAT por S/ ${d.total.toFixed(2)}`
+          : `Nota de crédito ${d.nota ?? ''} emitida por S/ ${d.total.toFixed(2)}`,
+      ];
       if (d.aplicadoCredito > 0)
         partes.push(`S/ ${d.aplicadoCredito.toFixed(2)} descontado de la deuda`);
       if (d.reembolso > 0 && d.medioReembolso) {

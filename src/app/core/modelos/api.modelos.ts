@@ -1558,9 +1558,33 @@ export type TipoComprobanteEmitido = TipoComprobanteVenta | 'NOTA_CREDITO' | 'GU
 /**
  * PENDIENTE_ENVIO: aún no lo recibe el facturador (se reintenta solo). ENVIADO: espera respuesta
  * de SUNAT. ACEPTADO / OBSERVADO: válido. RECHAZADO: sin valor tributario. ERROR: datos inválidos.
+ * BAJA_EN_CURSO: se pidió su baja a SUNAT. ANULADO: SUNAT aceptó la baja.
  */
 export type EstadoComprobante =
-  'PENDIENTE_ENVIO' | 'ENVIADO' | 'ACEPTADO' | 'OBSERVADO' | 'RECHAZADO' | 'ERROR';
+  | 'PENDIENTE_ENVIO'
+  | 'ENVIADO'
+  | 'ACEPTADO'
+  | 'OBSERVADO'
+  | 'RECHAZADO'
+  | 'ERROR'
+  | 'BAJA_EN_CURSO'
+  | 'ANULADO';
+
+/** Factura: comunicación de baja. Boleta: resumen diario de anulación. */
+export type TipoBaja = 'COMUNICACION_BAJA' | 'RESUMEN_ANULACION';
+
+/** Última baja pedida a SUNAT; {@link nota}: la nota de crédito que la regularizó si no procedió. */
+export interface BajaComprobante {
+  readonly id: string;
+  readonly tipo: TipoBaja;
+  readonly estado: EstadoComprobante;
+  readonly motivo: string;
+  readonly codigoSunat: string | null;
+  readonly descripcionSunat: string | null;
+  readonly ultimoError: string | null;
+  readonly fechaEnvio: string | null;
+  readonly nota: ReferenciaComprobante | null;
+}
 
 export type ArchivoComprobante = 'PDF' | 'XML' | 'CDR';
 
@@ -1631,6 +1655,7 @@ export interface ComprobanteVenta extends ComprobanteVentaListado {
   readonly notas: ReferenciaComprobante[];
   /** Guías de remisión que sustentan su traslado. */
   readonly guias: ReferenciaComprobante[];
+  readonly baja: BajaComprobante | null;
 }
 
 /** Catálogo 20: 01 venta, 04 traslado entre establecimientos de la empresa, 13 otros. */
@@ -1840,8 +1865,10 @@ export interface DevolucionCaja {
   readonly numero: string;
   readonly cobroNumero: string;
   readonly comprobante: string;
-  readonly notaId: string;
-  readonly nota: string;
+  /** Nota de crédito que la respalda; null si se respaldó con la baja ante SUNAT. */
+  readonly notaId: string | null;
+  readonly nota: string | null;
+  readonly bajaId: string | null;
   readonly motivo: MotivoNotaCredito;
   readonly descripcion: string;
   readonly clienteNombre: string;
@@ -1865,6 +1892,8 @@ export interface CobroDevolvible {
   readonly devuelto: number;
   readonly alCredito: number;
   readonly serieNota: string | null;
+  /** Por qué anularlo iría con nota de crédito en vez de la baja ante SUNAT; null si se dará de baja. */
+  readonly impedimentoBaja: string | null;
   readonly lineas: {
     readonly linea: number;
     readonly codigo: string;
@@ -1916,7 +1945,7 @@ export interface CuentaPorCobrar {
     readonly id: string;
     readonly fecha: string;
     readonly monto: number;
-    readonly tipo: 'ABONO' | 'NOTA_CREDITO';
+    readonly tipo: 'ABONO' | 'NOTA_CREDITO' | 'ANULACION';
     readonly detalle: string;
     readonly usuario: string;
   }[];

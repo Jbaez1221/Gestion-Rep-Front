@@ -3,6 +3,7 @@ import {
   ModalidadTransporte,
   MotivoNotaCredito,
   MotivoTraslado,
+  TipoBaja,
   TipoComprobanteEmitido,
 } from '../../core/modelos/api.modelos';
 
@@ -34,6 +35,13 @@ export const ESTADO_COMPROBANTE: Record<EstadoComprobante, { texto: string; clas
   OBSERVADO: { texto: 'Aceptado con observaciones', clase: 'insignia-ok' },
   RECHAZADO: { texto: 'Rechazado', clase: 'insignia bg-red-100 text-red-800' },
   ERROR: { texto: 'Error de datos', clase: 'insignia bg-red-100 text-red-800' },
+  BAJA_EN_CURSO: { texto: 'Baja en curso', clase: 'insignia-alerta' },
+  ANULADO: { texto: 'Anulado (baja SUNAT)', clase: 'insignia-neutra' },
+};
+
+export const NOMBRE_BAJA: Record<TipoBaja, string> = {
+  COMUNICACION_BAJA: 'Comunicación de baja',
+  RESUMEN_ANULACION: 'Resumen diario de anulación',
 };
 
 /** Catálogo 09 de SUNAT (los que admite la devolución en caja). */

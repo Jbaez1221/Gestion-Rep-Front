@@ -120,6 +120,7 @@ const SESION: SesionCaja = {
       comprobante: 'B001-00000001',
       notaId: 'nc1',
       nota: 'BC01-00000001',
+      bajaId: null,
       motivo: '07',
       descripcion: 'No corresponde',
       clienteNombre: 'CLIENTES VARIOS',
@@ -145,6 +146,7 @@ const DEVOLVIBLE: CobroDevolvible = {
   devuelto: 16.6,
   alCredito: 20,
   serieNota: 'BC01',
+  impedimentoBaja: 'Tiene notas de crédito: se anula con nota de crédito.',
   lineas: [
     {
       linea: 1,
@@ -781,6 +783,48 @@ describe('Caja', () => {
       'se1',
       expect.objectContaining({ motivo: '06', lineas: [], medioReembolso: 'TARJETA' }),
     );
+  });
+
+  it('anula ante SUNAT sin nota de crédito si el comprobante se puede dar de baja', async () => {
+    const { api } = configurar();
+    api.devolvible.mockReturnValue(
+      of({ ...DEVOLVIBLE, devuelto: 0, alCredito: 0, impedimentoBaja: null }),
+    );
+    api.devolver.mockReturnValue(
+      of({
+        ...SESION.detalleDevoluciones[0],
+        notaId: null,
+        nota: null,
+        bajaId: 'bj1',
+        motivo: '01',
+      }),
+    );
+    const { html, boton, escribir, estable } = await crear(CajaOperar);
+    boton('Devoluciones')?.click();
+    await estable();
+    escribir('#dv-comprobante', 'B001-1');
+    boton('Buscar')?.click();
+    await estable();
+    escribir('#dv-motivo', '01');
+    escribir('#dv-desc', 'Venta duplicada');
+    await estable();
+    expect(html.textContent).toContain('Se dará de baja ante SUNAT');
+    expect(html.textContent).toContain('Se anula por');
+    boton('Anular ante SUNAT')?.click();
+    await estable();
+    expect(api.devolver).toHaveBeenCalledWith(
+      'se1',
+      expect.objectContaining({ motivo: '01', descripcion: 'Venta duplicada', lineas: [] }),
+    );
+
+    api.devolvible.mockReturnValue(of(DEVOLVIBLE));
+    escribir('#dv-comprobante', 'B001-1');
+    boton('Buscar')?.click();
+    await estable();
+    escribir('#dv-motivo', '01');
+    await estable();
+    expect(html.textContent).toContain('Se anulará con nota de crédito: Tiene notas de crédito');
+    expect(boton('Emitir nota de crédito')).toBeTruthy();
   });
 
   it('avisa si la caja no tiene serie de nota y muestra los errores', async () => {
