@@ -1,9 +1,9 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { API } from '../../core/http/api';
-import { aParametros } from '../../core/http/parametros';
+import { aParametros, conParametros } from '../../core/http/parametros';
 import {
   CatalogosCompras,
   Compra,
@@ -45,6 +45,22 @@ export interface FiltroOrdenes {
 
 const BASE = `${API}/compras`;
 
+function paramsCompras(f: FiltroCompras): HttpParams {
+  return aParametros({
+    texto: f.texto?.trim(),
+    proveedorId: f.proveedorId,
+    tipo: f.tipo,
+    estado: f.estado,
+    desde: f.desde,
+    hasta: f.hasta,
+    pagina: f.pagina,
+    tamanio: f.tamanio,
+  });
+}
+
+/** Registro de compras 8.1 en Excel (se le agregan anio y mes). */
+export const RUTA_REGISTRO_COMPRAS = `${BASE}/registro/excel`;
+
 @Injectable({ providedIn: 'root' })
 export class ComprasApi {
   private readonly http = inject(HttpClient);
@@ -54,18 +70,15 @@ export class ComprasApi {
   }
 
   listar(f: FiltroCompras): Observable<Pagina<CompraListado>> {
-    return this.http.get<Pagina<CompraListado>>(BASE, {
-      params: aParametros({
-        texto: f.texto?.trim(),
-        proveedorId: f.proveedorId,
-        tipo: f.tipo,
-        estado: f.estado,
-        desde: f.desde,
-        hasta: f.hasta,
-        pagina: f.pagina,
-        tamanio: f.tamanio,
-      }),
-    });
+    return this.http.get<Pagina<CompraListado>>(BASE, { params: paramsCompras(f) });
+  }
+
+  /** Las compras de la búsqueda en Excel. */
+  excel(f: FiltroCompras): string {
+    return conParametros(
+      `${BASE}/excel`,
+      paramsCompras({ ...f, pagina: undefined, tamanio: undefined }),
+    );
   }
 
   obtener(id: string): Observable<Compra> {

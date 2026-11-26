@@ -200,6 +200,7 @@ function configurar(permisos = TODOS, abierta: SesionCaja | null = SESION) {
     actualizarCaja: vi.fn(() => of(CAJA)),
     actual: vi.fn(() => of(abierta)),
     abrir: vi.fn(() => of(SESION)),
+    sesionesExcel: vi.fn(() => '/api/v1/caja/sesiones/excel'),
     sesiones: vi.fn(() =>
       of(
         pagina([
@@ -389,6 +390,8 @@ describe('CajaApi (contrato)', () => {
       providers: [provideHttpClient(), provideHttpClientTesting()],
     });
     const api = TestBed.inject(CajaApi);
+    expect(api.sesionesExcel()).toBe('/api/v1/caja/sesiones/excel');
+    expect(api.sesionesExcel('c1')).toBe('/api/v1/caja/sesiones/excel?cajaId=c1');
     const http = TestBed.inject(HttpTestingController);
     const espera = (metodo: string, url: string, cuerpo?: unknown, status = 200) => {
       const r = http.expectOne((x) => x.urlWithParams === url);

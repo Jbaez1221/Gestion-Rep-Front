@@ -117,6 +117,7 @@ const RESUMEN: ResumenPagar = {
 
 function configurar(permisos = ['creditos.pagar:read', 'creditos.pagar:registrar']) {
   const api = {
+    cuentasPagarExcel: vi.fn(() => '/api/v1/creditos/pagar/cuentas/excel'),
     cuentasPagar: vi.fn(() =>
       of(
         pagina([
@@ -201,6 +202,9 @@ describe('CreditosApi por pagar (contrato)', () => {
       providers: [provideHttpClient(), provideHttpClientTesting()],
     });
     const api = TestBed.inject(CreditosApi);
+    expect(api.cuentasPagarExcel({ detraccionPendiente: true, venceHasta: '' })).toBe(
+      '/api/v1/creditos/pagar/cuentas/excel?detraccionPendiente=true',
+    );
     const http = TestBed.inject(HttpTestingController);
     const espera = (metodo: string, url: string, cuerpo?: unknown) => {
       const r = http.expectOne((x) => x.urlWithParams === url);

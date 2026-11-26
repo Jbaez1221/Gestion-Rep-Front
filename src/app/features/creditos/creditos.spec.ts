@@ -62,6 +62,7 @@ const CUENTA: CuentaPorCobrar = {
 
 function configurar() {
   const api = {
+    cuentasExcel: vi.fn(() => '/api/v1/creditos/cuentas/excel'),
     cuentas: vi.fn(() =>
       of(
         pagina([
@@ -114,6 +115,9 @@ describe('CreditosApi (contrato)', () => {
       providers: [provideHttpClient(), provideHttpClientTesting()],
     });
     const api = TestBed.inject(CreditosApi);
+    expect(api.cuentasExcel({ vencidas: true, pagina: 4 })).toBe(
+      '/api/v1/creditos/cuentas/excel?vencidas=true',
+    );
     const http = TestBed.inject(HttpTestingController);
     const espera = (url: string) => {
       const r = http.expectOne((x) => x.urlWithParams === url);

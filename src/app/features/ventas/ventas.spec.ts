@@ -130,6 +130,7 @@ const LISTA: ListaPrecios = {
 function configurar(permisos = TODOS) {
   const api = {
     mostrador: vi.fn(() => of(MOSTRADOR)),
+    pedidosExcel: vi.fn(() => '/api/v1/ventas/pedidos/excel'),
     pedidos: vi.fn(() =>
       of(
         pagina([
@@ -312,6 +313,9 @@ describe('VentasApi (contrato)', () => {
       providers: [provideHttpClient(), provideHttpClientTesting()],
     });
     const api = TestBed.inject(VentasApi);
+    expect(api.pedidosExcel({ estado: 'COBRADO', propios: true, pagina: 2 })).toBe(
+      '/api/v1/ventas/pedidos/excel?estado=COBRADO&propios=true',
+    );
     const http = TestBed.inject(HttpTestingController);
     const espera = (metodo: string, url: string, cuerpo?: unknown) => {
       const r = http.expectOne((x) => x.urlWithParams === url);

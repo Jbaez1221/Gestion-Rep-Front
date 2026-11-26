@@ -1,9 +1,9 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { API } from '../../core/http/api';
-import { aParametros } from '../../core/http/parametros';
+import { aParametros, conParametros } from '../../core/http/parametros';
 import {
   ClienteLista,
   EstadoPedido,
@@ -28,6 +28,17 @@ export interface FiltroPedidos {
 
 const BASE = `${API}/ventas`;
 
+function paramsPedidos(f: FiltroPedidos): HttpParams {
+  return aParametros({
+    texto: f.texto?.trim(),
+    estado: f.estado,
+    propios: f.propios || null,
+    desde: f.desde,
+    hasta: f.hasta,
+    pagina: f.pagina,
+  });
+}
+
 @Injectable({ providedIn: 'root' })
 export class VentasApi {
   private readonly http = inject(HttpClient);
@@ -39,16 +50,12 @@ export class VentasApi {
   }
 
   pedidos(f: FiltroPedidos): Observable<Pagina<PedidoListado>> {
-    return this.http.get<Pagina<PedidoListado>>(`${BASE}/pedidos`, {
-      params: aParametros({
-        texto: f.texto?.trim(),
-        estado: f.estado,
-        propios: f.propios || null,
-        desde: f.desde,
-        hasta: f.hasta,
-        pagina: f.pagina,
-      }),
-    });
+    return this.http.get<Pagina<PedidoListado>>(`${BASE}/pedidos`, { params: paramsPedidos(f) });
+  }
+
+  /** Los pedidos de la búsqueda en Excel. */
+  pedidosExcel(f: FiltroPedidos): string {
+    return conParametros(`${BASE}/pedidos/excel`, paramsPedidos({ ...f, pagina: undefined }));
   }
 
   pedido(id: string): Observable<PedidoVenta> {

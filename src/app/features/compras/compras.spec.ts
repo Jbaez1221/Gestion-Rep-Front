@@ -17,7 +17,7 @@ import { centimos, claseEstadoOrden, claseEstadoRecepcion, importeLinea, totales
 import { CompraDetalle } from './compra-detalle';
 import { CompraRegistro } from './compra-registro';
 import { Compras } from './compras';
-import { ComprasApi } from './compras.api';
+import { ComprasApi, RUTA_REGISTRO_COMPRAS } from './compras.api';
 import { ComprasLista } from './compras-lista';
 import { factorDe, pedirMotivo, unidadesDe } from './lineas';
 import { OrdenDetalle } from './orden-detalle';
@@ -297,6 +297,7 @@ const CATALOGOS = {
 
 function apiFalsa() {
   return {
+    excel: vi.fn(() => '/api/v1/compras/excel'),
     catalogos: vi.fn(() => of(CATALOGOS)),
     listar: vi.fn(() =>
       of(
@@ -559,6 +560,10 @@ describe('ComprasApi (contrato)', () => {
       providers: [provideHttpClient(), provideHttpClientTesting()],
     });
     const api = TestBed.inject(ComprasApi);
+    expect(api.excel({ tipo: 'FACTURA', desde: '2026-11-01', pagina: 1, tamanio: 50 })).toBe(
+      '/api/v1/compras/excel?tipo=FACTURA&desde=2026-11-01',
+    );
+    expect(RUTA_REGISTRO_COMPRAS).toBe('/api/v1/compras/registro/excel');
     const http = TestBed.inject(HttpTestingController);
     const espera = (metodo: string, url: string, cuerpo?: unknown) => {
       const r = http.expectOne((x) => x.urlWithParams === url);

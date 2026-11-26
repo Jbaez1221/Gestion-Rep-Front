@@ -1,9 +1,9 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { API } from '../../core/http/api';
-import { aParametros } from '../../core/http/parametros';
+import { aParametros, conParametros } from '../../core/http/parametros';
 import {
   ArchivoComprobante,
   ComprobanteVenta,
@@ -18,6 +18,27 @@ import {
 } from '../../core/modelos/api.modelos';
 
 const BASE = `${API}/facturacion`;
+
+interface FiltroComprobantes {
+  texto?: string;
+  tipo?: TipoComprobanteEmitido | '';
+  desde?: string;
+  hasta?: string;
+  pagina?: number;
+}
+
+function paramsComprobantes(f: FiltroComprobantes): HttpParams {
+  return aParametros({
+    texto: f.texto?.trim(),
+    tipo: f.tipo,
+    desde: f.desde,
+    hasta: f.hasta,
+    pagina: f.pagina,
+  });
+}
+
+/** Registro de ventas 14.1 en Excel (se le agregan anio y mes). */
+export const RUTA_REGISTRO_VENTAS = `${BASE}/registro-ventas/excel`;
 
 @Injectable({ providedIn: 'root' })
 export class FacturacionApi {
@@ -39,22 +60,18 @@ export class FacturacionApi {
     return this.http.patch<SerieComprobante>(`${BASE}/series/${serie}/estado`, { activo });
   }
 
-  comprobantes(f: {
-    texto?: string;
-    tipo?: TipoComprobanteEmitido | '';
-    desde?: string;
-    hasta?: string;
-    pagina?: number;
-  }): Observable<Pagina<ComprobanteVentaListado>> {
+  comprobantes(f: FiltroComprobantes): Observable<Pagina<ComprobanteVentaListado>> {
     return this.http.get<Pagina<ComprobanteVentaListado>>(`${BASE}/comprobantes`, {
-      params: aParametros({
-        texto: f.texto?.trim(),
-        tipo: f.tipo,
-        desde: f.desde,
-        hasta: f.hasta,
-        pagina: f.pagina,
-      }),
+      params: paramsComprobantes(f),
     });
+  }
+
+  /** Los comprobantes de la búsqueda en Excel. */
+  comprobantesExcel(f: FiltroComprobantes): string {
+    return conParametros(
+      `${BASE}/comprobantes/excel`,
+      paramsComprobantes({ ...f, pagina: undefined }),
+    );
   }
 
   comprobante(id: string): Observable<ComprobanteVenta> {

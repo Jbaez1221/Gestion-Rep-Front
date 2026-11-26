@@ -40,6 +40,7 @@ import { VentasApi } from './ventas.api';
           <input type="checkbox" formControlName="propios" /> Solo mis pedidos
         </label>
         <button type="submit" class="btn-secundario">Buscar</button>
+        <a class="btn-enlace" [href]="excel()" download>Exportar Excel</a>
       </form>
       <app-error-api [problema]="error()" />
       <div class="tarjeta overflow-x-auto p-0 sm:p-0">
@@ -96,6 +97,11 @@ import { VentasApi } from './ventas.api';
 })
 export class PedidosLista implements OnInit {
   private readonly api = inject(VentasApi);
+
+  /** El Excel de la búsqueda, con los filtros puestos. */
+  protected excel(): string {
+    return this.api.pedidosExcel(this.filtros.getRawValue());
+  }
   private readonly fb = inject(NonNullableFormBuilder);
   protected readonly nombres = NOMBRE_ESTADO_PEDIDO;
   protected readonly clase = claseEstadoPedido;

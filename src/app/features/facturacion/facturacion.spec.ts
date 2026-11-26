@@ -10,7 +10,7 @@ import { pagina } from '../../testing/datos';
 import { sesionFalsa } from '../../testing/sesion-falsa';
 import { ComprobanteDetalle } from './comprobante-detalle';
 import { Comprobantes } from './comprobantes';
-import { FacturacionApi } from './facturacion.api';
+import { FacturacionApi, RUTA_REGISTRO_VENTAS } from './facturacion.api';
 import { GuiaDetalle } from './guia-detalle';
 import { Guias } from './guias';
 
@@ -132,6 +132,7 @@ const NOTA: ComprobanteVenta = {
 
 function configurar(permisos = ['facturacion:read']) {
   const api = {
+    comprobantesExcel: vi.fn(() => '/api/v1/facturacion/comprobantes/excel'),
     comprobantes: vi.fn(() =>
       of(
         pagina([
@@ -199,6 +200,10 @@ describe('FacturacionApi (contrato)', () => {
       providers: [provideHttpClient(), provideHttpClientTesting()],
     });
     const api = TestBed.inject(FacturacionApi);
+    expect(api.comprobantesExcel({ texto: ' ana ', tipo: 'FACTURA', desde: '', pagina: 3 })).toBe(
+      '/api/v1/facturacion/comprobantes/excel?texto=ana&tipo=FACTURA',
+    );
+    expect(RUTA_REGISTRO_VENTAS).toBe('/api/v1/facturacion/registro-ventas/excel');
     const http = TestBed.inject(HttpTestingController);
     const espera = (metodo: string, url: string, cuerpo?: unknown) => {
       const r = http.expectOne((x) => x.urlWithParams === url);
