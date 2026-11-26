@@ -1607,7 +1607,8 @@ export interface CotizacionGuardar extends PedidoGuardar {
 // --- Facturación ---
 
 /** Lo que emite facturación: boletas, facturas, notas de crédito (07) y guías de remisión (09). */
-export type TipoComprobanteEmitido = TipoComprobanteVenta | 'NOTA_CREDITO' | 'GUIA_REMISION';
+export type TipoComprobanteEmitido =
+  TipoComprobanteVenta | 'NOTA_CREDITO' | 'NOTA_DEBITO' | 'GUIA_REMISION';
 
 /**
  * PENDIENTE_ENVIO: aún no lo recibe el facturador (se reintenta solo). ENVIADO: espera respuesta
@@ -1813,6 +1814,26 @@ export interface GuiaRemision {
 export type MedioPago = 'EFECTIVO' | 'TARJETA' | 'YAPE_PLIN' | 'TRANSFERENCIA' | 'CREDITO';
 /** Catálogo 09: 01 anulación de la operación, 06 devolución total, 07 devolución por ítem. */
 export type MotivoNotaCredito = '01' | '06' | '07';
+
+/** Catálogo 10: intereses por mora, aumento en el valor, penalidades u otros conceptos. */
+export type MotivoNotaDebito = '01' | '02' | '03';
+
+export interface CargoNotaDebito {
+  descripcion: string;
+  cantidad: number;
+  /** Con IGV si es gravado. */
+  precioUnitario: number;
+  afectacion: AfectacionCompra;
+}
+
+/** El cargo queda como cuenta por cobrar del cliente hasta fechaVencimiento. */
+export interface NotaDebitoGuardar {
+  serie: string;
+  motivo: MotivoNotaDebito;
+  descripcion: string;
+  fechaVencimiento: string;
+  lineas: CargoNotaDebito[];
+}
 export type EstadoSesion = 'ABIERTA' | 'CERRADA';
 export type TipoMovimientoCaja = 'INGRESO' | 'EGRESO';
 

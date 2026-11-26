@@ -64,6 +64,7 @@ import { FacturacionApi, RUTA_REGISTRO_VENTAS } from './facturacion.api';
             <option value="BOLETA">Boletas</option>
             <option value="FACTURA">Facturas</option>
             <option value="NOTA_CREDITO">Notas de crédito</option>
+            <option value="NOTA_DEBITO">Notas de débito</option>
           </select>
         </div>
         <div>

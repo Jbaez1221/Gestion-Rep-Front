@@ -13,6 +13,7 @@ import {
   GuiaVenta,
   MotivoTraslado,
   Pagina,
+  NotaDebitoGuardar,
   SerieComprobante,
   TipoComprobanteEmitido,
 } from '../../core/modelos/api.modelos';
@@ -43,6 +44,11 @@ export const RUTA_REGISTRO_VENTAS = `${BASE}/registro-ventas/excel`;
 @Injectable({ providedIn: 'root' })
 export class FacturacionApi {
   private readonly http = inject(HttpClient);
+
+  /** Nota de débito sobre la factura o boleta; devuelve la nota emitida. */
+  notaDebito(id: string, datos: NotaDebitoGuardar): Observable<ComprobanteVenta> {
+    return this.http.post<ComprobanteVenta>(`${BASE}/comprobantes/${id}/nota-debito`, datos);
+  }
 
   series(): Observable<SerieComprobante[]> {
     return this.http.get<SerieComprobante[]>(`${BASE}/series`);

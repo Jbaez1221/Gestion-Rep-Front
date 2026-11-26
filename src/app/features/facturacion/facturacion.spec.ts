@@ -130,6 +130,19 @@ const NOTA: ComprobanteVenta = {
   descripcionMotivo: 'No corresponde',
 };
 
+const DEBITO: ComprobanteVenta = {
+  ...COMPROBANTE,
+  id: 'nd1',
+  tipo: 'NOTA_DEBITO',
+  comprobante: 'FD01-00000001',
+  estado: 'ACEPTADO',
+  formaPago: 'CREDITO',
+  fechaVencimiento: '2026-12-10',
+  referencia: { id: 'cv1', tipo: 'FACTURA', comprobante: 'F001-00000001' },
+  motivoNota: '01',
+  descripcionMotivo: 'Intereses por 15 días',
+};
+
 function configurar(permisos = ['facturacion:read']) {
   const api = {
     comprobantesExcel: vi.fn(() => '/api/v1/facturacion/comprobantes/excel'),
@@ -144,6 +157,43 @@ function configurar(permisos = ['facturacion:read']) {
     comprobante: vi.fn(() => of(COMPROBANTE)),
     enviar: vi.fn(() => of({ ...COMPROBANTE, estado: 'ACEPTADO' as const })),
     guiaDeVenta: vi.fn(() => of(GUIA)),
+    notaDebito: vi.fn(() => of(DEBITO)),
+    series: vi.fn(() =>
+      of([
+        {
+          serie: 'FD01',
+          tipo: 'NOTA_DEBITO' as const,
+          sucursalId: 's1',
+          sucursal: 'Cusco',
+          ultimoNumero: 0,
+          activo: true,
+        },
+        {
+          serie: 'BD01',
+          tipo: 'NOTA_DEBITO' as const,
+          sucursalId: 's1',
+          sucursal: 'Cusco',
+          ultimoNumero: 0,
+          activo: true,
+        },
+        {
+          serie: 'FD02',
+          tipo: 'NOTA_DEBITO' as const,
+          sucursalId: 's2',
+          sucursal: 'Lima',
+          ultimoNumero: 0,
+          activo: true,
+        },
+        {
+          serie: 'FC01',
+          tipo: 'NOTA_CREDITO' as const,
+          sucursalId: 's1',
+          sucursal: 'Cusco',
+          ultimoNumero: 0,
+          activo: true,
+        },
+      ]),
+    ),
     guias: vi.fn(() =>
       of(
         pagina([
@@ -230,6 +280,8 @@ describe('FacturacionApi (contrato)', () => {
     expect(api.urlArchivo('cv1', 'CDR')).toBe('/api/v1/facturacion/comprobantes/cv1/archivos/CDR');
     api.guiaDeVenta('cv1', {} as never).subscribe();
     espera('POST', '/api/v1/facturacion/comprobantes/cv1/guia');
+    api.notaDebito('cv1', {} as never).subscribe();
+    espera('POST', '/api/v1/facturacion/comprobantes/cv1/nota-debito');
     api.guias({ texto: ' T001 ', motivo: '04', desde: '2026-11-01', pagina: 1 }).subscribe();
     espera('GET', '/api/v1/facturacion/guias?texto=T001&motivo=04&desde=2026-11-01&pagina=1');
     api.guia('g1').subscribe();
@@ -462,6 +514,125 @@ describe('Comprobantes', () => {
     const conGuia = await crear(ComprobanteDetalle, { id: 'cv1' });
     expect(conGuia.html.textContent).toContain('T001-00000001');
     expect(conGuia.html.textContent).toContain('Emitir guía');
+  });
+});
+
+describe('Notas de débito', () => {
+  it('emite la nota de débito con sus cargos y abre la nota', async () => {
+    const api = configurar(['facturacion:read', 'facturacion.nota-debito:create']);
+    api.comprobante.mockReturnValue(of(ACEPTADA));
+    const navegar = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    const { html, estable } = await crear(ComprobanteDetalle, { id: 'cv1' });
+    const boton = (t: string) =>
+      [...html.querySelectorAll('button')].find((b) => b.textContent?.trim().startsWith(t));
+    const escribir = (sel: string, v: string) => {
+      const el = html.querySelector<HTMLInputElement | HTMLSelectElement>(sel);
+      if (!el) throw new Error(sel);
+      el.value = v;
+      el.dispatchEvent(new Event(el instanceof HTMLSelectElement ? 'change' : 'input'));
+    };
+    expect(html.textContent).toContain('Nota de crédito FC01-00000001');
+    boton('Emitir nota de débito')?.click();
+    await estable();
+    const series = [...html.querySelectorAll<HTMLOptionElement>('#nd-serie option')].map(
+      (o) => o.value,
+    );
+    expect(series).toEqual(['FD01']);
+    expect(html.querySelector<HTMLInputElement>('#nd-vence')?.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    html.querySelector('form[aria-label="Nota de débito"]')?.dispatchEvent(new Event('submit'));
+    await estable();
+    expect(api.notaDebito).not.toHaveBeenCalled();
+    expect(html.textContent).toContain('Nota de débito incompleta');
+    escribir('#nd-descripcion', ' Intereses por 15 días ');
+    escribir('#nd-concepto-0', 'Interés moratorio');
+    escribir('#nd-precio-0', '11.80');
+    boton('Agregar concepto')?.click();
+    await estable();
+    escribir('#nd-concepto-1', 'Gasto de cobranza');
+    escribir('#nd-cantidad-1', '2');
+    escribir('#nd-precio-1', '2.50');
+    escribir('#nd-afectacion-1', 'INAFECTO');
+    escribir('#nd-vence', '2026-12-10');
+    await estable();
+    expect(html.textContent).toContain('IGV 1.80');
+    expect(html.textContent).toContain('S/ 16.80');
+    html.querySelector('form[aria-label="Nota de débito"]')?.dispatchEvent(new Event('submit'));
+    await estable();
+    expect(api.notaDebito).toHaveBeenCalledWith('cv1', {
+      serie: 'FD01',
+      motivo: '01',
+      descripcion: 'Intereses por 15 días',
+      fechaVencimiento: '2026-12-10',
+      lineas: [
+        {
+          descripcion: 'Interés moratorio',
+          cantidad: 1,
+          precioUnitario: 11.8,
+          afectacion: 'GRAVADO',
+        },
+        {
+          descripcion: 'Gasto de cobranza',
+          cantidad: 2,
+          precioUnitario: 2.5,
+          afectacion: 'INAFECTO',
+        },
+      ],
+    });
+    expect(navegar).toHaveBeenCalledWith(['/facturacion/comprobante', 'nd1']);
+  });
+
+  it('muestra la nota de débito y el error al emitirla', async () => {
+    const api = configurar(['facturacion:read', 'facturacion.nota-debito:create']);
+    api.comprobante.mockReturnValue(of(DEBITO));
+    const nota = await crear(ComprobanteDetalle, { id: 'nd1' });
+    expect(nota.html.textContent).toContain('Nota de débito');
+    expect(nota.html.textContent).toContain('Intereses por mora: Intereses por 15 días');
+    expect(nota.html.textContent).toContain('Queda por cobrar al cliente hasta el 10/12/2026');
+    expect(nota.html.textContent).not.toContain('Emitir nota de débito');
+
+    api.comprobante.mockReturnValue(of({ ...COMPROBANTE, tipo: 'BOLETA', comprobante: 'B001-1' }));
+    api.notaDebito.mockReturnValue(throwError(() => new Error('x')));
+    const { html, estable } = await crear(ComprobanteDetalle, { id: 'cv1' });
+    [...html.querySelectorAll('button')]
+      .find((b) => b.textContent?.trim() === 'Emitir nota de débito')
+      ?.click();
+    await estable();
+    expect(
+      [...html.querySelectorAll<HTMLOptionElement>('#nd-serie option')].map((o) => o.value),
+    ).toEqual(['BD01']);
+    const poner = (sel: string, v: string) => {
+      const el = html.querySelector<HTMLInputElement>(sel);
+      if (!el) throw new Error(sel);
+      el.value = v;
+      el.dispatchEvent(new Event('input'));
+    };
+    poner('#nd-descripcion', 'Aumento');
+    poner('#nd-concepto-0', 'Ajuste');
+    poner('#nd-precio-0', '5');
+    await estable();
+    html.querySelector('form[aria-label="Nota de débito"]')?.dispatchEvent(new Event('submit'));
+    await estable();
+    expect(html.querySelector('[role=alert]')).not.toBeNull();
+    [...html.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Cancelar')?.click();
+    await estable();
+    expect(html.querySelector('#nd-serie')).toBeNull();
+  });
+
+  it('no la ofrece sin permiso, a clientes varios ni sobre otra nota', async () => {
+    const api = configurar(['facturacion:read', 'facturacion.nota-debito:create']);
+    api.comprobante.mockReturnValue(of(NOTA));
+    expect((await crear(ComprobanteDetalle, { id: 'nc1' })).html.textContent).not.toContain(
+      'Emitir nota de débito',
+    );
+    api.comprobante.mockReturnValue(of({ ...COMPROBANTE, clienteTipoDocumento: '0' }));
+    expect((await crear(ComprobanteDetalle, { id: 'cv1' })).html.textContent).not.toContain(
+      'Emitir nota de débito',
+    );
+    TestBed.resetTestingModule();
+    configurar();
+    expect((await crear(ComprobanteDetalle, { id: 'cv1' })).html.textContent).not.toContain(
+      'Emitir nota de débito',
+    );
   });
 });
 
