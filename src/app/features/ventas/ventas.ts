@@ -17,9 +17,14 @@ import { SesionService } from '../../core/auth/sesion.service';
             stock hasta que se cobran o hasta el cierre del día.
           </p>
         </div>
-        @if (sesion.tiene(permisos.ventasPedido)) {
-          <a routerLink="/ventas/pedido/nuevo" class="btn-primario">Nuevo pedido</a>
-        }
+        <div class="flex flex-wrap gap-2">
+          @if (sesion.tiene(permisos.ventasCotizar)) {
+            <a routerLink="/ventas/cotizacion/nueva" class="btn-secundario">Nueva cotización</a>
+          }
+          @if (sesion.tiene(permisos.ventasPedido)) {
+            <a routerLink="/ventas/pedido/nuevo" class="btn-primario">Nuevo pedido</a>
+          }
+        </div>
       </div>
       <nav class="flex flex-wrap gap-1 border-b border-slate-200" aria-label="Secciones de ventas">
         @for (p of pestanas; track p.ruta) {
@@ -42,6 +47,7 @@ export class Ventas {
   protected readonly permisos = PERMISOS;
   protected readonly pestanas = [
     { ruta: 'pedidos', texto: 'Pedidos' },
+    { ruta: 'cotizaciones', texto: 'Cotizaciones' },
     { ruta: 'listas', texto: 'Listas de precios' },
   ];
 }

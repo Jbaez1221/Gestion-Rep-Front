@@ -56,6 +56,7 @@ export const PERMISOS = {
   comprasTipoCambio: 'compras.tipo-cambio:update',
   ventasLeer: 'ventas:read',
   ventasPedido: 'ventas.pedido:create',
+  ventasCotizar: 'ventas.cotizacion:create',
   ventasAnular: 'ventas.pedido:anular',
   ventasPrecios: 'ventas.precios:update',
   ventasAutorizar: 'ventas.descuento:autorizar',

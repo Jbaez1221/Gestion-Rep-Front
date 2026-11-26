@@ -1521,6 +1521,7 @@ export interface PedidoVenta {
   readonly descuento: number;
   readonly autorizadoPor: string | null;
   readonly observacion: string | null;
+  readonly cotizacionId: string | null;
   readonly cobroId: string | null;
   readonly fechaCierre: string | null;
   readonly cerradoPor: string | null;
@@ -1548,6 +1549,59 @@ export interface PedidoGuardar {
   tipoComprobante: TipoComprobanteVenta;
   observacion: string | null;
   lineas: { articuloId: string; unidad: string; cantidad: number; descuento: number }[];
+}
+
+export type EstadoCotizacion = 'VIGENTE' | 'ACEPTADA' | 'VENCIDA' | 'ANULADA';
+
+/** Proforma para el cliente: fija precios hasta validaHasta y se convierte en pedido. */
+export interface Cotizacion {
+  readonly id: string;
+  readonly numero: string;
+  readonly sucursalId: string;
+  readonly almacen: AlmacenCompraRef | null;
+  readonly vendedor: string;
+  readonly cliente: ClienteRef;
+  readonly lista: Referencia;
+  readonly tipoComprobante: TipoComprobanteVenta;
+  readonly estado: EstadoCotizacion;
+  readonly fecha: string;
+  readonly validaHasta: string;
+  readonly gravado: number;
+  readonly exonerado: number;
+  readonly inafecto: number;
+  readonly igv: number;
+  readonly total: number;
+  readonly descuento: number;
+  readonly autorizadoPor: string | null;
+  readonly observacion: string | null;
+  readonly condiciones: string | null;
+  /** El pedido que generó al aceptarse (nombre = número del pedido). */
+  readonly pedido: Referencia | null;
+  readonly fechaCierre: string | null;
+  readonly cerradoPor: string | null;
+  readonly motivoAnulacion: string | null;
+  readonly lineas: LineaPedido[];
+  readonly avisos: string[];
+  readonly creadoPor: string | null;
+  readonly fechaCreacion: string | null;
+}
+
+export interface CotizacionListado {
+  readonly id: string;
+  readonly numero: string;
+  readonly fecha: string;
+  readonly validaHasta: string;
+  readonly cliente: ClienteRef;
+  readonly vendedor: string;
+  readonly tipoComprobante: TipoComprobanteVenta;
+  readonly total: number;
+  readonly estado: EstadoCotizacion;
+  readonly pedidoNumero: string | null;
+}
+
+export interface CotizacionGuardar extends PedidoGuardar {
+  diasValidez: number;
+  condiciones: string | null;
 }
 
 // --- Facturación ---
