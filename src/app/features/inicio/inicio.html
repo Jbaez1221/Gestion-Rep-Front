@@ -6,6 +6,131 @@
     }
   </div>
 
+  <app-error-api [problema]="error()" />
+
+  @if (panel(); as p) {
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Indicadores">
+      @if (p.ventas; as v) {
+        <a routerLink="/facturacion" class="tarjeta hover:border-marca-500" aria-label="Ventas">
+          <p class="etiqueta">Ventas de hoy (con IGV)</p>
+          <p class="text-2xl font-semibold">S/ {{ v.hoy | number: '1.2-2' }}</p>
+          <p class="text-sm text-slate-600">{{ v.comprobantesHoy }} comprobantes</p>
+        </a>
+        <div class="tarjeta" aria-label="Ventas del mes">
+          <p class="etiqueta">Ventas del mes</p>
+          <p class="text-2xl font-semibold">S/ {{ v.mes | number: '1.2-2' }}</p>
+          <p class="text-sm text-slate-600">
+            Mes anterior al mismo día: S/ {{ v.mesAnteriorAlDia | number: '1.2-2' }}
+            @if (variacion(); as d) {
+              ({{ d }})
+            }
+          </p>
+        </div>
+        <a routerLink="/facturacion" class="tarjeta hover:border-marca-500" aria-label="SUNAT">
+          <p class="etiqueta">Comprobantes en SUNAT</p>
+          <p class="text-sm">{{ v.pendientesSunat }} sin respuesta</p>
+          <p class="text-sm" [class.text-red-700]="v.conProblemas > 0">
+            {{ v.conProblemas }} rechazados o con error (30 días)
+          </p>
+        </a>
+      }
+      @if (p.cobrar; as c) {
+        <a routerLink="/creditos" class="tarjeta hover:border-marca-500" aria-label="Por cobrar">
+          <p class="etiqueta">Por cobrar</p>
+          <p class="text-2xl font-semibold">S/ {{ c.saldo | number: '1.2-2' }}</p>
+          <p class="text-sm" [class.text-red-700]="c.cuentasVencidas > 0">
+            Vencido S/ {{ c.vencido | number: '1.2-2' }} ({{ c.cuentasVencidas }} cuentas)
+          </p>
+          <p class="text-sm text-slate-600">
+            Vence en 7 días: S/ {{ c.venceEn7Dias | number: '1.2-2' }}
+          </p>
+        </a>
+      }
+      @if (pagar(); as r) {
+        <a
+          routerLink="/creditos/pagar"
+          class="tarjeta hover:border-marca-500"
+          aria-label="Por pagar"
+        >
+          <p class="etiqueta">Por pagar a proveedores</p>
+          @for (m of vencidoPagar(); track m.moneda) {
+            <p class="text-sm" [class.text-red-700]="m.vencido > 0">
+              Vencido {{ m.moneda }} {{ m.vencido | number: '1.2-2' }}
+            </p>
+          }
+          <p class="text-sm text-slate-600">Vence en 7 días: {{ r.vencenEn7Dias }} cuentas</p>
+          <p class="text-sm" [class.text-red-700]="r.detraccionesVencidas > 0">
+            Detracciones por depositar: {{ r.detraccionesPendientes }} ({{ r.detraccionesVencidas }}
+            vencidas)
+          </p>
+        </a>
+      }
+      @if (p.operacion; as o) {
+        <a routerLink="/ventas" class="tarjeta hover:border-marca-500" aria-label="Operación">
+          <p class="etiqueta">Ventas en curso</p>
+          <p class="text-sm">{{ o.pedidosEnCaja }} pedidos esperando en caja</p>
+          <p class="text-sm">{{ o.cotizacionesPorVencer }} cotizaciones vencen en 2 días</p>
+        </a>
+      }
+      @if (p.inventario; as i) {
+        <a routerLink="/inventario" class="tarjeta hover:border-marca-500" aria-label="Reposición">
+          <p class="etiqueta">Stock por reponer</p>
+          <p class="text-2xl font-semibold">{{ i.bajoReposicion }}</p>
+          <p class="text-sm text-slate-600">artículos en o bajo su punto de reposición</p>
+        </a>
+      }
+    </div>
+
+    @if (p.ventas; as v) {
+      @if (v.porDia.length) {
+        <section class="tarjeta" aria-label="Ventas por día">
+          <h2 class="font-semibold">Ventas del mes por día</h2>
+          <ul class="mt-2 space-y-1 text-sm">
+            @for (d of v.porDia; track d.fecha) {
+              <li class="grid grid-cols-[5rem_1fr_6rem] items-center gap-2">
+                <span>{{ d.fecha | date: 'dd/MM' }}</span>
+                <progress class="h-3 w-full" [value]="d.total" [max]="maximoDia()">
+                  {{ d.total }}
+                </progress>
+                <span class="text-right">{{ d.total | number: '1.2-2' }}</span>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+    }
+
+    @if (p.inventario; as inv) {
+      @if (inv.masUrgentes.length) {
+        <section class="tarjeta overflow-x-auto" aria-label="Más urgentes de reponer">
+          <h2 class="font-semibold">Más urgentes de reponer</h2>
+          <table class="tabla mt-2">
+            <thead>
+              <tr>
+                <th scope="col">Artículo</th>
+                <th scope="col">Almacén</th>
+                <th scope="col" class="text-right">Disponible</th>
+                <th scope="col" class="text-right">Punto de reposición</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              @for (a of inv.masUrgentes; track a.codigo + a.almacen) {
+                <tr>
+                  <td>
+                    <span class="font-mono">{{ a.codigo }}</span> · {{ a.descripcion }}
+                  </td>
+                  <td>{{ a.almacen }}</td>
+                  <td class="text-right">{{ a.disponible | number: '1.0-2' }}</td>
+                  <td class="text-right">{{ a.puntoReposicion | number: '1.0-2' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </section>
+      }
+    }
+  }
+
   <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
     @if (sesion.tiene(permisos.sucursalesLeer)) {
       <a routerLink="/sucursales" class="tarjeta hover:border-marca-500">
@@ -59,6 +184,14 @@
       <a routerLink="/facturacion" class="tarjeta hover:border-marca-500">
         <h2 class="font-semibold">Comprobantes</h2>
         <p class="mt-1 text-sm text-slate-600">Boletas y facturas emitidas</p>
+      </a>
+    }
+    @if (sesion.tiene(permisos.reportesVentas)) {
+      <a routerLink="/reportes/ventas" class="tarjeta hover:border-marca-500">
+        <h2 class="font-semibold">Reporte de ventas</h2>
+        <p class="mt-1 text-sm text-slate-600">
+          Venta, costo y margen por artículo, vendedor o cliente
+        </p>
       </a>
     }
     @if (sesion.tiene(permisos.centrosLeer)) {

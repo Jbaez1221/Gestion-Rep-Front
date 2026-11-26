@@ -2171,3 +2171,69 @@ export interface PagoProveedorCaja {
   readonly saldo: number;
   readonly fecha: string;
 }
+
+// --- Reportes ---
+
+/** Importes con IGV, netos de notas de crédito; sin rechazados ni dados de baja. */
+export interface VentasPanel {
+  readonly hoy: number;
+  readonly comprobantesHoy: number;
+  readonly mes: number;
+  /** El mes anterior hasta el mismo día. */
+  readonly mesAnteriorAlDia: number;
+  readonly porDia: { readonly fecha: string; readonly total: number }[];
+  readonly pendientesSunat: number;
+  /** Rechazados o con error de datos en los últimos 30 días. */
+  readonly conProblemas: number;
+}
+
+export interface CobrarPanel {
+  readonly saldo: number;
+  readonly vencido: number;
+  readonly cuentasVencidas: number;
+  readonly venceEn7Dias: number;
+}
+
+export interface ArticuloReponer {
+  readonly codigo: string;
+  readonly descripcion: string;
+  readonly almacen: string;
+  readonly disponible: number;
+  readonly puntoReposicion: number;
+}
+
+/** Cada bloque llega solo si el usuario tiene el permiso de su módulo. */
+export interface Panel {
+  readonly fecha: string;
+  readonly ventas: VentasPanel | null;
+  readonly cobrar: CobrarPanel | null;
+  readonly inventario: {
+    readonly bajoReposicion: number;
+    readonly masUrgentes: ArticuloReponer[];
+  } | null;
+  readonly operacion: {
+    readonly pedidosEnCaja: number;
+    readonly cotizacionesPorVencer: number;
+  } | null;
+}
+
+export type AgrupacionVentas = 'ARTICULO' | 'VENDEDOR' | 'CLIENTE' | 'DIA';
+
+/** Venta sin IGV, costo y margen; margenPorcentaje es null si la venta es cero. */
+export interface FilaVentas {
+  readonly clave: string | null;
+  readonly nombre: string | null;
+  readonly detalle: string | null;
+  readonly venta: number;
+  readonly costo: number;
+  readonly margen: number;
+  readonly margenPorcentaje: number | null;
+}
+
+export interface ReporteVentas {
+  readonly desde: string;
+  readonly hasta: string;
+  readonly agrupacion: AgrupacionVentas;
+  readonly filas: FilaVentas[];
+  readonly total: FilaVentas;
+}

@@ -387,6 +387,13 @@ export const routes: Routes = [
           import('./features/facturacion/comprobante-detalle').then((m) => m.ComprobanteDetalle),
       },
       {
+        path: 'reportes/ventas',
+        title: 'Reporte de ventas · Repuestos',
+        data: { permisos: [PERMISOS.reportesVentas] },
+        loadComponent: () =>
+          import('./features/reportes/reporte-ventas').then((m) => m.ReporteVentasPagina),
+      },
+      {
         path: 'facturacion',
         title: 'Comprobantes · Repuestos',
         data: { permisos: [PERMISOS.facturacionLeer] },
