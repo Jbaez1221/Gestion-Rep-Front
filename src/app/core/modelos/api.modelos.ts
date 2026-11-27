@@ -2297,3 +2297,30 @@ export interface ReporteVentas {
   readonly filas: FilaVentas[];
   readonly total: FilaVentas;
 }
+
+export type BaseComision = 'VENTA' | 'MARGEN';
+
+export interface ReglaComision {
+  readonly vendedor: string;
+  readonly base: BaseComision;
+  readonly porcentaje: number;
+  readonly modificadoPor: string;
+}
+
+/** base y porcentaje null: el vendedor no tiene regla y no comisiona. */
+export interface FilaComision {
+  readonly vendedor: string;
+  readonly venta: number;
+  readonly costo: number;
+  readonly margen: number;
+  readonly base: BaseComision | null;
+  readonly porcentaje: number | null;
+  readonly comision: number;
+}
+
+export interface ReporteComisiones {
+  readonly desde: string;
+  readonly hasta: string;
+  readonly filas: FilaComision[];
+  readonly total: number;
+}

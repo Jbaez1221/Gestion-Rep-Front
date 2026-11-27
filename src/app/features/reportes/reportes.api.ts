@@ -4,7 +4,14 @@ import { Observable } from 'rxjs';
 
 import { API } from '../../core/http/api';
 import { aParametros, conParametros } from '../../core/http/parametros';
-import { AgrupacionVentas, Panel, ReporteVentas } from '../../core/modelos/api.modelos';
+import {
+  AgrupacionVentas,
+  BaseComision,
+  Panel,
+  ReglaComision,
+  ReporteComisiones,
+  ReporteVentas,
+} from '../../core/modelos/api.modelos';
 
 export interface FiltroVentas {
   desde: string;
@@ -34,6 +41,38 @@ export class ReportesApi {
 
   ventas(f: FiltroVentas): Observable<ReporteVentas> {
     return this.http.get<ReporteVentas>(`${BASE}/ventas`, { params: paramsVentas(f) });
+  }
+
+  comisiones(f: Omit<FiltroVentas, 'agrupacion'>): Observable<ReporteComisiones> {
+    return this.http.get<ReporteComisiones>(`${BASE}/comisiones`, {
+      params: aParametros({ desde: f.desde, hasta: f.hasta, sucursalId: f.sucursalId }),
+    });
+  }
+
+  comisionesExcel(f: Omit<FiltroVentas, 'agrupacion'>): string {
+    return conParametros(
+      `${BASE}/comisiones/excel`,
+      aParametros({ desde: f.desde, hasta: f.hasta, sucursalId: f.sucursalId }),
+    );
+  }
+
+  reglas(): Observable<ReglaComision[]> {
+    return this.http.get<ReglaComision[]>(`${BASE}/comisiones/reglas`);
+  }
+
+  guardarRegla(
+    vendedor: string,
+    base: BaseComision,
+    porcentaje: number,
+  ): Observable<ReglaComision> {
+    return this.http.put<ReglaComision>(
+      `${BASE}/comisiones/reglas/${encodeURIComponent(vendedor)}`,
+      { base, porcentaje },
+    );
+  }
+
+  quitarRegla(vendedor: string): Observable<unknown> {
+    return this.http.delete(`${BASE}/comisiones/reglas/${encodeURIComponent(vendedor)}`);
   }
 
   /** El reporte en Excel, con los mismos filtros. */

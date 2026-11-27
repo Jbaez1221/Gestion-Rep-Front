@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
 import { SesionService } from '../../core/auth/sesion.service';
@@ -28,9 +29,18 @@ const NOMBRE_AGRUPACION: Record<AgrupacionVentas, string> = {
 /** Venta sin IGV, costo y margen del período, con los filtros que se exportan a Excel. */
 @Component({
   selector: 'app-reporte-ventas',
-  imports: [ReactiveFormsModule, DecimalPipe, DatePipe, ErrorApi],
+  imports: [ReactiveFormsModule, RouterLink, DecimalPipe, DatePipe, ErrorApi],
   template: `
     <section class="space-y-4">
+      <nav class="flex gap-1 border-b border-slate-200" aria-label="Reportes">
+        <a
+          routerLink="/reportes/ventas"
+          class="pestana border-marca-600 text-marca-700"
+          aria-current="page"
+          >Ventas</a
+        >
+        <a routerLink="/reportes/comisiones" class="pestana">Comisiones</a>
+      </nav>
       <div>
         <h1 class="titulo-pagina">Reporte de ventas</h1>
         <p class="mt-1 text-sm text-slate-600">

@@ -66,6 +66,7 @@ export const PERMISOS = {
   facturacionGuia: 'facturacion.guia:create',
   facturacionNotaDebito: 'facturacion.nota-debito:create',
   reportesVentas: 'reportes.ventas:read',
+  reportesComisiones: 'reportes.comisiones:configurar',
   cajaLeer: 'caja:read',
   cajaOperar: 'caja:operar',
   cajaSupervisar: 'caja:supervisar',
