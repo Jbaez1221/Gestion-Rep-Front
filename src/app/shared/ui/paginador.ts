@@ -1,13 +1,15 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
 import { Pagina } from '../../core/modelos/api.modelos';
+import { Icono } from './icono';
 
 @Component({
   selector: 'app-paginador',
+  imports: [Icono],
   template: `
     @if (pagina(); as p) {
       <nav
-        class="mt-3 flex items-center justify-between text-sm text-slate-600"
+        class="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-texto-suave"
         aria-label="Paginación"
       >
         <span
@@ -21,6 +23,7 @@ import { Pagina } from '../../core/modelos/api.modelos';
             [disabled]="p.pagina === 0"
             (click)="cambiar.emit(p.pagina - 1)"
           >
+            <app-icono nombre="izquierda" [tamano]="16" />
             Anterior
           </button>
           <button
@@ -30,6 +33,7 @@ import { Pagina } from '../../core/modelos/api.modelos';
             (click)="cambiar.emit(p.pagina + 1)"
           >
             Siguiente
+            <app-icono nombre="derecha" [tamano]="16" />
           </button>
         </span>
       </nav>

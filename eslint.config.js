@@ -71,6 +71,11 @@ module.exports = defineConfig([
     },
   },
   {
+    // El único lugar que guarda preferencias de interfaz (tema, menú) en el navegador; nunca la sesión.
+    files: ['src/app/core/ui/preferencias.service.ts'],
+    rules: { 'no-restricted-globals': 'off' },
+  },
+  {
     // Los tests prueban a propósito entradas maliciosas (p. ej. URLs javascript:).
     files: ['**/*.spec.ts', 'e2e/**/*.ts'],
     rules: { 'no-script-url': 'off' },
