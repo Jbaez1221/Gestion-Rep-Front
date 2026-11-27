@@ -122,7 +122,7 @@ import { TransporteGuiaForm, datosGuia, formTransporte } from './transporte-guia
                     [routerLink]="['/facturacion/comprobante', n.id]"
                     class="font-mono text-marca-700 hover:underline"
                     >{{ n.comprobante }}</a
-                  >.
+                  >
                 </p>
               }
             </div>
