@@ -33,6 +33,7 @@ export class Compras {
   protected readonly pestanas = [
     { ruta: 'lista', texto: 'Compras' },
     { ruta: 'ordenes', texto: 'Órdenes de compra' },
+    { ruta: 'sugerencia', texto: 'Sugerencia de compra' },
     { ruta: 'recepciones', texto: 'Recepciones con guía' },
     { ruta: 'tipo-cambio', texto: 'Tipo de cambio' },
   ];

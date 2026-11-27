@@ -29,7 +29,7 @@ import { AbonoCajaPanel } from './abono-caja';
 import { CajaApi } from './caja.api';
 import { DevolucionCajaPanel } from './devolucion-caja';
 import { PagoProveedorCajaPanel } from './pago-proveedor-caja';
-import { NOMBRE_MEDIO, centimos } from './medios';
+import { NOMBRE_MEDIO, centimos, porCobrar } from './medios';
 
 export { NOMBRE_MEDIO } from './medios';
 
@@ -114,6 +114,19 @@ export class CajaOperar implements OnInit {
         .reduce((s, p) => s + Number(p.monto ?? 0), 0),
     ),
   );
+  /** Lo que retiene el cliente agente de retención (queda por cobrar hasta su comprobante). */
+  protected readonly retenido = computed(() =>
+    centimos(
+      (this.valoresPagos() ?? [])
+        .filter((p) => p.medio === 'RETENCION')
+        .reduce((s, p) => s + Number(p.monto ?? 0), 0),
+    ),
+  );
+  /** Régimen de retenciones del IGV: facturas de más de S/ 700. */
+  protected readonly admiteRetencion = computed(() => {
+    const p = this.cobrando();
+    return !!p && p.tipoComprobante === 'FACTURA' && p.total > 700;
+  });
   protected readonly falta = computed(() => {
     const total = this.cobrando()?.total ?? 0;
     return Math.max(0, centimos(total - this.recibido()));
@@ -188,6 +201,16 @@ export class CajaOperar implements OnInit {
     this.pagos.push(this.nuevoPago('EFECTIVO', p.total));
   }
 
+  /** El 3 % como retención y el resto en efectivo (el cajero puede cambiar el medio del resto). */
+  protected aplicarRetencion(): void {
+    const p = this.cobrando();
+    if (!p) return;
+    const retencion = centimos(p.total * 0.03);
+    this.pagos.clear();
+    this.pagos.push(this.nuevoPago('EFECTIVO', centimos(p.total - retencion)));
+    this.pagos.push(this.nuevoPago('RETENCION', retencion));
+  }
+
   protected agregarPago(): void {
     this.pagos.push(this.nuevoPago('TARJETA', this.falta() || null));
   }
@@ -208,7 +231,7 @@ export class CajaOperar implements OnInit {
           this.pagos.getRawValue().map((x) => ({
             medio: x.medio,
             monto: Number(x.monto),
-            referencia: x.medio === 'CREDITO' ? null : x.referencia || null,
+            referencia: porCobrar(x.medio) ? null : x.referencia || null,
           })),
           this.autorizarCredito(),
         ),

@@ -1165,6 +1165,40 @@ export interface AlmacenCompraRef {
   readonly sucursal: string;
 }
 
+/**
+ * Artículo por reponer. proyectado, umbral, maximo y sugeridoBase en unidad base; cantidad y
+ * precioUnitario (sin IGV, de la última compra) en unidad. sinMaximo: se sugiere el doble del umbral.
+ */
+export interface LineaSugerida {
+  readonly articuloId: string;
+  readonly codigo: string;
+  readonly descripcion: string;
+  readonly unidadBase: string;
+  readonly proyectado: number;
+  readonly umbral: number;
+  readonly maximo: number | null;
+  readonly sugeridoBase: number;
+  readonly unidad: string;
+  readonly factor: number;
+  readonly cantidad: number;
+  readonly precioUnitario: number | null;
+  readonly ultimaCompra: string | null;
+  readonly sinMaximo: boolean;
+}
+
+/** Por proveedor y moneda de la última compra; proveedor null: artículos nunca comprados. */
+export interface GrupoSugerido {
+  readonly proveedor: ProveedorRef | null;
+  readonly moneda: Moneda;
+  readonly lineas: LineaSugerida[];
+  readonly subtotal: number;
+}
+
+export interface SugerenciaCompra {
+  readonly almacen: AlmacenCompraRef;
+  readonly grupos: GrupoSugerido[];
+}
+
 export interface ReferenciaDocumento {
   readonly id: string;
   readonly numero: string;
@@ -1307,6 +1341,19 @@ export interface LineaCompra {
   readonly ordenLinea: number | null;
 }
 
+export type EstadoSunatCompra =
+  'ACEPTADO' | 'ANULADO' | 'NO_EXISTE' | 'AUTORIZADO' | 'NO_AUTORIZADO';
+
+/** Cómo figura en SUNAT el comprobante del proveedor (y el proveedor) al consultarlo. */
+export interface ValidacionSunat {
+  readonly estado: EstadoSunatCompra;
+  readonly valido: boolean;
+  readonly estadoRuc: string | null;
+  readonly condicionDomicilio: string | null;
+  readonly mensaje: string | null;
+  readonly fecha: string;
+}
+
 export interface Compra {
   readonly id: string;
   readonly numero: string;
@@ -1355,6 +1402,8 @@ export interface Compra {
   readonly motivoAnulacion: string | null;
   readonly creadoPor: string | null;
   readonly fechaCreacion: string | null;
+  /** Consulta integrada de SUNAT; null si no se consultó. */
+  readonly sunat: ValidacionSunat | null;
 }
 
 export interface CompraListado {
@@ -1370,6 +1419,7 @@ export interface CompraListado {
   readonly totalSoles: number;
   readonly creditoFiscal: boolean;
   readonly estado: EstadoCompra;
+  readonly estadoSunat: EstadoSunatCompra | null;
 }
 
 export interface CatalogosCompras {
@@ -1811,7 +1861,9 @@ export interface GuiaRemision {
 // --- Caja ---
 
 /** CREDITO: la parte vendida al crédito, que queda como cuenta por cobrar del cliente. */
-export type MedioPago = 'EFECTIVO' | 'TARJETA' | 'YAPE_PLIN' | 'TRANSFERENCIA' | 'CREDITO';
+/** RETENCION: el 3 % que retiene un cliente agente de retención; queda por cobrar. */
+export type MedioPago =
+  'EFECTIVO' | 'TARJETA' | 'YAPE_PLIN' | 'TRANSFERENCIA' | 'CREDITO' | 'RETENCION';
 /** Catálogo 09: 01 anulación de la operación, 06 devolución total, 07 devolución por ítem. */
 export type MotivoNotaCredito = '01' | '06' | '07';
 
@@ -2020,7 +2072,7 @@ export interface CuentaPorCobrar {
     readonly id: string;
     readonly fecha: string;
     readonly monto: number;
-    readonly tipo: 'ABONO' | 'NOTA_CREDITO' | 'ANULACION';
+    readonly tipo: 'ABONO' | 'NOTA_CREDITO' | 'ANULACION' | 'RETENCION';
     readonly detalle: string;
     readonly usuario: string;
   }[];
@@ -2162,6 +2214,14 @@ export interface CuentaProveedorCaja {
   readonly efectivo: boolean;
 }
 
+/** Comprobante de retención del IGV que entrega el cliente (serie R…). */
+export interface RetencionGuardar {
+  serie: string;
+  numero: string;
+  fecha: string;
+  monto: number;
+}
+
 export interface PagoProveedorCaja {
   readonly movimientoId: string;
   readonly cuentaNumero: string;
@@ -2236,4 +2296,31 @@ export interface ReporteVentas {
   readonly agrupacion: AgrupacionVentas;
   readonly filas: FilaVentas[];
   readonly total: FilaVentas;
+}
+
+export type BaseComision = 'VENTA' | 'MARGEN';
+
+export interface ReglaComision {
+  readonly vendedor: string;
+  readonly base: BaseComision;
+  readonly porcentaje: number;
+  readonly modificadoPor: string;
+}
+
+/** base y porcentaje null: el vendedor no tiene regla y no comisiona. */
+export interface FilaComision {
+  readonly vendedor: string;
+  readonly venta: number;
+  readonly costo: number;
+  readonly margen: number;
+  readonly base: BaseComision | null;
+  readonly porcentaje: number | null;
+  readonly comision: number;
+}
+
+export interface ReporteComisiones {
+  readonly desde: string;
+  readonly hasta: string;
+  readonly filas: FilaComision[];
+  readonly total: number;
 }

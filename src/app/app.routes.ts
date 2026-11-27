@@ -233,6 +233,11 @@ export const routes: Routes = [
               import('./features/compras/ordenes-lista').then((m) => m.OrdenesLista),
           },
           {
+            path: 'sugerencia',
+            loadComponent: () =>
+              import('./features/compras/sugerencia-compra').then((m) => m.SugerenciaCompraPagina),
+          },
+          {
             path: 'recepciones',
             loadComponent: () =>
               import('./features/compras/recepciones-lista').then((m) => m.RecepcionesLista),
@@ -385,6 +390,13 @@ export const routes: Routes = [
         data: { permisos: [PERMISOS.facturacionLeer] },
         loadComponent: () =>
           import('./features/facturacion/comprobante-detalle').then((m) => m.ComprobanteDetalle),
+      },
+      {
+        path: 'reportes/comisiones',
+        title: 'Comisiones · Repuestos',
+        data: { permisos: [PERMISOS.reportesVentas] },
+        loadComponent: () =>
+          import('./features/reportes/comisiones').then((m) => m.ComisionesPagina),
       },
       {
         path: 'reportes/ventas',

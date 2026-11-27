@@ -19,6 +19,7 @@ import {
   Recepcion,
   RecepcionGuardar,
   RecepcionListado,
+  SugerenciaCompra,
   TipoCambio,
   TipoComprobante,
 } from '../../core/modelos/api.modelos';
@@ -89,6 +90,11 @@ export class ComprasApi {
     return this.http.post<Compra>(BASE, datos);
   }
 
+  /** Consulta en SUNAT el comprobante del proveedor y guarda el resultado. */
+  validarSunat(id: string): Observable<Compra> {
+    return this.http.post<Compra>(`${BASE}/${id}/validar-sunat`, {});
+  }
+
   anular(id: string, motivo: string): Observable<Compra> {
     return this.http.post<Compra>(`${BASE}/${id}/anular`, { motivo });
   }
@@ -103,6 +109,13 @@ export class ComprasApi {
         hasta: f.hasta,
         pagina: f.pagina,
       }),
+    });
+  }
+
+  /** Lo que conviene pedir para el almacén, agrupado por proveedor. */
+  sugerencia(almacenId: string): Observable<SugerenciaCompra> {
+    return this.http.get<SugerenciaCompra>(`${BASE}/ordenes/sugerencia`, {
+      params: aParametros({ almacenId }),
     });
   }
 

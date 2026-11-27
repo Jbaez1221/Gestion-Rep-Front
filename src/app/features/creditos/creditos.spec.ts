@@ -60,7 +60,7 @@ const CUENTA: CuentaPorCobrar = {
   creadoPor: 'ana',
 };
 
-function configurar() {
+function configurar(permisos = ['creditos:read']) {
   const api = {
     cuentasExcel: vi.fn(() => '/api/v1/creditos/cuentas/excel'),
     cuentas: vi.fn(() =>
@@ -73,6 +73,7 @@ function configurar() {
       ),
     ),
     cuenta: vi.fn(() => of(CUENTA)),
+    registrarRetencion: vi.fn(() => of({ ...CUENTA, saldo: 0, estado: 'PAGADA' as const })),
     estadoCliente: vi.fn(() =>
       of<EstadoCredito>({
         clienteId: 'so1',
@@ -88,7 +89,7 @@ function configurar() {
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]),
-      sesionFalsa(['creditos:read']).proveedor,
+      sesionFalsa(permisos).proveedor,
       { provide: CreditosApi, useValue: api },
     ],
   });
@@ -132,6 +133,12 @@ describe('CreditosApi (contrato)', () => {
     espera('/api/v1/creditos/cuentas/cc1');
     api.estadoCliente('so1').subscribe();
     espera('/api/v1/creditos/clientes/so1');
+    const datos = { serie: 'R001', numero: '12', fecha: '2026-11-27', monto: 24.9 };
+    api.registrarRetencion('cc1', datos).subscribe();
+    const r = http.expectOne('/api/v1/creditos/cuentas/cc1/retenciones');
+    expect(r.request.method).toBe('POST');
+    expect(r.request.body).toEqual(datos);
+    r.flush({});
     http.verify();
   });
 });
@@ -180,6 +187,59 @@ describe('Créditos', () => {
     expect(otra.html.textContent).toContain('Aún no hay abonos');
     expect(otra.html.textContent).toContain('Sin límite');
     expect(otra.html.textContent).toContain('Pagada');
+  });
+
+  it('registra el comprobante de retención del cliente', async () => {
+    const api = configurar(['creditos:read', 'creditos.retencion:registrar']);
+    const { html, estable } = await crear(CuentaDetalle, { id: 'cc1' });
+    const form = html.querySelector('form[aria-label="Comprobante de retención"]');
+    if (!form) throw new Error('sin formulario');
+    form.dispatchEvent(new Event('submit'));
+    await estable();
+    expect(api.registrarRetencion).not.toHaveBeenCalled();
+    expect(html.textContent).toContain('Serie que empieza con R');
+    const escribir = (sel: string, v: string) => {
+      const el = html.querySelector<HTMLInputElement>(sel);
+      if (!el) throw new Error(sel);
+      el.value = v;
+      el.dispatchEvent(new Event('input'));
+    };
+    escribir('#rt-serie', 'r001');
+    escribir('#rt-numero', '12');
+    escribir('#rt-fecha', '2026-11-27');
+    escribir('#rt-monto', '20');
+    form.dispatchEvent(new Event('submit'));
+    await estable();
+    expect(api.registrarRetencion).toHaveBeenCalledWith('cc1', {
+      serie: 'R001',
+      numero: '12',
+      fecha: '2026-11-27',
+      monto: 20,
+    });
+    expect(html.querySelector('form[aria-label="Comprobante de retención"]')).toBeNull();
+
+    api.registrarRetencion.mockReturnValue(throwError(() => new Error('x')));
+    const otra = await crear(CuentaDetalle, { id: 'cc1' });
+    const f2 = otra.html.querySelector('form[aria-label="Comprobante de retención"]');
+    for (const [sel, v] of [
+      ['#rt-serie', 'R001'],
+      ['#rt-numero', '13'],
+      ['#rt-monto', '5'],
+    ]) {
+      const el = otra.html.querySelector<HTMLInputElement>(sel);
+      if (!el) throw new Error(sel);
+      el.value = v;
+      el.dispatchEvent(new Event('input'));
+    }
+    f2?.dispatchEvent(new Event('submit'));
+    await otra.estable();
+    expect(otra.html.querySelector('[role=alert]')).not.toBeNull();
+  });
+
+  it('sin permiso no ofrece registrar retenciones', async () => {
+    configurar();
+    const { html } = await crear(CuentaDetalle, { id: 'cc1' });
+    expect(html.querySelector('form[aria-label="Comprobante de retención"]')).toBeNull();
   });
 
   it('muestra los errores', async () => {

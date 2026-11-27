@@ -15,6 +15,7 @@ import {
   MedioPagoProveedor,
   Pagina,
   ResumenPagar,
+  RetencionGuardar,
 } from '../../core/modelos/api.modelos';
 
 const BASE = `${API}/creditos`;
@@ -70,6 +71,11 @@ export class CreditosApi {
   /** Las cuentas por cobrar de la búsqueda en Excel. */
   cuentasExcel(f: FiltroCobrar): string {
     return conParametros(`${BASE}/cuentas/excel`, paramsCobrar({ ...f, pagina: undefined }));
+  }
+
+  /** Registra el comprobante de retención del cliente; devuelve la cuenta con el saldo descontado. */
+  registrarRetencion(cuentaId: string, datos: RetencionGuardar): Observable<CuentaPorCobrar> {
+    return this.http.post<CuentaPorCobrar>(`${BASE}/cuentas/${cuentaId}/retenciones`, datos);
   }
 
   cuenta(id: string): Observable<CuentaPorCobrar> {

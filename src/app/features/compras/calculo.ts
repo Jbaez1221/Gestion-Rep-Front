@@ -2,6 +2,7 @@ import {
   AfectacionCompra,
   EstadoOrden,
   EstadoRecepcion,
+  EstadoSunatCompra,
   TipoComprobante,
 } from '../../core/modelos/api.modelos';
 
@@ -64,6 +65,15 @@ export const NOMBRE_COMPROBANTE: Record<TipoComprobante, string> = {
   BOLETA: 'Boleta',
   NOTA_CREDITO: 'Nota de crédito',
   NOTA_DEBITO: 'Nota de débito',
+};
+
+/** Estado del comprobante del proveedor en la consulta integrada de SUNAT. */
+export const ESTADO_SUNAT_COMPRA: Record<EstadoSunatCompra, string> = {
+  ACEPTADO: 'Aceptado',
+  ANULADO: 'Anulado',
+  NO_EXISTE: 'No existe',
+  AUTORIZADO: 'Autorizado (impreso)',
+  NO_AUTORIZADO: 'No autorizado',
 };
 
 export const NOMBRE_ESTADO_ORDEN: Record<EstadoOrden, string> = {

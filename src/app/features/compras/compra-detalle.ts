@@ -9,7 +9,7 @@ import { Problema, aProblema } from '../../core/http/problema';
 import { Compra } from '../../core/modelos/api.modelos';
 import { NotificacionesService } from '../../core/ui/notificaciones.service';
 import { ErrorApi } from '../../shared/ui/error-api';
-import { NOMBRE_COMPROBANTE } from './calculo';
+import { ESTADO_SUNAT_COMPRA, NOMBRE_COMPROBANTE } from './calculo';
 import { ComprasApi } from './compras.api';
 import { pedirMotivo } from './lineas';
 
@@ -47,6 +47,43 @@ import { pedirMotivo } from './lineas';
             }
           </ul>
         }
+        <section
+          class="tarjeta flex flex-wrap items-center justify-between gap-2 text-sm"
+          aria-label="SUNAT"
+        >
+          @if (c.sunat; as v) {
+            <p>
+              En SUNAT:
+              <span [class]="v.valido ? 'insignia-ok' : 'insignia bg-red-100 text-red-800'">{{
+                estadosSunat[v.estado]
+              }}</span>
+              @if (v.estadoRuc || v.condicionDomicilio) {
+                · proveedor {{ v.estadoRuc ?? '—' }} / {{ v.condicionDomicilio ?? '—' }}
+              }
+              <span class="block text-xs text-slate-500">
+                Consultado el {{ v.fecha | date: 'dd/MM/yyyy HH:mm'
+                }}{{ v.mensaje ? ' · ' + v.mensaje : '' }}
+              </span>
+              @if (!v.valido) {
+                <span class="block text-xs text-red-700">
+                  Un comprobante que no existe, está anulado o no autorizado no da crédito fiscal.
+                </span>
+              }
+            </p>
+          } @else {
+            <p class="text-slate-600">El comprobante aún no se validó en SUNAT.</p>
+          }
+          @if (c.estado === 'REGISTRADA' && sesion.tiene(permisos.comprasRegistrar)) {
+            <button
+              type="button"
+              class="btn-secundario"
+              [disabled]="validando()"
+              (click)="validarSunat()"
+            >
+              {{ c.sunat ? 'Volver a validar' : 'Validar en SUNAT' }}
+            </button>
+          }
+        </section>
         <section class="tarjeta grid gap-3 text-sm sm:grid-cols-4">
           <div class="sm:col-span-2">
             <p class="etiqueta">Proveedor</p>
@@ -269,6 +306,8 @@ export class CompraDetalle implements OnInit {
 
   readonly id = input.required<string>();
 
+  protected readonly estadosSunat = ESTADO_SUNAT_COMPRA;
+  protected readonly validando = signal(false);
   protected readonly compra = signal<Compra | null>(null);
   protected readonly error = signal<Problema | null>(null);
 
@@ -281,6 +320,22 @@ export class CompraDetalle implements OnInit {
       this.compra.set(await firstValueFrom(this.api.obtener(this.id())));
     } catch (e) {
       this.error.set(aProblema(e));
+    }
+  }
+
+  protected async validarSunat(): Promise<void> {
+    try {
+      this.validando.set(true);
+      this.error.set(null);
+      const c = await firstValueFrom(this.api.validarSunat(this.id()));
+      this.compra.set(c);
+      this.avisos.exito(
+        `SUNAT: ${c.sunat ? ESTADO_SUNAT_COMPRA[c.sunat.estado].toLowerCase() : 'sin respuesta'}.`,
+      );
+    } catch (e) {
+      this.error.set(aProblema(e));
+    } finally {
+      this.validando.set(false);
     }
   }
 
