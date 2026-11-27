@@ -74,7 +74,7 @@ import { CreditosApi } from './creditos.api';
                 <li class="flex justify-between gap-2 py-2">
                   <span>
                     {{ a.fecha | date: 'dd/MM/yyyy HH:mm' }} ·
-                    {{ a.tipo === 'ABONO' ? 'Abono' : 'Nota de crédito' }}
+                    {{ tiposAbono[a.tipo] }}
                     <span class="block text-xs text-slate-500"
                       >{{ a.detalle }} · {{ a.usuario }}</span
                     >
@@ -117,6 +117,11 @@ import { CreditosApi } from './creditos.api';
 export class CuentaDetalle implements OnInit {
   private readonly api = inject(CreditosApi);
   readonly id = input.required<string>();
+  protected readonly tiposAbono: Record<CuentaPorCobrar['abonos'][number]['tipo'], string> = {
+    ABONO: 'Abono',
+    NOTA_CREDITO: 'Nota de crédito',
+    ANULACION: 'Baja ante SUNAT',
+  };
   protected readonly cuenta = signal<CuentaPorCobrar | null>(null);
   protected readonly estado = signal<EstadoCredito | null>(null);
   protected readonly error = signal<Problema | null>(null);

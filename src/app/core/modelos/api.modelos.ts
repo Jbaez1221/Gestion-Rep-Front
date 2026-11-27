@@ -1521,6 +1521,7 @@ export interface PedidoVenta {
   readonly descuento: number;
   readonly autorizadoPor: string | null;
   readonly observacion: string | null;
+  readonly cotizacionId: string | null;
   readonly cobroId: string | null;
   readonly fechaCierre: string | null;
   readonly cerradoPor: string | null;
@@ -1550,17 +1551,95 @@ export interface PedidoGuardar {
   lineas: { articuloId: string; unidad: string; cantidad: number; descuento: number }[];
 }
 
+export type EstadoCotizacion = 'VIGENTE' | 'ACEPTADA' | 'VENCIDA' | 'ANULADA';
+
+/** Proforma para el cliente: fija precios hasta validaHasta y se convierte en pedido. */
+export interface Cotizacion {
+  readonly id: string;
+  readonly numero: string;
+  readonly sucursalId: string;
+  readonly almacen: AlmacenCompraRef | null;
+  readonly vendedor: string;
+  readonly cliente: ClienteRef;
+  readonly lista: Referencia;
+  readonly tipoComprobante: TipoComprobanteVenta;
+  readonly estado: EstadoCotizacion;
+  readonly fecha: string;
+  readonly validaHasta: string;
+  readonly gravado: number;
+  readonly exonerado: number;
+  readonly inafecto: number;
+  readonly igv: number;
+  readonly total: number;
+  readonly descuento: number;
+  readonly autorizadoPor: string | null;
+  readonly observacion: string | null;
+  readonly condiciones: string | null;
+  /** El pedido que generó al aceptarse (nombre = número del pedido). */
+  readonly pedido: Referencia | null;
+  readonly fechaCierre: string | null;
+  readonly cerradoPor: string | null;
+  readonly motivoAnulacion: string | null;
+  readonly lineas: LineaPedido[];
+  readonly avisos: string[];
+  readonly creadoPor: string | null;
+  readonly fechaCreacion: string | null;
+}
+
+export interface CotizacionListado {
+  readonly id: string;
+  readonly numero: string;
+  readonly fecha: string;
+  readonly validaHasta: string;
+  readonly cliente: ClienteRef;
+  readonly vendedor: string;
+  readonly tipoComprobante: TipoComprobanteVenta;
+  readonly total: number;
+  readonly estado: EstadoCotizacion;
+  readonly pedidoNumero: string | null;
+}
+
+export interface CotizacionGuardar extends PedidoGuardar {
+  diasValidez: number;
+  condiciones: string | null;
+}
+
 // --- Facturación ---
 
 /** Lo que emite facturación: boletas, facturas, notas de crédito (07) y guías de remisión (09). */
-export type TipoComprobanteEmitido = TipoComprobanteVenta | 'NOTA_CREDITO' | 'GUIA_REMISION';
+export type TipoComprobanteEmitido =
+  TipoComprobanteVenta | 'NOTA_CREDITO' | 'NOTA_DEBITO' | 'GUIA_REMISION';
 
 /**
  * PENDIENTE_ENVIO: aún no lo recibe el facturador (se reintenta solo). ENVIADO: espera respuesta
  * de SUNAT. ACEPTADO / OBSERVADO: válido. RECHAZADO: sin valor tributario. ERROR: datos inválidos.
+ * BAJA_EN_CURSO: se pidió su baja a SUNAT. ANULADO: SUNAT aceptó la baja.
  */
 export type EstadoComprobante =
-  'PENDIENTE_ENVIO' | 'ENVIADO' | 'ACEPTADO' | 'OBSERVADO' | 'RECHAZADO' | 'ERROR';
+  | 'PENDIENTE_ENVIO'
+  | 'ENVIADO'
+  | 'ACEPTADO'
+  | 'OBSERVADO'
+  | 'RECHAZADO'
+  | 'ERROR'
+  | 'BAJA_EN_CURSO'
+  | 'ANULADO';
+
+/** Factura: comunicación de baja. Boleta: resumen diario de anulación. */
+export type TipoBaja = 'COMUNICACION_BAJA' | 'RESUMEN_ANULACION';
+
+/** Última baja pedida a SUNAT; {@link nota}: la nota de crédito que la regularizó si no procedió. */
+export interface BajaComprobante {
+  readonly id: string;
+  readonly tipo: TipoBaja;
+  readonly estado: EstadoComprobante;
+  readonly motivo: string;
+  readonly codigoSunat: string | null;
+  readonly descripcionSunat: string | null;
+  readonly ultimoError: string | null;
+  readonly fechaEnvio: string | null;
+  readonly nota: ReferenciaComprobante | null;
+}
 
 export type ArchivoComprobante = 'PDF' | 'XML' | 'CDR';
 
@@ -1631,6 +1710,7 @@ export interface ComprobanteVenta extends ComprobanteVentaListado {
   readonly notas: ReferenciaComprobante[];
   /** Guías de remisión que sustentan su traslado. */
   readonly guias: ReferenciaComprobante[];
+  readonly baja: BajaComprobante | null;
 }
 
 /** Catálogo 20: 01 venta, 04 traslado entre establecimientos de la empresa, 13 otros. */
@@ -1734,6 +1814,26 @@ export interface GuiaRemision {
 export type MedioPago = 'EFECTIVO' | 'TARJETA' | 'YAPE_PLIN' | 'TRANSFERENCIA' | 'CREDITO';
 /** Catálogo 09: 01 anulación de la operación, 06 devolución total, 07 devolución por ítem. */
 export type MotivoNotaCredito = '01' | '06' | '07';
+
+/** Catálogo 10: intereses por mora, aumento en el valor, penalidades u otros conceptos. */
+export type MotivoNotaDebito = '01' | '02' | '03';
+
+export interface CargoNotaDebito {
+  descripcion: string;
+  cantidad: number;
+  /** Con IGV si es gravado. */
+  precioUnitario: number;
+  afectacion: AfectacionCompra;
+}
+
+/** El cargo queda como cuenta por cobrar del cliente hasta fechaVencimiento. */
+export interface NotaDebitoGuardar {
+  serie: string;
+  motivo: MotivoNotaDebito;
+  descripcion: string;
+  fechaVencimiento: string;
+  lineas: CargoNotaDebito[];
+}
 export type EstadoSesion = 'ABIERTA' | 'CERRADA';
 export type TipoMovimientoCaja = 'INGRESO' | 'EGRESO';
 
@@ -1840,8 +1940,10 @@ export interface DevolucionCaja {
   readonly numero: string;
   readonly cobroNumero: string;
   readonly comprobante: string;
-  readonly notaId: string;
-  readonly nota: string;
+  /** Nota de crédito que la respalda; null si se respaldó con la baja ante SUNAT. */
+  readonly notaId: string | null;
+  readonly nota: string | null;
+  readonly bajaId: string | null;
   readonly motivo: MotivoNotaCredito;
   readonly descripcion: string;
   readonly clienteNombre: string;
@@ -1865,6 +1967,8 @@ export interface CobroDevolvible {
   readonly devuelto: number;
   readonly alCredito: number;
   readonly serieNota: string | null;
+  /** Por qué anularlo iría con nota de crédito en vez de la baja ante SUNAT; null si se dará de baja. */
+  readonly impedimentoBaja: string | null;
   readonly lineas: {
     readonly linea: number;
     readonly codigo: string;
@@ -1916,7 +2020,7 @@ export interface CuentaPorCobrar {
     readonly id: string;
     readonly fecha: string;
     readonly monto: number;
-    readonly tipo: 'ABONO' | 'NOTA_CREDITO';
+    readonly tipo: 'ABONO' | 'NOTA_CREDITO' | 'ANULACION';
     readonly detalle: string;
     readonly usuario: string;
   }[];
@@ -2066,4 +2170,70 @@ export interface PagoProveedorCaja {
   readonly monto: number;
   readonly saldo: number;
   readonly fecha: string;
+}
+
+// --- Reportes ---
+
+/** Importes con IGV, netos de notas de crédito; sin rechazados ni dados de baja. */
+export interface VentasPanel {
+  readonly hoy: number;
+  readonly comprobantesHoy: number;
+  readonly mes: number;
+  /** El mes anterior hasta el mismo día. */
+  readonly mesAnteriorAlDia: number;
+  readonly porDia: { readonly fecha: string; readonly total: number }[];
+  readonly pendientesSunat: number;
+  /** Rechazados o con error de datos en los últimos 30 días. */
+  readonly conProblemas: number;
+}
+
+export interface CobrarPanel {
+  readonly saldo: number;
+  readonly vencido: number;
+  readonly cuentasVencidas: number;
+  readonly venceEn7Dias: number;
+}
+
+export interface ArticuloReponer {
+  readonly codigo: string;
+  readonly descripcion: string;
+  readonly almacen: string;
+  readonly disponible: number;
+  readonly puntoReposicion: number;
+}
+
+/** Cada bloque llega solo si el usuario tiene el permiso de su módulo. */
+export interface Panel {
+  readonly fecha: string;
+  readonly ventas: VentasPanel | null;
+  readonly cobrar: CobrarPanel | null;
+  readonly inventario: {
+    readonly bajoReposicion: number;
+    readonly masUrgentes: ArticuloReponer[];
+  } | null;
+  readonly operacion: {
+    readonly pedidosEnCaja: number;
+    readonly cotizacionesPorVencer: number;
+  } | null;
+}
+
+export type AgrupacionVentas = 'ARTICULO' | 'VENDEDOR' | 'CLIENTE' | 'DIA';
+
+/** Venta sin IGV, costo y margen; margenPorcentaje es null si la venta es cero. */
+export interface FilaVentas {
+  readonly clave: string | null;
+  readonly nombre: string | null;
+  readonly detalle: string | null;
+  readonly venta: number;
+  readonly costo: number;
+  readonly margen: number;
+  readonly margenPorcentaje: number | null;
+}
+
+export interface ReporteVentas {
+  readonly desde: string;
+  readonly hasta: string;
+  readonly agrupacion: AgrupacionVentas;
+  readonly filas: FilaVentas[];
+  readonly total: FilaVentas;
 }

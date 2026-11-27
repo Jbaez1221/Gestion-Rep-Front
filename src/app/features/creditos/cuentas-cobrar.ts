@@ -43,6 +43,7 @@ import { CreditosApi } from './creditos.api';
           <input type="checkbox" formControlName="vencidas" /> Solo vencidas
         </label>
         <button type="submit" class="btn-secundario">Buscar</button>
+        <a class="btn-enlace" [href]="excel()" download>Exportar Excel</a>
       </form>
       <app-error-api [problema]="error()" />
       <div class="tarjeta overflow-x-auto p-0 sm:p-0">
@@ -110,6 +111,11 @@ import { CreditosApi } from './creditos.api';
 })
 export class CuentasCobrar implements OnInit {
   private readonly api = inject(CreditosApi);
+
+  /** El Excel de la búsqueda, con los filtros puestos. */
+  protected excel(): string {
+    return this.api.cuentasExcel(this.filtros.getRawValue());
+  }
   private readonly fb = inject(NonNullableFormBuilder);
   protected readonly pagina = signal<Pagina<CuentaPorCobrarListado> | null>(null);
   protected readonly error = signal<Problema | null>(null);

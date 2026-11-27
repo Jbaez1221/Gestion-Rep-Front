@@ -1,11 +1,15 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { API } from '../../core/http/api';
-import { aParametros } from '../../core/http/parametros';
+import { aParametros, conParametros } from '../../core/http/parametros';
 import {
   ClienteLista,
+  Cotizacion,
+  CotizacionGuardar,
+  CotizacionListado,
+  EstadoCotizacion,
   EstadoPedido,
   ListaGuardar,
   ListaPrecios,
@@ -26,7 +30,38 @@ export interface FiltroPedidos {
   pagina?: number;
 }
 
+export interface FiltroCotizaciones {
+  texto?: string;
+  estado?: EstadoCotizacion | '';
+  propios?: boolean;
+  desde?: string;
+  hasta?: string;
+  pagina?: number;
+}
+
 const BASE = `${API}/ventas`;
+
+function paramsPedidos(f: FiltroPedidos): HttpParams {
+  return aParametros({
+    texto: f.texto?.trim(),
+    estado: f.estado,
+    propios: f.propios || null,
+    desde: f.desde,
+    hasta: f.hasta,
+    pagina: f.pagina,
+  });
+}
+
+function paramsCotizaciones(f: FiltroCotizaciones): HttpParams {
+  return aParametros({
+    texto: f.texto?.trim(),
+    estado: f.estado,
+    propios: f.propios || null,
+    desde: f.desde,
+    hasta: f.hasta,
+    pagina: f.pagina,
+  });
+}
 
 @Injectable({ providedIn: 'root' })
 export class VentasApi {
@@ -39,16 +74,12 @@ export class VentasApi {
   }
 
   pedidos(f: FiltroPedidos): Observable<Pagina<PedidoListado>> {
-    return this.http.get<Pagina<PedidoListado>>(`${BASE}/pedidos`, {
-      params: aParametros({
-        texto: f.texto?.trim(),
-        estado: f.estado,
-        propios: f.propios || null,
-        desde: f.desde,
-        hasta: f.hasta,
-        pagina: f.pagina,
-      }),
-    });
+    return this.http.get<Pagina<PedidoListado>>(`${BASE}/pedidos`, { params: paramsPedidos(f) });
+  }
+
+  /** Los pedidos de la búsqueda en Excel. */
+  pedidosExcel(f: FiltroPedidos): string {
+    return conParametros(`${BASE}/pedidos/excel`, paramsPedidos({ ...f, pagina: undefined }));
   }
 
   pedido(id: string): Observable<PedidoVenta> {
@@ -73,6 +104,46 @@ export class VentasApi {
 
   anular(id: string, motivo: string): Observable<PedidoVenta> {
     return this.http.post<PedidoVenta>(`${BASE}/pedidos/${id}/anular`, { motivo });
+  }
+
+  cotizaciones(f: FiltroCotizaciones): Observable<Pagina<CotizacionListado>> {
+    return this.http.get<Pagina<CotizacionListado>>(`${BASE}/cotizaciones`, {
+      params: paramsCotizaciones(f),
+    });
+  }
+
+  /** Las cotizaciones de la búsqueda en Excel. */
+  cotizacionesExcel(f: FiltroCotizaciones): string {
+    return conParametros(
+      `${BASE}/cotizaciones/excel`,
+      paramsCotizaciones({ ...f, pagina: undefined }),
+    );
+  }
+
+  /** La cotización en Excel, para enviarla al cliente. */
+  cotizacionExcel(id: string): string {
+    return `${BASE}/cotizaciones/${id}/excel`;
+  }
+
+  cotizacion(id: string): Observable<Cotizacion> {
+    return this.http.get<Cotizacion>(`${BASE}/cotizaciones/${id}`);
+  }
+
+  crearCotizacion(datos: CotizacionGuardar): Observable<Cotizacion> {
+    return this.http.post<Cotizacion>(`${BASE}/cotizaciones`, datos);
+  }
+
+  actualizarCotizacion(id: string, datos: CotizacionGuardar): Observable<Cotizacion> {
+    return this.http.put<Cotizacion>(`${BASE}/cotizaciones/${id}`, datos);
+  }
+
+  anularCotizacion(id: string, motivo: string): Observable<Cotizacion> {
+    return this.http.post<Cotizacion>(`${BASE}/cotizaciones/${id}/anular`, { motivo });
+  }
+
+  /** El cliente la aceptó: devuelve el pedido en borrador con los precios cotizados. */
+  convertirCotizacion(id: string): Observable<PedidoVenta> {
+    return this.http.post<PedidoVenta>(`${BASE}/cotizaciones/${id}/pedido`, {});
   }
 
   listas(): Observable<ListaPrecios[]> {

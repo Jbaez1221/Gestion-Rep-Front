@@ -134,12 +134,17 @@ import { CajaApi } from './caja.api';
               <ul class="text-xs">
                 @for (d of s.detalleDevoluciones; track d.id) {
                   <li>
-                    <a
-                      [routerLink]="['/facturacion/comprobante', d.notaId]"
-                      class="font-mono text-marca-700 hover:underline"
-                      >{{ d.nota }}</a
-                    >
-                    de {{ d.comprobante }} · S/ {{ d.total | number: '1.2-2' }}
+                    @if (d.notaId) {
+                      <a
+                        [routerLink]="['/facturacion/comprobante', d.notaId]"
+                        class="font-mono text-marca-700 hover:underline"
+                        >{{ d.nota }}</a
+                      >
+                      de {{ d.comprobante }}
+                    } @else {
+                      Baja ante SUNAT de <span class="font-mono">{{ d.comprobante }}</span>
+                    }
+                    · S/ {{ d.total | number: '1.2-2' }}
                     @if (d.medioReembolso) {
                       · reembolso {{ medios[d.medioReembolso] }}
                       {{ d.reembolso | number: '1.2-2' }}

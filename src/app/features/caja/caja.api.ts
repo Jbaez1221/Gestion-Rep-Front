@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 
 import { API } from '../../core/http/api';
-import { aParametros } from '../../core/http/parametros';
+import { aParametros, conParametros } from '../../core/http/parametros';
 import {
   AbonoCaja,
   Caja,
@@ -77,6 +77,11 @@ export class CajaApi {
     return this.http.get<Pagina<SesionListado>>(`${BASE}/sesiones`, {
       params: aParametros({ cajaId, pagina }),
     });
+  }
+
+  /** Las sesiones en Excel. */
+  sesionesExcel(cajaId?: string): string {
+    return conParametros(`${BASE}/sesiones/excel`, aParametros({ cajaId }));
   }
 
   sesion(id: string): Observable<SesionCaja> {

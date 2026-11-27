@@ -14,13 +14,22 @@ import {
   TipoComprobante,
 } from '../../core/modelos/api.modelos';
 import { ErrorApi } from '../../shared/ui/error-api';
+import { DescargaRegistro } from '../../shared/ui/descarga-registro';
 import { Paginador } from '../../shared/ui/paginador';
 import { NOMBRE_COMPROBANTE } from './calculo';
-import { ComprasApi } from './compras.api';
+import { ComprasApi, RUTA_REGISTRO_COMPRAS } from './compras.api';
 
 @Component({
   selector: 'app-compras-lista',
-  imports: [ReactiveFormsModule, RouterLink, ErrorApi, Paginador, DecimalPipe, DatePipe],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    ErrorApi,
+    Paginador,
+    DecimalPipe,
+    DatePipe,
+    DescargaRegistro,
+  ],
   template: `
     <div class="space-y-4">
       <div class="flex flex-wrap items-end justify-between gap-3">
@@ -61,10 +70,18 @@ import { ComprasApi } from './compras.api';
             <input id="c-hasta" type="date" class="campo" formControlName="hasta" />
           </div>
           <button type="submit" class="btn-secundario">Buscar</button>
+          <a class="btn-enlace" [href]="excel()" download>Exportar Excel</a>
         </form>
-        @if (sesion.tiene(permisos.comprasRegistrar)) {
-          <a routerLink="/compras/registrar" class="btn-primario">Registrar compra</a>
-        }
+        <div class="flex flex-wrap items-end gap-3">
+          <app-descarga-registro
+            id="c-registro"
+            etiqueta="Registro de compras (8.1)"
+            [ruta]="rutaRegistro"
+          />
+          @if (sesion.tiene(permisos.comprasRegistrar)) {
+            <a routerLink="/compras/registrar" class="btn-primario">Registrar compra</a>
+          }
+        </div>
       </div>
 
       <app-error-api [problema]="error()" />
@@ -131,10 +148,16 @@ import { ComprasApi } from './compras.api';
 })
 export class ComprasLista implements OnInit {
   private readonly api = inject(ComprasApi);
+
+  /** El Excel de la búsqueda, con los filtros puestos. */
+  protected excel(): string {
+    return this.api.excel(this.filtros.getRawValue());
+  }
   private readonly fb = inject(NonNullableFormBuilder);
   protected readonly sesion = inject(SesionService);
   protected readonly permisos = PERMISOS;
   protected readonly nombres = NOMBRE_COMPROBANTE;
+  protected readonly rutaRegistro = RUTA_REGISTRO_COMPRAS;
   protected readonly tipos: TipoComprobante[] = [
     'FACTURA',
     'BOLETA',

@@ -92,6 +92,7 @@ import { CajaApi } from './caja.api';
                   <option value="BOLETA">Boleta</option>
                   <option value="FACTURA">Factura</option>
                   <option value="NOTA_CREDITO">Nota de crédito</option>
+                  <option value="NOTA_DEBITO">Nota de débito</option>
                   <option value="GUIA_REMISION">Guía de remisión</option>
                 </select>
               </div>

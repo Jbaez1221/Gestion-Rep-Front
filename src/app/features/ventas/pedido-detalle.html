@@ -1,24 +1,63 @@
 <div class="space-y-4">
   <div class="flex flex-wrap items-center justify-between gap-2">
     <h1 class="titulo-pagina">
-      @if (pedido(); as p) {
+      @if (esCotizacion()) {
+        @if (cotizacion(); as c) {
+          Cotización <span class="font-mono">{{ c.numero }}</span>
+          <span [class]="claseCotizacion(c.estado)" class="ml-2 align-middle">{{
+            nombresCotizacion[c.estado]
+          }}</span>
+        } @else {
+          Nueva cotización
+        }
+      } @else if (pedido(); as p) {
         Pedido <span class="font-mono">{{ p.numero }}</span>
         <span [class]="clase(p.estado)" class="ml-2 align-middle">{{ nombres[p.estado] }}</span>
       } @else {
         Nuevo pedido
       }
     </h1>
-    <a routerLink="/ventas/pedidos" class="btn-enlace">Volver a los pedidos</a>
+    @if (esCotizacion()) {
+      <a routerLink="/ventas/cotizaciones" class="btn-enlace">Volver a las cotizaciones</a>
+    } @else {
+      <a routerLink="/ventas/pedidos" class="btn-enlace">Volver a los pedidos</a>
+    }
   </div>
 
   <app-error-api [problema]="error()" />
 
-  @if (pedido()?.avisos?.length) {
+  @if (cotizacion(); as c) {
+    <p class="text-sm text-slate-600">
+      Emitida el {{ c.fecha }} por {{ c.vendedor }} · válida hasta el
+      <strong>{{ c.validaHasta }}</strong>
+      @if (c.pedido; as ped) {
+        · convertida en el pedido
+        <a
+          [routerLink]="['/ventas/pedido', ped.id]"
+          class="font-mono text-marca-700 hover:underline"
+          >{{ ped.nombre }}</a
+        >
+      }
+      @if (c.motivoAnulacion) {
+        · anulada: {{ c.motivoAnulacion }}
+      }
+    </p>
+  }
+  @if (!esCotizacion() && pedido()?.cotizacionId; as cotizacionId) {
+    <p class="text-sm text-slate-600">
+      Generado desde una
+      <a [routerLink]="['/ventas/cotizacion', cotizacionId]" class="text-marca-700 hover:underline"
+        >cotización</a
+      >, con sus precios.
+    </p>
+  }
+
+  @if (documento()?.avisos?.length) {
     <ul
       class="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
       role="status"
     >
-      @for (a of pedido()?.avisos ?? []; track a) {
+      @for (a of documento()?.avisos ?? []; track a) {
         <li>{{ a }}</li>
       }
     </ul>
@@ -73,6 +112,29 @@
           <label for="pv-observacion" class="etiqueta">Observación</label>
           <input id="pv-observacion" class="campo" formControlName="observacion" />
         </div>
+        @if (esCotizacion()) {
+          <div>
+            <label for="pv-validez" class="etiqueta">Días de validez</label>
+            <input
+              id="pv-validez"
+              type="number"
+              min="1"
+              max="60"
+              class="campo"
+              formControlName="diasValidez"
+            />
+          </div>
+          <div class="sm:col-span-3">
+            <label for="pv-condiciones" class="etiqueta">Condiciones para el cliente</label>
+            <textarea
+              id="pv-condiciones"
+              rows="2"
+              class="campo"
+              formControlName="condiciones"
+              placeholder="Forma de pago, plazo de entrega, garantía…"
+            ></textarea>
+          </div>
+        }
       </form>
 
       @if (avisoComprobante(); as aviso) {
@@ -173,7 +235,29 @@
       </p>
 
       <div class="flex flex-wrap gap-2">
-        @if (editable()) {
+        @if (esCotizacion()) {
+          @if (editable()) {
+            <button type="button" class="btn-primario" [disabled]="guardando()" (click)="guardar()">
+              Guardar cotización
+            </button>
+          }
+          @if (cotizacion(); as c) {
+            <a class="btn-secundario" [href]="excelCotizacion(c.id)" download>Descargar Excel</a>
+            @if (c.estado === 'VIGENTE' && sesion.tiene(permisos.ventasPedido)) {
+              <button
+                type="button"
+                class="btn-secundario"
+                [disabled]="guardando()"
+                (click)="convertir()"
+              >
+                Convertir en pedido
+              </button>
+            }
+            @if (c.estado === 'VIGENTE' && sesion.tiene(permisos.ventasCotizar)) {
+              <button type="button" class="btn-enlace" (click)="anular()">Anular</button>
+            }
+          }
+        } @else if (editable()) {
           <button
             type="button"
             class="btn-primario"

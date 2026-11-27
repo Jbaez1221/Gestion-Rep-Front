@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { Problema } from '../../core/http/problema';
 import { Pagina } from '../../core/modelos/api.modelos';
 import { NotificacionesService } from '../../core/ui/notificaciones.service';
+import { DescargaRegistro, mesEnLima } from './descarga-registro';
 import { ErrorApi } from './error-api';
 import { Notificaciones } from './notificaciones';
 import { Paginador } from './paginador';
@@ -23,6 +24,33 @@ class Anfitrion {
 }
 
 describe('componentes compartidos', () => {
+  it('DescargaRegistro arma el enlace del mes elegido', () => {
+    expect(mesEnLima(new Date('2026-12-01T03:00:00Z'))).toBe('2026-11');
+    const fixture = TestBed.createComponent(DescargaRegistro);
+    fixture.componentRef.setInput('id', 'rv');
+    fixture.componentRef.setInput('etiqueta', 'Registro de ventas');
+    fixture.componentRef.setInput('ruta', '/api/v1/facturacion/registro-ventas/excel');
+    fixture.detectChanges();
+    const html = fixture.nativeElement as HTMLElement;
+    const mes = html.querySelector<HTMLInputElement>('#rv-mes');
+    expect(html.querySelector('label')?.textContent).toContain('Registro de ventas');
+    expect(mes?.value).toBe(mesEnLima());
+    if (mes) {
+      mes.value = '2026-03';
+      mes.dispatchEvent(new Event('change'));
+    }
+    fixture.detectChanges();
+    expect(html.querySelector('a[download]')?.getAttribute('href')).toBe(
+      '/api/v1/facturacion/registro-ventas/excel?anio=2026&mes=3',
+    );
+    if (mes) {
+      mes.value = '';
+      mes.dispatchEvent(new Event('change'));
+    }
+    fixture.detectChanges();
+    expect(html.querySelector('a[download]')?.classList).toContain('pointer-events-none');
+  });
+
   it('ErrorApi muestra título, detalle y el código para soporte', () => {
     const fixture = TestBed.createComponent(Anfitrion);
     fixture.componentInstance.problema.set({
