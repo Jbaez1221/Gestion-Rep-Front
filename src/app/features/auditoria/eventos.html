@@ -38,7 +38,7 @@
         <th scope="col">Detalle</th>
       </tr>
     </thead>
-    <tbody class="divide-y divide-slate-100">
+    <tbody class="divide-y divide-borde">
       @for (e of pagina()?.contenido ?? []; track e.id) {
         <tr>
           <td class="whitespace-nowrap">{{ e.fecha | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
@@ -51,7 +51,7 @@
         </tr>
       } @empty {
         <tr>
-          <td colspan="5" class="py-6 text-center text-slate-500">
+          <td colspan="5" class="py-6 text-center text-texto-suave">
             No hay eventos con esos filtros.
           </td>
         </tr>

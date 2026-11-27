@@ -42,7 +42,7 @@ import { InventarioApi } from './inventario.api';
                 <th scope="col" class="text-right">Valor (S/)</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
+            <tbody class="divide-y divide-borde">
               @for (f of d.porAlmacen; track f.almacen.id) {
                 <tr>
                   <td>{{ f.almacen.codigo }} · {{ f.almacen.nombre }}</td>
@@ -51,7 +51,7 @@ import { InventarioApi } from './inventario.api';
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="3" class="py-4 text-center text-slate-500">Sin stock.</td>
+                  <td colspan="3" class="py-4 text-center text-texto-suave">Sin stock.</td>
                 </tr>
               }
             </tbody>
@@ -69,7 +69,7 @@ import { InventarioApi } from './inventario.api';
                 <th scope="col" class="text-right">Valor (S/)</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
+            <tbody class="divide-y divide-borde">
               @for (f of d.porTipoExistencia; track f.tipoExistencia) {
                 <tr>
                   <td>{{ f.tipoExistencia }} · {{ tipos[f.tipoExistencia] ?? 'Otros' }}</td>
@@ -78,7 +78,7 @@ import { InventarioApi } from './inventario.api';
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="3" class="py-4 text-center text-slate-500">Sin stock.</td>
+                  <td colspan="3" class="py-4 text-center text-texto-suave">Sin stock.</td>
                 </tr>
               }
             </tbody>

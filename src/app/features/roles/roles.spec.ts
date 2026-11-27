@@ -6,6 +6,7 @@ import { Permiso, Rol } from '../../core/modelos/api.modelos';
 import { sesionFalsa } from '../../testing/sesion-falsa';
 import { Roles, agruparPorModulo } from './roles';
 import { RolesApi } from './roles.api';
+import { DialogosService } from '../../shared/ui/dialogos';
 
 const PERMISOS: Permiso[] = [
   { codigo: 'usuarios:read', descripcion: 'Ver usuarios', modulo: 'usuarios', seguridad: true },
@@ -119,7 +120,7 @@ describe('Roles', () => {
     await estable();
     expect(api.actualizar).toHaveBeenCalledWith('r-caja', 'CAJERO', 'Atiende caja');
 
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    vi.spyOn(TestBed.inject(DialogosService), 'confirmar').mockResolvedValue(true);
     boton('Eliminar rol')?.click();
     await estable();
     expect(api.eliminar).toHaveBeenCalledWith('r-caja');

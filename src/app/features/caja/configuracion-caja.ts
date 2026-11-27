@@ -29,7 +29,7 @@ import { CajaApi } from './caja.api';
       <div class="grid gap-4 lg:grid-cols-2">
         <section class="tarjeta space-y-2">
           <h2 class="font-semibold">Series de comprobantes</h2>
-          <p class="text-xs text-slate-500">
+          <p class="text-xs text-texto-suave">
             Por establecimiento: la factura electrónica empieza con F y la boleta con B; la nota de
             crédito, con la letra del comprobante que modifica (FC01, BC01); la guía de remisión,
             con T (T001). El número avanza sin huecos al emitir.
@@ -44,7 +44,7 @@ import { CajaApi } from './caja.api';
                 <th scope="col"><span class="sr-only">Estado</span></th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
+            <tbody class="divide-y divide-borde">
               @for (s of series(); track s.serie) {
                 <tr>
                   <td class="font-mono">{{ s.serie }}</td>
@@ -63,7 +63,7 @@ import { CajaApi } from './caja.api';
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="5" class="py-4 text-center text-slate-500">
+                  <td colspan="5" class="py-4 text-center text-texto-suave">
                     Registre las series de cada sucursal.
                   </td>
                 </tr>
@@ -111,7 +111,7 @@ import { CajaApi } from './caja.api';
 
         <section class="tarjeta space-y-2">
           <h2 class="font-semibold">Cajas</h2>
-          <ul class="divide-y divide-slate-100 text-sm">
+          <ul class="divide-y divide-borde text-sm">
             @for (c of cajas(); track c.id) {
               <li class="flex items-center justify-between gap-2 py-2">
                 <span>
@@ -132,7 +132,7 @@ import { CajaApi } from './caja.api';
                 }
               </li>
             } @empty {
-              <li class="py-4 text-center text-slate-500">Aún no hay cajas.</li>
+              <li class="py-4 text-center text-texto-suave">Aún no hay cajas.</li>
             }
           </ul>
           @if (puedeCajas()) {

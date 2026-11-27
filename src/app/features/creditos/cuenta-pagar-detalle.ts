@@ -50,10 +50,7 @@ const TIPOS = {
       <app-error-api [problema]="error()" />
       @if (cuenta(); as c) {
         @for (a of c.avisos; track $index) {
-          <p
-            class="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
-            role="status"
-          >
+          <p class="aviso-caja" role="status">
             {{ a }}
           </p>
         }
@@ -67,11 +64,11 @@ const TIPOS = {
           <div>
             <p class="etiqueta">Comprobante</p>
             <p class="font-mono">{{ c.comprobante }}</p>
-            <p class="text-xs text-slate-500">{{ c.compraNumero }}</p>
+            <p class="text-xs text-texto-suave">{{ c.compraNumero }}</p>
           </div>
           <div>
             <p class="etiqueta">Emisión · vencimiento</p>
-            <p [class.text-red-700]="c.vencida">
+            <p [class.text-peligro-texto]="c.vencida">
               {{ c.fechaEmision | date: 'dd/MM/yyyy' }} ·
               {{ c.fechaVencimiento | date: 'dd/MM/yyyy' }}
             </p>
@@ -94,12 +91,12 @@ const TIPOS = {
               <p>
                 S/ {{ c.detraccionSoles | number: '1.2-2' }}
                 @if (c.detraccionEstado === 'DEPOSITADA') {
-                  <span class="block text-xs text-emerald-700">
+                  <span class="block text-xs text-exito-texto">
                     Constancia {{ c.detraccionConstancia }} del
                     {{ c.detraccionFecha | date: 'dd/MM/yyyy' }}
                   </span>
                 } @else {
-                  <span class="block text-xs text-amber-800">
+                  <span class="block text-xs text-aviso-texto">
                     Hasta el {{ c.detraccionVence | date: 'dd/MM/yyyy' }}
                     {{ c.cuentaDetracciones ? '· cta. ' + c.cuentaDetracciones : '' }}
                   </span>
@@ -112,22 +109,25 @@ const TIPOS = {
         <div class="grid gap-4 lg:grid-cols-[1fr_22rem]">
           <section class="tarjeta space-y-2">
             <h2 class="font-semibold">Pagos y notas de crédito</h2>
-            <ul class="divide-y divide-slate-100 text-sm">
+            <ul class="divide-y divide-borde text-sm">
               @for (p of c.pagos; track p.id) {
                 <li class="flex justify-between gap-2 py-2">
                   <span>
                     {{ p.fecha | date: 'dd/MM/yyyy' }} · {{ tipos[p.tipo] }}
                     {{ p.medio ? '· ' + medios[p.medio] : '' }}
-                    <span class="block text-xs text-slate-500">
+                    <span class="block text-xs text-texto-suave">
                       {{ p.referencia }}{{ p.banco ? ' · ' + p.banco : '' }} · {{ p.usuario }}
                     </span>
                   </span>
-                  <span class="font-semibold" [class.text-slate-500]="p.tipo === 'ANULACION_NOTA'">
+                  <span
+                    class="font-semibold"
+                    [class.text-texto-suave]="p.tipo === 'ANULACION_NOTA'"
+                  >
                     {{ p.tipo === 'ANULACION_NOTA' ? '+' : '' }}{{ p.monto | number: '1.2-2' }}
                   </span>
                 </li>
               } @empty {
-                <li class="py-4 text-center text-slate-500">Aún no hay pagos.</li>
+                <li class="py-4 text-center text-texto-suave">Aún no hay pagos.</li>
               }
             </ul>
           </section>

@@ -8,19 +8,16 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
     <section class="space-y-4">
       <div>
         <h1 class="titulo-pagina">Inventario</h1>
-        <p class="mt-1 text-sm text-slate-600">
+        <p class="mt-1 text-sm text-texto-2">
           Stock por almacén al costo promedio ponderado, movimientos con la tabla 12 de SUNAT y
           kardex valorizado (formato 13.1).
         </p>
       </div>
-      <nav
-        class="flex flex-wrap gap-1 border-b border-slate-200"
-        aria-label="Secciones de inventario"
-      >
+      <nav class="flex flex-wrap gap-1 border-b border-borde" aria-label="Secciones de inventario">
         @for (p of pestanas; track p.ruta) {
           <a
             [routerLink]="p.ruta"
-            routerLinkActive="border-marca-600 text-marca-700"
+            routerLinkActive="border-acento text-texto-acento"
             ariaCurrentWhenActive="page"
             class="pestana"
             >{{ p.texto }}</a

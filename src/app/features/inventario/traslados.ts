@@ -17,6 +17,7 @@ import {
   TrasladoListado,
 } from '../../core/modelos/api.modelos';
 import { NotificacionesService } from '../../core/ui/notificaciones.service';
+import { DialogosService } from '../../shared/ui/dialogos';
 import { ErrorApi } from '../../shared/ui/error-api';
 import { Paginador } from '../../shared/ui/paginador';
 import { BuscadorArticulo } from '../articulos/buscador-articulo';
@@ -44,6 +45,7 @@ type Accion = 'enviar' | 'recibir' | null;
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Traslados implements OnInit {
+  private readonly dialogos = inject(DialogosService);
   private readonly api = inject(InventarioApi);
   private readonly avisos = inject(NotificacionesService);
   private readonly fb = inject(NonNullableFormBuilder);
@@ -274,11 +276,21 @@ export class Traslados implements OnInit {
 
   protected async anular(): Promise<void> {
     const t = this.traslado();
-    const aviso =
-      t?.estado === 'EN_TRANSITO'
-        ? `¿Anular el traslado ${t.numero}? Lo enviado vuelve completo al almacén de origen.`
-        : `¿Anular la solicitud ${t?.numero}?`;
-    if (!t || !window.confirm(aviso)) {
+    if (
+      !t ||
+      !(await this.dialogos.confirmar({
+        titulo:
+          t.estado === 'EN_TRANSITO'
+            ? `¿Anular el traslado ${t.numero}?`
+            : `¿Anular la solicitud ${t.numero}?`,
+        mensaje:
+          t.estado === 'EN_TRANSITO'
+            ? 'Lo enviado vuelve completo al almacén de origen.'
+            : undefined,
+        aceptar: 'Anular',
+        peligro: true,
+      }))
+    ) {
       return;
     }
     try {

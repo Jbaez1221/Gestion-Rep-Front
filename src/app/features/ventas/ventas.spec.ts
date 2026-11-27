@@ -32,6 +32,7 @@ import { PedidoDetalle } from './pedido-detalle';
 import { PedidosLista } from './pedidos-lista';
 import { Ventas } from './ventas';
 import { VentasApi } from './ventas.api';
+import { DialogosService } from '../../shared/ui/dialogos';
 
 const TODOS = [
   'ventas:read',
@@ -550,7 +551,9 @@ describe('Ventas · pedidos', () => {
     enviado.boton('Devolver a borrador')?.click();
     await enviado.estable();
     expect(api.devolver).toHaveBeenCalledWith('p1');
-    vi.spyOn(window, 'prompt').mockReturnValueOnce('El cliente se fue');
+    vi.spyOn(TestBed.inject(DialogosService), 'pedirTexto').mockResolvedValueOnce(
+      'El cliente se fue',
+    );
     enviado.boton('Anular')?.click();
     await enviado.estable();
     expect(api.anular).toHaveBeenCalledWith('p1', 'El cliente se fue');
@@ -644,7 +647,7 @@ describe('Ventas · cotizaciones', () => {
     await estable();
     expect(api.convertirCotizacion).toHaveBeenCalledWith('ct1');
     expect(navegar).toHaveBeenCalledWith(['/ventas/pedido', 'p9']);
-    vi.spyOn(window, 'prompt').mockReturnValueOnce('Sin respuesta');
+    vi.spyOn(TestBed.inject(DialogosService), 'pedirTexto').mockResolvedValueOnce('Sin respuesta');
     boton('Anular')?.click();
     await estable();
     expect(api.anularCotizacion).toHaveBeenCalledWith('ct1', 'Sin respuesta');

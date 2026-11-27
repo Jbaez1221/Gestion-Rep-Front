@@ -1,4 +1,4 @@
-<form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
+<form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="barra-filtros">
   <div>
     <label for="e-almacen" class="etiqueta">Almacén</label>
     <select id="e-almacen" class="campo" formControlName="almacenId">
@@ -106,17 +106,17 @@
         <th scope="col"><span class="sr-only">Acciones</span></th>
       </tr>
     </thead>
-    <tbody class="divide-y divide-slate-100">
+    <tbody class="divide-y divide-borde">
       @for (e of pagina()?.contenido ?? []; track e.id) {
         <tr>
           <td>
             <a
               routerLink="../kardex"
               [queryParams]="{ articuloId: e.articulo.id, almacenId: e.almacen.id }"
-              class="font-mono text-marca-700 hover:underline"
+              class="font-mono text-texto-acento hover:underline"
               >{{ e.articulo.codigo }}</a
             >
-            <span class="block text-xs text-slate-500">{{ e.articulo.descripcion }}</span>
+            <span class="block text-xs text-texto-suave">{{ e.articulo.descripcion }}</span>
           </td>
           <td class="whitespace-nowrap">{{ e.almacen.codigo }}</td>
           <td class="font-mono">{{ e.ubicacion ?? '—' }}</td>
@@ -130,12 +130,12 @@
               </span>
             }
           </td>
-          <td class="text-right text-slate-600">
+          <td class="text-right text-texto-2">
             {{ e.cantidadPedida ? (e.cantidadPedida | number: '1.0-4') : '—' }}
           </td>
           <td class="text-right">{{ e.costoPromedio | number: '1.2-6' }}</td>
           <td class="text-right">{{ e.valor | number: '1.2-2' }}</td>
-          <td class="text-right whitespace-nowrap text-slate-600">
+          <td class="text-right whitespace-nowrap text-texto-2">
             {{ e.minimo ?? '—' }} / {{ e.puntoReorden ?? '—' }} / {{ e.maximo ?? '—' }}
           </td>
           <td class="text-right">
@@ -146,7 +146,7 @@
         </tr>
       } @empty {
         <tr>
-          <td colspan="8" class="py-6 text-center text-slate-500">
+          <td colspan="8" class="py-6 text-center text-texto-suave">
             No hay existencias con esos filtros.
           </td>
         </tr>

@@ -10,8 +10,8 @@
             <li>
               <button
                 type="button"
-                class="w-full rounded-md px-3 py-2 text-left text-sm hover:bg-slate-100"
-                [class.bg-marca-50]="r.id === seleccionadoId()"
+                class="w-full rounded-md px-3 py-2 text-left text-sm hover:bg-superficie-3"
+                [class.bg-acento-suave]="r.id === seleccionadoId()"
                 [attr.aria-current]="r.id === seleccionadoId() ? 'true' : null"
                 (click)="seleccionar(r.id)"
               >
@@ -61,7 +61,7 @@
             <input id="rol-desc" class="campo" formControlName="descripcion" />
           </div>
           @if (r.sistema) {
-            <p class="text-sm text-slate-600 sm:col-span-2">
+            <p class="text-sm text-texto-2 sm:col-span-2">
               Rol del sistema: sus permisos se actualizan solos y no se editan a mano.
             </p>
           }
@@ -100,7 +100,7 @@
           </div>
           @for (g of grupos(); track g.modulo) {
             <fieldset [disabled]="!editable()">
-              <legend class="mb-2 text-sm font-semibold text-slate-800 capitalize">
+              <legend class="mb-2 text-sm font-semibold text-texto capitalize">
                 {{ g.modulo }}
               </legend>
               <div class="grid gap-2 sm:grid-cols-2">
@@ -114,7 +114,7 @@
                     />
                     <span>
                       {{ p.descripcion }}
-                      <span class="block font-mono text-xs text-slate-500">{{ p.codigo }}</span>
+                      <span class="block font-mono text-xs text-texto-suave">{{ p.codigo }}</span>
                       @if (p.seguridad) {
                         <span class="insignia-alerta">Seguridad</span>
                       }
@@ -124,7 +124,9 @@
               </div>
             </fieldset>
           } @empty {
-            <p class="text-sm text-slate-500">No tiene permiso para ver el catálogo de permisos.</p>
+            <p class="text-sm text-texto-suave">
+              No tiene permiso para ver el catálogo de permisos.
+            </p>
           }
         </div>
       </div>

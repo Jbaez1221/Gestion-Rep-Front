@@ -16,6 +16,7 @@ import { SesionService } from '../../core/auth/sesion.service';
 import { Problema, aProblema } from '../../core/http/problema';
 import { Rol, SucursalResumen, TipoDocumento, Usuario } from '../../core/modelos/api.modelos';
 import { NotificacionesService } from '../../core/ui/notificaciones.service';
+import { DialogosService } from '../../shared/ui/dialogos';
 import { ErrorApi } from '../../shared/ui/error-api';
 import { RolesApi } from '../roles/roles.api';
 import { SucursalesApi } from '../sucursales/sucursales.api';
@@ -28,6 +29,7 @@ import { UsuariosApi } from './usuarios.api';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UsuarioDetalle implements OnInit {
+  private readonly dialogos = inject(DialogosService);
   private readonly api = inject(UsuariosApi);
   private readonly rolesApi = inject(RolesApi);
   private readonly sucursalesApi = inject(SucursalesApi);
@@ -170,9 +172,14 @@ export class UsuarioDetalle implements OnInit {
     if (!u) {
       return;
     }
-    const confirmacion = window.prompt(
-      `Se generará una nueva contraseña provisional y se cerrarán las sesiones de ${u.username}.\nEscriba el usuario para confirmar:`,
-    );
+    const confirmacion = await this.dialogos.pedirTexto({
+      titulo: 'Restablecer contraseña',
+      mensaje: `Se generará una nueva contraseña provisional y se cerrarán las sesiones de ${u.username}.`,
+      etiqueta: 'Escriba el usuario para confirmar',
+      aceptar: 'Restablecer',
+      peligro: true,
+      maximo: 50,
+    });
     if (confirmacion === null) {
       return;
     }
@@ -185,7 +192,15 @@ export class UsuarioDetalle implements OnInit {
 
   protected async desactivar(): Promise<void> {
     const u = this.usuario();
-    if (!u || !window.confirm(`¿Desactivar a ${u.username}? Se cerrarán sus sesiones.`)) {
+    if (
+      !u ||
+      !(await this.dialogos.confirmar({
+        titulo: `¿Desactivar a ${u.username}?`,
+        mensaje: 'Se cerrarán sus sesiones.',
+        aceptar: 'Desactivar',
+        peligro: true,
+      }))
+    ) {
       return;
     }
     await this.ejecutar(async () => {

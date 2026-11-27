@@ -23,7 +23,7 @@ export const SIMBOLO: Record<string, string> = { PEN: 'S/', USD: 'US$' };
   imports: [ReactiveFormsModule, RouterLink, DatePipe, DecimalPipe, ErrorApi, Paginador],
   template: `
     <div class="space-y-4">
-      <p class="text-sm text-slate-600">
+      <p class="text-sm text-texto-2">
         Cada factura, boleta o nota de débito registrada en compras deja su deuda; la nota de
         crédito del proveedor la reduce. Se paga por banco aquí o en efectivo desde caja (bajo S/
         2,000). La detracción se deposita aparte en el Banco de la Nación.
@@ -36,7 +36,7 @@ export const SIMBOLO: Record<string, string> = { PEN: 'S/', USD: 'US$' };
               <p class="text-xl font-semibold">
                 {{ simbolo[m.moneda] }} {{ m.total | number: '1.2-2' }}
               </p>
-              <dl class="mt-1 grid grid-cols-2 text-xs text-slate-600">
+              <dl class="mt-1 grid grid-cols-2 text-xs text-texto-2">
                 <dt>Por vencer</dt>
                 <dd class="text-right">{{ m.porVencer | number: '1.2-2' }}</dd>
                 <dt>Vencido 1–30</dt>
@@ -46,7 +46,7 @@ export const SIMBOLO: Record<string, string> = { PEN: 'S/', USD: 'US$' };
                 <dt>61–90</dt>
                 <dd class="text-right">{{ m.vencido61a90 | number: '1.2-2' }}</dd>
                 <dt>Más de 90</dt>
-                <dd class="text-right" [class.text-red-700]="m.vencidoMas90 > 0">
+                <dd class="text-right" [class.text-peligro-texto]="m.vencidoMas90 > 0">
                   {{ m.vencidoMas90 | number: '1.2-2' }}
                 </dd>
               </dl>
@@ -56,15 +56,13 @@ export const SIMBOLO: Record<string, string> = { PEN: 'S/', USD: 'US$' };
             <p class="etiqueta">Detracciones por depositar</p>
             <p class="text-xl font-semibold">S/ {{ r.detraccionesPendientes | number: '1.2-2' }}</p>
             @if (r.detraccionesVencidas > 0) {
-              <p class="text-xs text-red-700">{{ r.detraccionesVencidas }} fuera de plazo</p>
+              <p class="text-xs text-peligro-texto">{{ r.detraccionesVencidas }} fuera de plazo</p>
             }
-            <p class="mt-2 text-xs text-slate-600">
-              {{ r.vencenEn7Dias }} cuentas vencen en 7 días.
-            </p>
+            <p class="mt-2 text-xs text-texto-2">{{ r.vencenEn7Dias }} cuentas vencen en 7 días.</p>
           </div>
         </section>
       }
-      <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
+      <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="barra-filtros">
         <div class="min-w-64">
           <label for="cp-texto" class="etiqueta">Buscar</label>
           <input
@@ -112,24 +110,24 @@ export const SIMBOLO: Record<string, string> = { PEN: 'S/', USD: 'US$' };
               <th scope="col">Estado</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100">
+          <tbody class="divide-y divide-borde">
             @for (c of pagina()?.contenido ?? []; track c.id) {
               <tr>
                 <td>
                   <a
                     [routerLink]="['/creditos/pagar', c.id]"
-                    class="font-mono text-marca-700 hover:underline"
+                    class="font-mono text-texto-acento hover:underline"
                     >{{ c.numero }}</a
                   >
                 </td>
                 <td>
                   {{ c.proveedorNombre }}
-                  <span class="block font-mono text-xs text-slate-500">{{
+                  <span class="block font-mono text-xs text-texto-suave">{{
                     c.proveedorDocumento
                   }}</span>
                 </td>
                 <td class="font-mono">{{ c.comprobante }}</td>
-                <td [class.text-red-700]="c.vencida">
+                <td [class.text-peligro-texto]="c.vencida">
                   {{ c.fechaVencimiento | date: 'dd/MM/yyyy' }}
                   @if (c.vencida) {
                     <span class="block text-xs">{{ c.diasVencida }} días vencida</span>
@@ -146,15 +144,13 @@ export const SIMBOLO: Record<string, string> = { PEN: 'S/', USD: 'US$' };
                       <span class="insignia-neutra">Anulada</span>
                     }
                     @default {
-                      <span
-                        [class]="c.vencida ? 'insignia bg-red-100 text-red-800' : 'insignia-alerta'"
-                      >
+                      <span [class]="c.vencida ? 'insignia-peligro' : 'insignia-alerta'">
                         {{ c.vencida ? 'Vencida' : 'Pendiente' }}
                       </span>
                     }
                   }
                   @if (c.detraccionPendiente) {
-                    <span class="block text-xs text-amber-800">
+                    <span class="block text-xs text-aviso-texto">
                       Detracción S/ {{ c.detraccionSoles | number: '1.2-2' }} hasta
                       {{ c.detraccionVence | date: 'dd/MM' }}
                     </span>
@@ -163,7 +159,7 @@ export const SIMBOLO: Record<string, string> = { PEN: 'S/', USD: 'US$' };
               </tr>
             } @empty {
               <tr>
-                <td colspan="7" class="py-6 text-center text-slate-500">
+                <td colspan="7" class="py-6 text-center text-texto-suave">
                   No hay cuentas por pagar con esos filtros.
                 </td>
               </tr>

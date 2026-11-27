@@ -19,7 +19,7 @@
             </button>
           </p>
           @if (p.condicionSunat && p.condicionSunat !== 'HABIDO') {
-            <p class="mt-1 text-xs text-amber-800">
+            <p class="mt-1 text-xs text-aviso-texto">
               {{ p.condicionSunat }}: su factura no da crédito fiscal (el IGV irá al costo).
             </p>
           }
@@ -75,14 +75,16 @@
       <div>
         <label for="co-contable" class="etiqueta">Fecha contable</label>
         <input id="co-contable" type="date" class="campo" formControlName="fechaContable" />
-        <p class="mt-1 text-xs text-slate-500">Define el mes y la fecha del ingreso al almacén.</p>
+        <p class="mt-1 text-xs text-texto-suave">
+          Define el mes y la fecha del ingreso al almacén.
+        </p>
       </div>
       @if (!esNota()) {
         <div>
           <label for="co-vence" class="etiqueta">Vencimiento</label>
           <input id="co-vence" type="date" class="campo" formControlName="fechaVencimiento" />
           @if (proveedor()?.diasCreditoProveedor) {
-            <p class="mt-1 text-xs text-slate-500">
+            <p class="mt-1 text-xs text-texto-suave">
               Vacío: emisión + {{ proveedor()?.diasCreditoProveedor }} días de crédito.
             </p>
           }
@@ -113,7 +115,7 @@
               formControlName="tipoCambio"
             />
             @if (tipoCambioDe()) {
-              <p class="mt-1 text-xs text-slate-500">Venta SBS del {{ tipoCambioDe() }}.</p>
+              <p class="mt-1 text-xs text-texto-suave">Venta SBS del {{ tipoCambioDe() }}.</p>
             }
           </div>
         }
@@ -146,9 +148,9 @@
             }
           </select>
           @if (devolucion()) {
-            <p class="mt-1 text-xs text-slate-500">Lo devuelto sale del almacén de la compra.</p>
+            <p class="mt-1 text-xs text-texto-suave">Lo devuelto sale del almacén de la compra.</p>
           } @else if (cabecera.controls.motivoNota.value) {
-            <p class="mt-1 text-xs text-slate-500">Solo cambia el importe: no mueve stock.</p>
+            <p class="mt-1 text-xs text-texto-suave">Solo cambia el importe: no mueve stock.</p>
           }
         </div>
         @if (referenciaElegida()) {
@@ -214,7 +216,7 @@
               }
             </select>
             @if (proveedor()?.sujetoDetraccion && !cabecera.controls.detraccionCodigo.value) {
-              <p class="mt-1 text-xs text-amber-800">El proveedor está sujeto a detracción.</p>
+              <p class="mt-1 text-xs text-aviso-texto">El proveedor está sujeto a detracción.</p>
             }
           </div>
         }
@@ -239,7 +241,7 @@
               <th scope="col"><span class="sr-only">Acciones</span></th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100">
+          <tbody class="divide-y divide-borde">
             @for (l of lineas.controls; track l; let i = $index) {
               <tr [formGroup]="l" class="align-top">
                 <td class="min-w-64 space-y-1">
@@ -309,7 +311,7 @@
                       [codigo]="l.controls.codigo.value"
                       [prefijo]="'co-' + i"
                     />
-                    <p class="text-xs text-slate-500">Cantidades de lotes en unidad base.</p>
+                    <p class="text-xs text-texto-suave">Cantidades de lotes en unidad base.</p>
                   }
                 </td>
                 <td>
@@ -433,12 +435,12 @@
 
   @if (creandoArticulo()) {
     <div
-      class="fixed inset-0 z-20 overflow-y-auto bg-slate-900/40 p-4"
+      class="fixed inset-0 z-20 overflow-y-auto bg-black/50 p-4"
       role="dialog"
       aria-modal="true"
       aria-label="Nuevo artículo"
     >
-      <div class="mx-auto max-w-5xl space-y-2 rounded-lg bg-slate-50 p-4">
+      <div class="mx-auto max-w-5xl space-y-2 rounded-lg bg-superficie-2 p-4">
         <div class="flex justify-end">
           <button type="button" class="btn-enlace" (click)="creandoArticulo.set(false)">
             Cerrar

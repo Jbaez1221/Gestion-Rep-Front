@@ -18,7 +18,7 @@ import { ComprasApi } from './compras.api';
   template: `
     <div class="grid gap-4 lg:grid-cols-[1fr_22rem]">
       <div class="space-y-2">
-        <p class="text-sm text-slate-600">
+        <p class="text-sm text-texto-2">
           Tipo de cambio del dólar publicado por la SBS. Un día sin publicación (fin de semana o
           feriado) usa el último publicado antes, como indica SUNAT.
         </p>
@@ -33,7 +33,7 @@ import { ComprasApi } from './compras.api';
                 <th scope="col">Registrado por</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
+            <tbody class="divide-y divide-borde">
               @for (t of lista(); track t.fecha) {
                 <tr>
                   <td>{{ t.fecha | date: 'dd/MM/yyyy' }}</td>
@@ -43,7 +43,7 @@ import { ComprasApi } from './compras.api';
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="4" class="py-6 text-center text-slate-500">
+                  <td colspan="4" class="py-6 text-center text-texto-suave">
                     Sin tipos de cambio en los últimos 31 días.
                   </td>
                 </tr>

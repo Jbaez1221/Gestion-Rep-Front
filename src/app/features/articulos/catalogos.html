@@ -10,7 +10,7 @@
         </button>
       }
     </div>
-    <p class="text-xs text-slate-500">
+    <p class="text-xs text-texto-suave">
       El prefijo arma los códigos automáticos (FIL-000123); una subcategoría sin prefijo usa el de
       su padre.
     </p>
@@ -19,7 +19,7 @@
         [formGroup]="categoria"
         (ngSubmit)="guardarCategoria()"
         novalidate
-        class="space-y-2 rounded-md bg-slate-50 p-3"
+        class="space-y-2 rounded-md bg-superficie-2 p-3"
       >
         <div>
           <label for="cat-nombre" class="etiqueta">Nombre</label>
@@ -45,7 +45,7 @@
             </select>
           </div>
         </div>
-        <p class="text-xs text-slate-500">
+        <p class="text-xs text-texto-suave">
           Valores que se proponen al crear artículos de esta categoría (vacío: los de la categoría
           superior).
         </p>
@@ -136,19 +136,19 @@
     }
     @if (editandoCategoria(); as actual) {
       @if (actual !== 'nueva') {
-        <div class="space-y-2 rounded-md border border-slate-200 p-3">
+        <div class="space-y-2 rounded-md border border-borde p-3">
           <h3 class="text-sm font-semibold">Propiedades de {{ actual.nombre }}</h3>
           <ul class="text-sm">
             @for (p of propiedades(); track p.id) {
               <li class="flex items-center justify-between gap-2 py-0.5">
-                <span [class.text-slate-400]="!p.activo">
+                <span [class.text-texto-suave]="!p.activo">
                   {{ p.etiqueta }}
                   <span class="font-mono text-xs">({{ p.clave }}, {{ p.tipo }})</span>
                   @if (p.obligatoria) {
                     <span class="insignia-neutra">Obligatoria</span>
                   }
                   @if (p.opciones.length > 0) {
-                    <span class="block text-xs text-slate-500">{{ p.opciones.join(', ') }}</span>
+                    <span class="block text-xs text-texto-suave">{{ p.opciones.join(', ') }}</span>
                   }
                 </span>
                 @if (puedeEditar()) {
@@ -158,7 +158,7 @@
                 }
               </li>
             } @empty {
-              <li class="text-slate-500">Sin propiedades propias.</li>
+              <li class="text-texto-suave">Sin propiedades propias.</li>
             }
           </ul>
           @if (puedeEditar()) {
@@ -214,10 +214,10 @@
         </div>
       }
     }
-    <ul class="divide-y divide-slate-100 text-sm">
+    <ul class="divide-y divide-borde text-sm">
       @for (n of arbol(); track n.categoria.id) {
         <li class="flex items-center justify-between gap-2 py-1" [class]="indentar(n.nivel)">
-          <span [class.text-slate-400]="!n.categoria.activo">
+          <span [class.text-texto-suave]="!n.categoria.activo">
             {{ n.categoria.nombre }}
             @if (n.categoria.prefijo) {
               <span class="insignia-neutra font-mono">{{ n.categoria.prefijo }}</span>
@@ -249,10 +249,10 @@
         <button type="submit" class="btn-primario">Agregar</button>
       </form>
     }
-    <ul class="divide-y divide-slate-100 text-sm">
+    <ul class="divide-y divide-borde text-sm">
       @for (m of marcas(); track m.id) {
         <li class="flex items-center justify-between gap-2 py-1">
-          <span [class.text-slate-400]="!m.activo">{{ m.nombre }}</span>
+          <span [class.text-texto-suave]="!m.activo">{{ m.nombre }}</span>
           @if (puedeEditar()) {
             <span class="flex gap-2">
               <button type="button" class="btn-enlace" (click)="renombrarMarca(m)">
@@ -265,7 +265,7 @@
           }
         </li>
       } @empty {
-        <li class="py-1 text-slate-500">Aún no hay marcas.</li>
+        <li class="py-1 text-texto-suave">Aún no hay marcas.</li>
       }
     </ul>
   </section>
@@ -294,10 +294,10 @@
         <button type="submit" class="btn-primario">Agregar</button>
       </form>
     }
-    <ul class="divide-y divide-slate-100 text-sm">
+    <ul class="divide-y divide-borde text-sm">
       @for (u of unidades(); track u.id) {
         <li class="flex items-center justify-between gap-2 py-1">
-          <span [class.text-slate-400]="!u.activo"
+          <span [class.text-texto-suave]="!u.activo"
             ><span class="font-mono">{{ u.codigoSunat }}</span> · {{ u.nombre }}</span
           >
           @if (puedeEditar()) {

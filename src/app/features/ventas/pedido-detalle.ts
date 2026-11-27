@@ -36,6 +36,7 @@ import {
   TipoComprobanteVenta,
 } from '../../core/modelos/api.modelos';
 import { NotificacionesService } from '../../core/ui/notificaciones.service';
+import { DialogosService } from '../../shared/ui/dialogos';
 import { ErrorApi } from '../../shared/ui/error-api';
 import { InventarioApi } from '../inventario/inventario.api';
 import { BuscadorCliente } from './buscador-cliente';
@@ -61,6 +62,7 @@ import { VentasApi } from './ventas.api';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PedidoDetalle implements OnInit {
+  private readonly dialogos = inject(DialogosService);
   private readonly api = inject(VentasApi);
   private readonly inventarioApi = inject(InventarioApi);
   private readonly router = inject(Router);
@@ -445,7 +447,12 @@ export class PedidoDetalle implements OnInit {
       return;
     }
     const p = this.pedido();
-    const motivo = window.prompt('¿Por qué se anula el pedido?')?.trim();
+    const motivo = await this.dialogos.pedirTexto({
+      titulo: 'Anular pedido',
+      mensaje: 'Si estaba en caja, se libera la reserva de stock.',
+      aceptar: 'Anular pedido',
+      peligro: true,
+    });
     if (!p || !motivo) return;
     try {
       this.error.set(null);
@@ -458,7 +465,11 @@ export class PedidoDetalle implements OnInit {
 
   private async anularCotizacion(): Promise<void> {
     const c = this.cotizacion();
-    const motivo = window.prompt('¿Por qué se anula la cotización?')?.trim();
+    const motivo = await this.dialogos.pedirTexto({
+      titulo: 'Anular cotización',
+      aceptar: 'Anular cotización',
+      peligro: true,
+    });
     if (!c || !motivo) return;
     try {
       this.error.set(null);

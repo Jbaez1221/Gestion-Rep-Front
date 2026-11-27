@@ -1,45 +1,76 @@
-<section class="flex min-h-screen items-center justify-center px-4">
-  <div class="tarjeta w-full max-w-sm">
-    <h1 class="text-center text-2xl font-semibold text-marca-900">Repuestos</h1>
-    <p class="mt-1 mb-6 text-center text-sm text-slate-600">Ingrese con su usuario</p>
-
-    <form [formGroup]="formulario" (ngSubmit)="ingresar()" novalidate class="space-y-4">
-      <div>
-        <label for="username" class="etiqueta">Usuario</label>
-        <input
-          id="username"
-          class="campo"
-          formControlName="username"
-          autocomplete="username"
-          autocapitalize="none"
-          [attr.aria-invalid]="
-            formulario.controls.username.touched && formulario.controls.username.invalid
-          "
-        />
-        @if (formulario.controls.username.touched && formulario.controls.username.invalid) {
-          <p class="error-campo">Ingrese su usuario.</p>
-        }
-      </div>
-      <div>
-        <label for="password" class="etiqueta">Contraseña</label>
-        <input
-          id="password"
-          type="password"
-          class="campo"
-          formControlName="password"
-          autocomplete="current-password"
-          [attr.aria-invalid]="
-            formulario.controls.password.touched && formulario.controls.password.invalid
-          "
-        />
-        @if (formulario.controls.password.touched && formulario.controls.password.invalid) {
-          <p class="error-campo">Ingrese su contraseña.</p>
-        }
-      </div>
-      <app-error-api [problema]="error()" />
-      <button type="submit" class="btn-primario w-full" [disabled]="enviando()">
-        {{ enviando() ? 'Ingresando…' : 'Ingresar' }}
-      </button>
-    </form>
+<main id="contenido" class="grid min-h-screen lg:grid-cols-[1fr_minmax(28rem,36rem)]">
+  <div class="relative hidden overflow-hidden bg-acento p-10 text-sobre-acento lg:flex lg:flex-col">
+    <div class="flex items-center gap-3 text-lg font-semibold">
+      <span
+        class="grid size-10 place-items-center rounded-xl bg-sobre-acento/15 font-bold"
+        aria-hidden="true"
+        >R</span
+      >
+      Repuestos
+    </div>
+    <div class="mt-auto max-w-md space-y-4">
+      <p class="text-3xl leading-tight font-semibold">
+        Ventas, inventario y facturación en un solo lugar.
+      </p>
+      <ul class="space-y-2 text-sm opacity-90">
+        <li>Mostrador y caja con comprobantes electrónicos.</li>
+        <li>Stock por almacén, compras y sugerencia de reposición.</li>
+        <li>Créditos, reportes y márgenes al día.</li>
+      </ul>
+    </div>
   </div>
-</section>
+
+  <div class="flex items-center justify-center px-4 py-10 sm:px-8">
+    <div class="w-full max-w-sm">
+      <div class="mb-8 flex items-center gap-3 lg:hidden">
+        <span
+          class="grid size-10 place-items-center rounded-xl bg-acento font-bold text-sobre-acento"
+          aria-hidden="true"
+          >R</span
+        >
+        <span class="text-lg font-semibold text-texto">Repuestos</span>
+      </div>
+      <h1 class="titulo-pagina">Iniciar sesión</h1>
+      <p class="subtitulo mt-1 mb-6">Ingrese con su usuario y contraseña.</p>
+
+      <form [formGroup]="formulario" (ngSubmit)="ingresar()" novalidate class="space-y-4">
+        <div>
+          <label for="username" class="etiqueta">Usuario</label>
+          <input
+            id="username"
+            class="campo"
+            formControlName="username"
+            autocomplete="username"
+            autocapitalize="none"
+            [attr.aria-invalid]="
+              formulario.controls.username.touched && formulario.controls.username.invalid
+            "
+          />
+          @if (formulario.controls.username.touched && formulario.controls.username.invalid) {
+            <p class="error-campo">Ingrese su usuario.</p>
+          }
+        </div>
+        <div>
+          <label for="password" class="etiqueta">Contraseña</label>
+          <input
+            id="password"
+            type="password"
+            class="campo"
+            formControlName="password"
+            autocomplete="current-password"
+            [attr.aria-invalid]="
+              formulario.controls.password.touched && formulario.controls.password.invalid
+            "
+          />
+          @if (formulario.controls.password.touched && formulario.controls.password.invalid) {
+            <p class="error-campo">Ingrese su contraseña.</p>
+          }
+        </div>
+        <app-error-api [problema]="error()" />
+        <button type="submit" class="btn-primario w-full" [disabled]="enviando()">
+          {{ enviando() ? 'Ingresando…' : 'Ingresar' }}
+        </button>
+      </form>
+    </div>
+  </div>
+</main>

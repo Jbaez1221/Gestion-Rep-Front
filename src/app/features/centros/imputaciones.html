@@ -1,5 +1,5 @@
 <div class="flex flex-wrap items-end justify-between gap-3">
-  <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
+  <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="barra-filtros">
     <div>
       <label for="i-anio" class="etiqueta">Año</label>
       <input id="i-anio" type="number" class="campo w-28" formControlName="anio" />
@@ -34,7 +34,7 @@
 @if (creando()) {
   <form [formGroup]="formulario" (ngSubmit)="registrar()" novalidate class="tarjeta space-y-3">
     <h2 class="font-semibold">Imputación manual (ajuste)</h2>
-    <p class="text-sm text-slate-600">
+    <p class="text-sm text-texto-2">
       Los documentos (compras, caja, ventas) imputarán solos cuando existan sus módulos; esto es
       para ajustes.
     </p>
@@ -161,20 +161,20 @@
         <th scope="col"><span class="sr-only">Acciones</span></th>
       </tr>
     </thead>
-    <tbody class="divide-y divide-slate-100">
+    <tbody class="divide-y divide-borde">
       @for (i of pagina()?.contenido ?? []; track i.id; let idx = $index) {
-        <tr [class.text-red-700]="i.monto < 0">
+        <tr [class.text-peligro-texto]="i.monto < 0">
           <td class="whitespace-nowrap">{{ i.fecha }}</td>
           <td>
             <span class="insignia-neutra">{{ i.tipo }}</span>
-            <span class="block text-xs text-slate-500">{{ i.origenTipo }} {{ i.origenId }}</span>
+            <span class="block text-xs text-texto-suave">{{ i.origenTipo }} {{ i.origenId }}</span>
           </td>
           <td class="font-mono">{{ i.centroCostoCodigo ?? i.centroBeneficioCodigo }}</td>
           <td class="text-right">{{ i.porcentaje | number: '1.0-4' }}</td>
           <td class="text-right">
             {{ i.monto | currency }}
             @if (i.moneda !== 'PEN') {
-              <span class="block text-xs text-slate-500"
+              <span class="block text-xs text-texto-suave"
                 >{{ i.montoOriginal | number: '1.2-2' }} {{ i.moneda }} × {{ i.tipoCambio }}</span
               >
             }
@@ -192,7 +192,7 @@
         </tr>
       } @empty {
         <tr>
-          <td colspan="7" class="py-6 text-center text-slate-500">
+          <td colspan="7" class="py-6 text-center text-texto-suave">
             No hay imputaciones en el período.
           </td>
         </tr>

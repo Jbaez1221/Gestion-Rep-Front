@@ -15,6 +15,7 @@ import {
   Pagina,
 } from '../../core/modelos/api.modelos';
 import { NotificacionesService } from '../../core/ui/notificaciones.service';
+import { DialogosService } from '../../shared/ui/dialogos';
 import { ErrorApi } from '../../shared/ui/error-api';
 import { Paginador } from '../../shared/ui/paginador';
 import { BuscadorArticulo } from '../articulos/buscador-articulo';
@@ -28,6 +29,7 @@ import { InventarioApi } from './inventario.api';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Conteos implements OnInit {
+  private readonly dialogos = inject(DialogosService);
   private readonly api = inject(InventarioApi);
   private readonly avisos = inject(NotificacionesService);
   private readonly fb = inject(NonNullableFormBuilder);
@@ -182,9 +184,12 @@ export class Conteos implements OnInit {
     const c = this.conteo();
     if (
       !c ||
-      !window.confirm(
-        `¿Aplicar el conteo ${c.numero}? Se ajustará el stock a lo contado (contra el stock de este momento) y no se podrá deshacer salvo anulando los ajustes.`,
-      )
+      !(await this.dialogos.confirmar({
+        titulo: `¿Aplicar el conteo ${c.numero}?`,
+        mensaje:
+          'Se ajustará el stock a lo contado (contra el stock de este momento) y no se podrá deshacer salvo anulando los ajustes.',
+        aceptar: 'Aplicar',
+      }))
     ) {
       return;
     }
@@ -203,7 +208,15 @@ export class Conteos implements OnInit {
 
   protected async anular(): Promise<void> {
     const c = this.conteo();
-    if (!c || !window.confirm(`¿Anular el conteo ${c.numero}? No se ajustará nada.`)) {
+    if (
+      !c ||
+      !(await this.dialogos.confirmar({
+        titulo: `¿Anular el conteo ${c.numero}?`,
+        mensaje: 'No se ajustará nada.',
+        aceptar: 'Anular',
+        peligro: true,
+      }))
+    ) {
       return;
     }
     try {

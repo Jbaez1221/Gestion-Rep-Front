@@ -11,25 +11,22 @@ import { SesionService } from '../../core/auth/sesion.service';
     <section class="space-y-4">
       <div>
         <h1 class="titulo-pagina">Artículos</h1>
-        <p class="mt-1 text-sm text-slate-600">
+        <p class="mt-1 text-sm text-texto-2">
           Maestro de repuestos, accesorios y servicios: códigos, unidades SUNAT, equivalencias y
           datos tributarios.
         </p>
       </div>
-      <nav
-        class="flex flex-wrap gap-1 border-b border-slate-200"
-        aria-label="Secciones de artículos"
-      >
+      <nav class="flex flex-wrap gap-1 border-b border-borde" aria-label="Secciones de artículos">
         <a
           routerLink="lista"
-          routerLinkActive="border-marca-600 text-marca-700"
+          routerLinkActive="border-acento text-texto-acento"
           ariaCurrentWhenActive="page"
           class="pestana"
           >Artículos</a
         >
         <a
           routerLink="catalogos"
-          routerLinkActive="border-marca-600 text-marca-700"
+          routerLinkActive="border-acento text-texto-acento"
           ariaCurrentWhenActive="page"
           class="pestana"
           >Marcas, categorías y unidades</a
@@ -37,7 +34,7 @@ import { SesionService } from '../../core/auth/sesion.service';
         @if (sesion.tiene(permisos.articulosImportar)) {
           <a
             routerLink="importar"
-            routerLinkActive="border-marca-600 text-marca-700"
+            routerLinkActive="border-acento text-texto-acento"
             ariaCurrentWhenActive="page"
             class="pestana"
             >Carga masiva</a

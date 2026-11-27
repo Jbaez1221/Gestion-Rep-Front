@@ -16,11 +16,11 @@ import { CreditosApi } from './creditos.api';
   imports: [ReactiveFormsModule, RouterLink, DatePipe, DecimalPipe, ErrorApi, Paginador],
   template: `
     <div class="space-y-4">
-      <p class="text-sm text-slate-600">
+      <p class="text-sm text-texto-2">
         Cada venta al crédito deja una cuenta por cobrar que vence según los días de crédito del
         cliente. Se cancela con abonos en caja o con notas de crédito.
       </p>
-      <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
+      <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="barra-filtros">
         <div class="min-w-64">
           <label for="cr-texto" class="etiqueta">Buscar</label>
           <input
@@ -59,24 +59,24 @@ import { CreditosApi } from './creditos.api';
               <th scope="col">Estado</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100">
+          <tbody class="divide-y divide-borde">
             @for (c of pagina()?.contenido ?? []; track c.id) {
               <tr>
                 <td>
                   <a
                     [routerLink]="['/creditos/cuenta', c.id]"
-                    class="font-mono text-marca-700 hover:underline"
+                    class="font-mono text-texto-acento hover:underline"
                     >{{ c.numero }}</a
                   >
                 </td>
                 <td>
                   {{ c.clienteNombre }}
-                  <span class="block font-mono text-xs text-slate-500">{{
+                  <span class="block font-mono text-xs text-texto-suave">{{
                     c.clienteDocumento
                   }}</span>
                 </td>
                 <td class="font-mono">{{ c.comprobante }}</td>
-                <td [class.text-red-700]="c.vencida">
+                <td [class.text-peligro-texto]="c.vencida">
                   {{ c.fechaVencimiento | date: 'dd/MM/yyyy' }}
                   @if (c.vencida) {
                     <span class="block text-xs">{{ c.diasVencida }} días vencida</span>
@@ -88,7 +88,7 @@ import { CreditosApi } from './creditos.api';
                   @if (c.estado === 'PAGADA') {
                     <span class="insignia-ok">Pagada</span>
                   } @else if (c.vencida) {
-                    <span class="insignia bg-red-100 text-red-800">Vencida</span>
+                    <span class="insignia-peligro">Vencida</span>
                   } @else {
                     <span class="insignia-alerta">Pendiente</span>
                   }
@@ -96,7 +96,7 @@ import { CreditosApi } from './creditos.api';
               </tr>
             } @empty {
               <tr>
-                <td colspan="7" class="py-6 text-center text-slate-500">
+                <td colspan="7" class="py-6 text-center text-texto-suave">
                   No hay cuentas por cobrar con esos filtros.
                 </td>
               </tr>

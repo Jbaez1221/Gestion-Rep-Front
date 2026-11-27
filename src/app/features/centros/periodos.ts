@@ -8,6 +8,7 @@ import { SesionService } from '../../core/auth/sesion.service';
 import { Problema, aProblema } from '../../core/http/problema';
 import { Periodo } from '../../core/modelos/api.modelos';
 import { NotificacionesService } from '../../core/ui/notificaciones.service';
+import { DialogosService } from '../../shared/ui/dialogos';
 import { ErrorApi } from '../../shared/ui/error-api';
 import { MESES, hoyEnLima } from './arbol';
 import { CentrosApi } from './centros.api';
@@ -19,6 +20,7 @@ import { CentrosApi } from './centros.api';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Periodos implements OnInit {
+  private readonly dialogos = inject(DialogosService);
   private readonly api = inject(CentrosApi);
   private readonly avisos = inject(NotificacionesService);
   protected readonly sesion = inject(SesionService);
@@ -45,7 +47,11 @@ export class Periodos implements OnInit {
   protected async cerrar(p: Periodo): Promise<void> {
     const nombre = `${MESES[p.mes - 1]} ${p.anio}`;
     if (
-      !window.confirm(`¿Cerrar ${nombre}? No admitirá más imputaciones ni cambios de presupuesto.`)
+      !(await this.dialogos.confirmar({
+        titulo: `¿Cerrar ${nombre}?`,
+        mensaje: 'No admitirá más imputaciones ni cambios de presupuesto.',
+        aceptar: 'Cerrar período',
+      }))
     ) {
       return;
     }
@@ -57,7 +63,13 @@ export class Periodos implements OnInit {
 
   protected async reabrir(p: Periodo): Promise<void> {
     const nombre = `${MESES[p.mes - 1]} ${p.anio}`;
-    if (!window.confirm(`¿Reabrir ${nombre}? Volverá a admitir movimientos.`)) {
+    if (
+      !(await this.dialogos.confirmar({
+        titulo: `¿Reabrir ${nombre}?`,
+        mensaje: 'Volverá a admitir movimientos.',
+        aceptar: 'Reabrir',
+      }))
+    ) {
       return;
     }
     await this.ejecutar(

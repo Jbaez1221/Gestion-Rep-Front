@@ -19,12 +19,13 @@ import { CompraRegistro } from './compra-registro';
 import { Compras } from './compras';
 import { ComprasApi, RUTA_REGISTRO_COMPRAS } from './compras.api';
 import { ComprasLista } from './compras-lista';
-import { factorDe, pedirMotivo, unidadesDe } from './lineas';
+import { factorDe, unidadesDe } from './lineas';
 import { OrdenDetalle } from './orden-detalle';
 import { OrdenesLista } from './ordenes-lista';
 import { RecepcionDetalle } from './recepcion-detalle';
 import { RecepcionesLista } from './recepciones-lista';
 import { TiposCambio } from './tipos-cambio';
+import { DialogosService } from '../../shared/ui/dialogos';
 
 const TODOS = [
   'compras:read',
@@ -559,14 +560,11 @@ describe('cálculo de compras', () => {
     expect(claseEstadoRecepcion('ANULADA')).toBe('insignia-neutra');
   });
 
-  it('conoce las unidades del artículo y pide motivos', () => {
+  it('conoce las unidades del artículo', () => {
     expect(unidadesDe(FILTRO)).toEqual(['NIU', 'BX']);
     expect(factorDe(FILTRO, 'BX')).toBe(12);
     expect(factorDe(FILTRO, 'NIU')).toBe(1);
     expect(factorDe(FILTRO, 'KGM')).toBe(1);
-    vi.spyOn(window, 'prompt').mockReturnValueOnce('  ').mockReturnValueOnce(' Sin stock ');
-    expect(pedirMotivo('¿Por qué?')).toBeNull();
-    expect(pedirMotivo('¿Por qué?')).toBe('Sin stock');
   });
 });
 
@@ -800,10 +798,10 @@ describe('OrdenDetalle', () => {
     expect(html.textContent).toContain('aprobada por jefe');
     expect(html.querySelector('a[href*="/compras/registrar?orden=oc1"]')).not.toBeNull();
     expect(html.querySelector<HTMLInputElement>('#oc-cant-0')?.disabled).toBe(true);
-    vi.spyOn(window, 'prompt')
-      .mockReturnValueOnce(null)
-      .mockReturnValueOnce('Sin stock')
-      .mockReturnValueOnce('Error');
+    vi.spyOn(TestBed.inject(DialogosService), 'pedirTexto')
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce('Sin stock')
+      .mockResolvedValueOnce('Error');
     boton('Cerrar pendiente')?.click();
     await estable();
     expect(api.cerrarOrden).not.toHaveBeenCalled();
@@ -818,7 +816,7 @@ describe('OrdenDetalle', () => {
     const { api } = configurar();
     api.orden.mockReturnValue(of({ ...ORDEN, estado: 'EMITIDA' }));
     const { html, boton, estable } = await crear(OrdenDetalle, { id: 'oc1' });
-    vi.spyOn(window, 'prompt').mockReturnValue('Error');
+    vi.spyOn(TestBed.inject(DialogosService), 'pedirTexto').mockResolvedValue('Error');
     boton('Anular')?.click();
     await estable();
     expect(api.anularOrden).toHaveBeenCalledWith('oc1', 'Error');
@@ -1032,9 +1030,9 @@ describe('CompraDetalle', () => {
     expect(html.textContent).toContain('Exonerado');
     expect(html.textContent).toContain('OC-00000001');
     expect(html.querySelector('a[href*="referencia=c1"]')).not.toBeNull();
-    vi.spyOn(window, 'prompt')
-      .mockReturnValueOnce(null)
-      .mockReturnValueOnce('Registrada por error');
+    vi.spyOn(TestBed.inject(DialogosService), 'pedirTexto')
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce('Registrada por error');
     boton('Anular')?.click();
     await estable();
     expect(api.anular).not.toHaveBeenCalled();
@@ -1206,7 +1204,9 @@ describe('Recepciones con guía', () => {
     expect(html.textContent).toContain('T001-55');
     expect(html.textContent).toContain('OC-00000001');
     expect(html.querySelector('a[href*="/compras/registrar?recepcion=re1"]')).not.toBeNull();
-    vi.spyOn(window, 'prompt').mockReturnValueOnce(null).mockReturnValueOnce('Error');
+    vi.spyOn(TestBed.inject(DialogosService), 'pedirTexto')
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce('Error');
     boton('Anular')?.click();
     await estable();
     expect(api.anularRecepcion).not.toHaveBeenCalled();

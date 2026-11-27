@@ -81,7 +81,7 @@ describe('Inicio', () => {
     return fixture.nativeElement as HTMLElement;
   }
 
-  it('saluda y muestra solo los accesos que el rol permite', async () => {
+  it('saluda por la hora y sin permisos no muestra indicadores', async () => {
     const { fixture } = crear(['sucursales:read', 'auditoria.eventos:read'], {
       fecha: '2026-11-26',
       ventas: null,
@@ -90,10 +90,9 @@ describe('Inicio', () => {
       operacion: null,
     });
     const html = await estable(fixture);
-    expect(html.querySelector('h1')?.textContent).toContain('Repuestos');
-    expect(html.textContent).toContain('Hola, Ana');
-    const tarjetas = [...html.querySelectorAll('a.tarjeta h2')].map((h) => h.textContent?.trim());
-    expect(tarjetas).toEqual(['Sucursales', 'Auditoría']);
+    expect(html.querySelector('h1')?.textContent).toMatch(
+      /^(Buenos días|Buenas tardes|Buenas noches), Ana$/,
+    );
     expect(html.querySelector('[aria-label="Indicadores"]')?.children.length).toBe(0);
   });
 
@@ -112,7 +111,6 @@ describe('Inicio', () => {
     expect(html.textContent).toContain('2 cotizaciones vencen en 2 días');
     expect(html.textContent).toContain('FIL-1');
     expect(html.querySelectorAll('[aria-label="Ventas por día"] li')).toHaveLength(2);
-    expect(html.textContent).toContain('Reporte de ventas');
     expect(creditos.resumenPagar).toHaveBeenCalled();
   });
 

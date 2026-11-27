@@ -24,6 +24,7 @@ import {
   TipoMovimiento,
 } from '../../core/modelos/api.modelos';
 import { NotificacionesService } from '../../core/ui/notificaciones.service';
+import { DialogosService } from '../../shared/ui/dialogos';
 import { ErrorApi } from '../../shared/ui/error-api';
 import { Paginador } from '../../shared/ui/paginador';
 import { BuscadorArticulo } from '../articulos/buscador-articulo';
@@ -50,6 +51,7 @@ type Modo = 'lista' | 'movimiento' | 'transferencia' | 'revalorizacion';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Movimientos implements OnInit {
+  private readonly dialogos = inject(DialogosService);
   private readonly api = inject(InventarioApi);
   private readonly centrosApi = inject(CentrosApi);
   private readonly avisos = inject(NotificacionesService);
@@ -304,9 +306,14 @@ export class Movimientos implements OnInit {
   protected async anular(m: Movimiento): Promise<void> {
     const aviso =
       m.grupoId && m.tipo.startsWith('TRANSFERENCIA')
-        ? 'Se anularán los dos lados de la transferencia. Motivo:'
-        : `Motivo de la anulación de ${m.numero} (se registrará un movimiento inverso con fecha de hoy):`;
-    const glosa = window.prompt(aviso);
+        ? 'Se anularán los dos lados de la transferencia.'
+        : 'Se registrará un movimiento inverso con fecha de hoy.';
+    const glosa = await this.dialogos.pedirTexto({
+      titulo: `Anular ${m.numero}`,
+      mensaje: aviso,
+      aceptar: 'Anular',
+      peligro: true,
+    });
     if (!glosa?.trim()) {
       return;
     }

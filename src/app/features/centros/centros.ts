@@ -11,16 +11,16 @@ import { SesionService } from '../../core/auth/sesion.service';
     <section class="space-y-4">
       <div>
         <h1 class="titulo-pagina">Centros de costo y de beneficio</h1>
-        <p class="mt-1 text-sm text-slate-600">
+        <p class="mt-1 text-sm text-texto-2">
           Contabilidad analítica (elemento 9 del PCGE): cuánto gasta cada área y cuánto resultado
           deja cada línea de negocio.
         </p>
       </div>
-      <nav class="flex flex-wrap gap-1 border-b border-slate-200" aria-label="Secciones de centros">
+      <nav class="flex flex-wrap gap-1 border-b border-borde" aria-label="Secciones de centros">
         @for (p of pestanas; track p.ruta) {
           <a
             [routerLink]="p.ruta"
-            routerLinkActive="border-marca-600 text-marca-700"
+            routerLinkActive="border-acento text-texto-acento"
             ariaCurrentWhenActive="page"
             class="pestana"
           >

@@ -65,8 +65,8 @@ export function detalleDe(valor: {
   imports: [ReactiveFormsModule],
   template: `
     @if (control() === 'LOTE') {
-      <div class="space-y-1 rounded-md bg-slate-50 p-2" [formGroup]="grupo()">
-        <p class="text-xs text-slate-600">
+      <div class="space-y-1 rounded-md bg-superficie-2 p-2" [formGroup]="grupo()">
+        <p class="text-xs text-texto-2">
           Lotes de {{ codigo() }}
           @if (!entrada()) {
             (vacío: sale primero el que vence primero)
@@ -114,8 +114,8 @@ export function detalleDe(valor: {
         <button type="button" class="btn-enlace" (click)="agregarLote()">+ Lote</button>
       </div>
     } @else if (control() === 'SERIE') {
-      <div class="rounded-md bg-slate-50 p-2" [formGroup]="grupo()">
-        <label [for]="prefijo() + '-series'" class="text-xs text-slate-600">
+      <div class="rounded-md bg-superficie-2 p-2" [formGroup]="grupo()">
+        <label [for]="prefijo() + '-series'" class="text-xs text-texto-2">
           Series de {{ codigo() }} (una por línea o separadas por coma)
         </label>
         <textarea

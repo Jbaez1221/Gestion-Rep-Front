@@ -32,10 +32,10 @@ const NOMBRE_AGRUPACION: Record<AgrupacionVentas, string> = {
   imports: [ReactiveFormsModule, RouterLink, DecimalPipe, DatePipe, ErrorApi],
   template: `
     <section class="space-y-4">
-      <nav class="flex gap-1 border-b border-slate-200" aria-label="Reportes">
+      <nav class="flex gap-1 border-b border-borde" aria-label="Reportes">
         <a
           routerLink="/reportes/ventas"
-          class="pestana border-marca-600 text-marca-700"
+          class="pestana border-acento text-texto-acento"
           aria-current="page"
           >Ventas</a
         >
@@ -43,12 +43,12 @@ const NOMBRE_AGRUPACION: Record<AgrupacionVentas, string> = {
       </nav>
       <div>
         <h1 class="titulo-pagina">Reporte de ventas</h1>
-        <p class="mt-1 text-sm text-slate-600">
+        <p class="mt-1 text-sm text-texto-2">
           Venta sin IGV neta de notas de crédito y con las de débito; costo de lo que salió del
           almacén menos lo devuelto, al costo promedio.
         </p>
       </div>
-      <form [formGroup]="filtros" (ngSubmit)="buscar()" class="flex flex-wrap items-end gap-3">
+      <form [formGroup]="filtros" (ngSubmit)="buscar()" class="barra-filtros">
         <div>
           <label for="rv-desde" class="etiqueta">Desde</label>
           <input id="rv-desde" type="date" class="campo" formControlName="desde" />
@@ -92,7 +92,7 @@ const NOMBRE_AGRUPACION: Record<AgrupacionVentas, string> = {
                 <th scope="col" class="text-right">Margen %</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
+            <tbody class="divide-y divide-borde">
               @for (f of r.filas; track f.clave) {
                 <tr>
                   <td>
@@ -107,7 +107,7 @@ const NOMBRE_AGRUPACION: Record<AgrupacionVentas, string> = {
                   </td>
                   <td class="text-right">{{ f.venta | number: '1.2-2' }}</td>
                   <td class="text-right">{{ f.costo | number: '1.2-2' }}</td>
-                  <td class="text-right" [class.text-red-700]="f.margen < 0">
+                  <td class="text-right" [class.text-peligro-texto]="f.margen < 0">
                     {{ f.margen | number: '1.2-2' }}
                   </td>
                   <td class="text-right">
@@ -116,7 +116,7 @@ const NOMBRE_AGRUPACION: Record<AgrupacionVentas, string> = {
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="5" class="py-6 text-center text-slate-500">
+                  <td colspan="5" class="py-6 text-center text-texto-suave">
                     Sin ventas en el período.
                   </td>
                 </tr>

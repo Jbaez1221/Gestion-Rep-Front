@@ -27,23 +27,23 @@ import { ReportesApi } from './reportes.api';
   imports: [ReactiveFormsModule, RouterLink, DecimalPipe, ErrorApi],
   template: `
     <section class="space-y-4">
-      <nav class="flex gap-1 border-b border-slate-200" aria-label="Reportes">
+      <nav class="flex gap-1 border-b border-borde" aria-label="Reportes">
         <a routerLink="/reportes/ventas" class="pestana">Ventas</a>
         <a
           routerLink="/reportes/comisiones"
-          class="pestana border-marca-600 text-marca-700"
+          class="pestana border-acento text-texto-acento"
           aria-current="page"
           >Comisiones</a
         >
       </nav>
       <div>
         <h1 class="titulo-pagina">Comisiones de vendedores</h1>
-        <p class="mt-1 text-sm text-slate-600">
+        <p class="mt-1 text-sm text-texto-2">
           Cada vendedor comisiona un porcentaje de su venta sin IGV o de su margen (que no baja de
           cero), netos de notas de crédito.
         </p>
       </div>
-      <form [formGroup]="filtros" (ngSubmit)="buscar()" class="flex flex-wrap items-end gap-3">
+      <form [formGroup]="filtros" (ngSubmit)="buscar()" class="barra-filtros">
         <div>
           <label for="cm-desde" class="etiqueta">Desde</label>
           <input id="cm-desde" type="date" class="campo" formControlName="desde" />
@@ -68,7 +68,7 @@ import { ReportesApi } from './reportes.api';
                 <th scope="col" class="text-right">Comisión</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
+            <tbody class="divide-y divide-borde">
               @for (f of r.filas; track f.vendedor; let i = $index) {
                 <tr>
                   <td>{{ f.vendedor }}</td>
@@ -115,14 +115,14 @@ import { ReportesApi } from './reportes.api';
                       {{ f.porcentaje | number: '1.0-2' }} %
                       {{ f.base === 'VENTA' ? 'de la venta' : 'del margen' }}
                     } @else {
-                      <span class="text-slate-500">Sin regla</span>
+                      <span class="text-texto-suave">Sin regla</span>
                     }
                   </td>
                   <td class="text-right font-semibold">{{ f.comision | number: '1.2-2' }}</td>
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="5" class="py-6 text-center text-slate-500">
+                  <td colspan="5" class="py-6 text-center text-texto-suave">
                     Sin ventas en el período.
                   </td>
                 </tr>

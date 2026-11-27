@@ -51,7 +51,7 @@
         <summary
           class="flex cursor-pointer flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 text-sm"
         >
-          <span class="text-slate-500">{{ c.fecha | date: 'dd/MM/yyyy HH:mm:ss' }}</span>
+          <span class="text-texto-suave">{{ c.fecha | date: 'dd/MM/yyyy HH:mm:ss' }}</span>
           <span
             [class]="
               c.operacion === 'ELIMINACION'
@@ -64,10 +64,10 @@
             {{ c.operacion }}
           </span>
           <span class="font-medium">{{ c.entidad }}</span>
-          <span class="font-mono text-xs text-slate-500">{{ c.entidadId }}</span>
-          <span class="ml-auto text-slate-600">por {{ c.usuario }}</span>
+          <span class="font-mono text-xs text-texto-suave">{{ c.entidadId }}</span>
+          <span class="ml-auto text-texto-2">por {{ c.usuario }}</span>
         </summary>
-        <div class="overflow-x-auto border-t border-slate-100 px-4 py-3">
+        <div class="overflow-x-auto border-t border-borde px-4 py-3">
           <table class="tabla">
             <thead>
               <tr>
@@ -80,13 +80,13 @@
               @for (campo of c.cambios | keyvalue; track campo.key) {
                 <tr>
                   <td class="font-medium">{{ campo.key }}</td>
-                  <td class="text-red-700">{{ campo.value.antes | valor }}</td>
-                  <td class="text-emerald-700">{{ campo.value.despues | valor }}</td>
+                  <td class="text-peligro-texto">{{ campo.value.antes | valor }}</td>
+                  <td class="text-exito-texto">{{ campo.value.despues | valor }}</td>
                 </tr>
               }
             </tbody>
           </table>
-          <p class="mt-2 text-xs text-slate-500">
+          <p class="mt-2 text-xs text-texto-suave">
             IP {{ c.ip ?? '—' }} · petición {{ c.requestId ?? '—' }} · transacción
             {{ c.transaccionId }}
           </p>
@@ -94,7 +94,7 @@
       </details>
     </li>
   } @empty {
-    <li class="py-6 text-center text-slate-500">No hay cambios con esos filtros.</li>
+    <li class="py-6 text-center text-texto-suave">No hay cambios con esos filtros.</li>
   }
 </ul>
 <app-paginador [pagina]="pagina()" (cambiar)="buscar($event)" />

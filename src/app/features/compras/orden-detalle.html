@@ -92,7 +92,7 @@
               <th scope="col"><span class="sr-only">Acciones</span></th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100">
+          <tbody class="divide-y divide-borde">
             @for (l of formulario.controls.lineas.controls; track l; let i = $index) {
               <tr [formGroupName]="i">
                 <td>
@@ -231,7 +231,7 @@
             <li>
               <a
                 [routerLink]="['/compras/recepcion', r.id]"
-                class="font-mono text-marca-700 hover:underline"
+                class="font-mono text-texto-acento hover:underline"
                 >{{ r.numero }}</a
               >
               · guía {{ r.guia ?? '—' }} · {{ r.fecha | date: 'dd/MM/yyyy' }}
@@ -246,7 +246,7 @@
             <li>
               <a
                 [routerLink]="['/compras/documento', c.id]"
-                class="font-mono text-marca-700 hover:underline"
+                class="font-mono text-texto-acento hover:underline"
                 >{{ c.numero }}</a
               >
               · {{ c.comprobante }} · {{ c.fechaEmision | date: 'dd/MM/yyyy' }}

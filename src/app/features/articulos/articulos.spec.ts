@@ -23,6 +23,7 @@ import { BuscadorArticulo } from './buscador-articulo';
 import { CatalogosArticulos } from './catalogos';
 import { ImportacionArticulos } from './importacion';
 import { arbolDeCategorias, etiquetaCategoria } from './categorias';
+import { DialogosService } from '../../shared/ui/dialogos';
 
 const SIN_VALORES = {
   tipoDefecto: null,
@@ -641,7 +642,7 @@ describe('CatalogosArticulos', () => {
     await estable();
     expect(api.crearMarca).toHaveBeenCalledWith('Bosch');
 
-    vi.spyOn(window, 'prompt').mockReturnValue('TOYOTA MOTOR');
+    vi.spyOn(TestBed.inject(DialogosService), 'pedirTexto').mockResolvedValue('TOYOTA MOTOR');
     boton('Renombrar')?.click();
     await estable();
     expect(api.renombrarMarca).toHaveBeenCalledWith('m1', 'TOYOTA MOTOR');
@@ -716,7 +717,7 @@ describe('ArticuloDetalle · adjuntos', () => {
     boton('Principal')?.click();
     await estable();
     expect(api.adjuntoPrincipal).toHaveBeenCalledWith('a1', 'img2');
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    vi.spyOn(TestBed.inject(DialogosService), 'confirmar').mockResolvedValue(true);
     boton('Eliminar')?.click();
     await estable();
     expect(api.eliminarAdjunto).toHaveBeenCalledWith('a1', 'img1');

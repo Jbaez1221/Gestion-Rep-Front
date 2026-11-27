@@ -39,7 +39,7 @@ import { FacturacionApi } from './facturacion.api';
             <p>
               <span [class]="estados[g.estado].clase">{{ estados[g.estado].texto }}</span>
               @if (g.codigoSunat) {
-                <span class="ml-2 text-xs text-slate-600">
+                <span class="ml-2 text-xs text-texto-2">
                   Código {{ g.codigoSunat
                   }}{{ g.descripcionSunat ? ': ' + g.descripcionSunat : '' }}
                 </span>
@@ -64,10 +64,10 @@ import { FacturacionApi } from './facturacion.api';
             </p>
           </div>
           @if (g.observacionesSunat) {
-            <p class="text-xs text-amber-800">Observaciones: {{ g.observacionesSunat }}</p>
+            <p class="text-xs text-aviso-texto">Observaciones: {{ g.observacionesSunat }}</p>
           }
           @if (g.ultimoError) {
-            <p class="text-xs text-red-700">
+            <p class="text-xs text-peligro-texto">
               Último error ({{ g.intentos }} {{ g.intentos === 1 ? 'intento' : 'intentos' }}):
               {{ g.ultimoError }}
             </p>
@@ -78,7 +78,7 @@ import { FacturacionApi } from './facturacion.api';
             <p class="etiqueta">Motivo</p>
             <p>{{ g.motivo }} · {{ motivos[g.motivo] }}</p>
             @if (g.descripcionMotivo) {
-              <p class="text-xs text-slate-500">{{ g.descripcionMotivo }}</p>
+              <p class="text-xs text-texto-suave">{{ g.descripcionMotivo }}</p>
             }
           </div>
           <div>
@@ -101,7 +101,7 @@ import { FacturacionApi } from './facturacion.api';
             <p class="etiqueta">Partida</p>
             <p>
               {{ g.partida.direccion }}
-              <span class="block text-xs text-slate-500">
+              <span class="block text-xs text-texto-suave">
                 Ubigeo {{ g.partida.ubigeo
                 }}{{
                   g.partida.establecimiento ? ' · establecimiento ' + g.partida.establecimiento : ''
@@ -113,7 +113,7 @@ import { FacturacionApi } from './facturacion.api';
             <p class="etiqueta">Llegada</p>
             <p>
               {{ g.llegada.direccion }}
-              <span class="block text-xs text-slate-500">
+              <span class="block text-xs text-texto-suave">
                 Ubigeo {{ g.llegada.ubigeo
                 }}{{
                   g.llegada.establecimiento ? ' · establecimiento ' + g.llegada.establecimiento : ''
@@ -128,7 +128,7 @@ import { FacturacionApi } from './facturacion.api';
                 <span class="font-mono">RUC {{ g.transportistaRuc }}</span> ·
                 {{ g.transportistaNombre }}
                 @if (g.transportistaMtc) {
-                  <span class="block text-xs text-slate-500">MTC {{ g.transportistaMtc }}</span>
+                  <span class="block text-xs text-texto-suave">MTC {{ g.transportistaMtc }}</span>
                 }
               </p>
             } @else if (g.vehiculoM1L) {
@@ -136,7 +136,7 @@ import { FacturacionApi } from './facturacion.api';
             } @else {
               <p>
                 Placa <span class="font-mono">{{ g.vehiculoPlaca }}</span> · {{ g.conductor }}
-                <span class="block text-xs text-slate-500">
+                <span class="block text-xs text-texto-suave">
                   Doc. {{ g.conductorDocumento }} · licencia {{ g.conductorLicencia }}
                 </span>
               </p>
@@ -155,7 +155,7 @@ import { FacturacionApi } from './facturacion.api';
             @if (g.documentoId) {
               <a
                 [routerLink]="['/facturacion/comprobante', g.documentoId]"
-                class="font-mono text-marca-700 hover:underline"
+                class="font-mono text-texto-acento hover:underline"
                 >{{ g.documento }}</a
               >
             } @else {
@@ -172,7 +172,7 @@ import { FacturacionApi } from './facturacion.api';
                 <th scope="col" class="text-right">Cantidad</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
+            <tbody class="divide-y divide-borde">
               @for (l of g.lineas; track $index) {
                 <tr>
                   <td class="font-mono">{{ l.codigo }}</td>
@@ -183,7 +183,7 @@ import { FacturacionApi } from './facturacion.api';
             </tbody>
           </table>
         </div>
-        <p class="text-xs text-slate-500">Emitida por {{ g.creadoPor ?? '—' }}</p>
+        <p class="text-xs text-texto-suave">Emitida por {{ g.creadoPor ?? '—' }}</p>
       }
     </div>
   `,

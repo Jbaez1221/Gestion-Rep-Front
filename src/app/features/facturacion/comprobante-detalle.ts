@@ -61,7 +61,7 @@ import { TransporteGuiaForm, datosGuia, formTransporte } from './transporte-guia
             <p>
               <span [class]="estados[c.estado].clase">{{ estados[c.estado].texto }}</span>
               @if (c.codigoSunat) {
-                <span class="ml-2 text-xs text-slate-600">
+                <span class="ml-2 text-xs text-texto-2">
                   Código {{ c.codigoSunat
                   }}{{ c.descripcionSunat ? ': ' + c.descripcionSunat : '' }}
                 </span>
@@ -86,41 +86,41 @@ import { TransporteGuiaForm, datosGuia, formTransporte } from './transporte-guia
             </p>
           </div>
           @if (c.observacionesSunat) {
-            <p class="text-xs text-amber-800">Observaciones: {{ c.observacionesSunat }}</p>
+            <p class="text-xs text-aviso-texto">Observaciones: {{ c.observacionesSunat }}</p>
           }
           @if (c.ultimoError) {
-            <p class="text-xs text-red-700">
+            <p class="text-xs text-peligro-texto">
               Último error ({{ c.intentos }} {{ c.intentos === 1 ? 'intento' : 'intentos' }}):
               {{ c.ultimoError }}
             </p>
           }
           @if (c.fechaEnvio) {
-            <p class="text-xs text-slate-500">
+            <p class="text-xs text-texto-suave">
               Enviado el {{ c.fechaEnvio | date: 'dd/MM/yyyy HH:mm' }}
             </p>
           }
           @if (c.baja; as b) {
-            <div class="border-t border-slate-100 pt-2 text-xs" aria-label="Baja ante SUNAT">
+            <div class="border-t border-borde pt-2 text-xs" aria-label="Baja ante SUNAT">
               <p>
                 <span class="font-semibold">{{ bajas[b.tipo] }}:</span>
                 <span [class]="estados[b.estado].clase">{{ estados[b.estado].texto }}</span>
                 · {{ b.motivo }}
                 @if (b.codigoSunat) {
-                  <span class="text-slate-600">
+                  <span class="text-texto-2">
                     · Código {{ b.codigoSunat
                     }}{{ b.descripcionSunat ? ': ' + b.descripcionSunat : '' }}
                   </span>
                 }
               </p>
               @if (b.ultimoError) {
-                <p class="text-red-700">{{ b.ultimoError }}</p>
+                <p class="text-peligro-texto">{{ b.ultimoError }}</p>
               }
               @if (b.nota; as n) {
                 <p>
                   No procedió; se regularizó con la nota de crédito
                   <a
                     [routerLink]="['/facturacion/comprobante', n.id]"
-                    class="font-mono text-marca-700 hover:underline"
+                    class="font-mono text-texto-acento hover:underline"
                     >{{ n.comprobante }}</a
                   >
                 </p>
@@ -139,7 +139,7 @@ import { TransporteGuiaForm, datosGuia, formTransporte } from './transporte-guia
               · {{ c.clienteNombre }}
             </p>
             @if (c.clienteDireccion) {
-              <p class="text-xs text-slate-500">{{ c.clienteDireccion }}</p>
+              <p class="text-xs text-texto-suave">{{ c.clienteDireccion }}</p>
             }
           </div>
           <div>
@@ -156,7 +156,7 @@ import { TransporteGuiaForm, datosGuia, formTransporte } from './transporte-guia
               <p>
                 <a
                   [routerLink]="['/facturacion/comprobante', r.id]"
-                  class="text-marca-700 hover:underline"
+                  class="text-texto-acento hover:underline"
                 >
                   {{ tipos[r.tipo] }} <span class="font-mono">{{ r.comprobante }}</span>
                 </a>
@@ -184,7 +184,7 @@ import { TransporteGuiaForm, datosGuia, formTransporte } from './transporte-guia
                 @for (g of c.guias; track g.id) {
                   <a
                     [routerLink]="['/facturacion/guia', g.id]"
-                    class="font-mono text-marca-700 hover:underline"
+                    class="font-mono text-texto-acento hover:underline"
                   >
                     {{ g.comprobante }}
                   </a>
@@ -199,7 +199,7 @@ import { TransporteGuiaForm, datosGuia, formTransporte } from './transporte-guia
                 @for (n of c.notas; track n.id) {
                   <a
                     [routerLink]="['/facturacion/comprobante', n.id]"
-                    class="text-marca-700 hover:underline"
+                    class="text-texto-acento hover:underline"
                   >
                     {{ tipos[n.tipo] }} <span class="font-mono">{{ n.comprobante }}</span>
                   </a>
@@ -219,7 +219,7 @@ import { TransporteGuiaForm, datosGuia, formTransporte } from './transporte-guia
                 <th scope="col" class="text-right">Total</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
+            <tbody class="divide-y divide-borde">
               @for (l of c.lineas; track $index) {
                 <tr>
                   <td class="font-mono">{{ l.codigo }}</td>
@@ -248,7 +248,7 @@ import { TransporteGuiaForm, datosGuia, formTransporte } from './transporte-guia
           <dt class="font-semibold">Total</dt>
           <dd class="text-right font-semibold">S/ {{ c.total | number: '1.2-2' }}</dd>
         </dl>
-        <p class="text-xs text-slate-500">Emitido por {{ c.creadoPor ?? '—' }}</p>
+        <p class="text-xs text-texto-suave">Emitido por {{ c.creadoPor ?? '—' }}</p>
         @if (c.tipo === 'NOTA_DEBITO' && c.fechaVencimiento) {
           <p class="text-sm">
             Queda por cobrar al cliente hasta el {{ c.fechaVencimiento | date: 'dd/MM/yyyy' }}
@@ -269,7 +269,7 @@ import { TransporteGuiaForm, datosGuia, formTransporte } from './transporte-guia
               aria-label="Nota de débito"
             >
               <h2 class="font-semibold">Nota de débito</h2>
-              <p class="text-xs text-slate-500">
+              <p class="text-xs text-texto-suave">
                 Cobra un cargo posterior sobre este comprobante. El total queda como cuenta por
                 cobrar del cliente.
               </p>
@@ -411,7 +411,7 @@ import { TransporteGuiaForm, datosGuia, formTransporte } from './transporte-guia
           } @else {
             <form [formGroup]="guia" (ngSubmit)="emitirGuia()" class="tarjeta space-y-3" novalidate>
               <h2 class="font-semibold">Guía de remisión de la venta</h2>
-              <p class="text-xs text-slate-500">
+              <p class="text-xs text-texto-suave">
                 Sale del establecimiento de la venta con lo vendido (sin lo devuelto) hacia la
                 dirección del cliente.
               </p>

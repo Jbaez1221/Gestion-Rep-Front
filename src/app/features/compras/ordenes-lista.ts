@@ -19,7 +19,7 @@ import { ComprasApi } from './compras.api';
   template: `
     <div class="space-y-4">
       <div class="flex flex-wrap items-end justify-between gap-3">
-        <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
+        <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="barra-filtros">
           <div class="min-w-64">
             <label for="o-texto" class="etiqueta">Buscar</label>
             <input
@@ -67,13 +67,13 @@ import { ComprasApi } from './compras.api';
               <th scope="col">Estado</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100">
+          <tbody class="divide-y divide-borde">
             @for (o of pagina()?.contenido ?? []; track o.id) {
               <tr>
                 <td class="font-mono">
                   <a
                     [routerLink]="['/compras/orden', o.id]"
-                    class="text-marca-700 hover:underline"
+                    class="text-texto-acento hover:underline"
                     >{{ o.numero }}</a
                   >
                 </td>
@@ -90,7 +90,7 @@ import { ComprasApi } from './compras.api';
               </tr>
             } @empty {
               <tr>
-                <td colspan="7" class="py-6 text-center text-slate-500">
+                <td colspan="7" class="py-6 text-center text-texto-suave">
                   No hay órdenes con esos filtros.
                 </td>
               </tr>

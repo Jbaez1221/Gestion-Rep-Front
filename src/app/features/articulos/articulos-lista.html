@@ -1,5 +1,5 @@
 <div class="flex flex-wrap items-end justify-between gap-3">
-  <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
+  <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="barra-filtros">
     <div class="min-w-64">
       <label for="a-texto" class="etiqueta">Buscar</label>
       <input
@@ -71,11 +71,13 @@
         <th scope="col">Estado</th>
       </tr>
     </thead>
-    <tbody class="divide-y divide-slate-100">
+    <tbody class="divide-y divide-borde">
       @for (a of pagina()?.contenido ?? []; track a.id) {
         <tr>
           <td class="font-mono whitespace-nowrap">
-            <a [routerLink]="['..', a.id]" class="text-marca-700 hover:underline">{{ a.codigo }}</a>
+            <a [routerLink]="['..', a.id]" class="text-texto-acento hover:underline">{{
+              a.codigo
+            }}</a>
           </td>
           <td>{{ a.descripcion }}</td>
           <td class="font-mono">{{ a.numeroParte ?? '—' }}</td>
@@ -97,13 +99,13 @@
         </tr>
       } @empty {
         <tr>
-          <td colspan="8" class="py-6 text-center text-slate-500">
+          <td colspan="8" class="py-6 text-center text-texto-suave">
             No hay artículos.
             @if (buscado() && sesion.tiene(permisos.articulosCrear)) {
               <a
                 routerLink="../nuevo"
                 [queryParams]="{ numeroParte: buscado() }"
-                class="mt-1 block text-marca-700 underline"
+                class="mt-1 block text-texto-acento underline"
                 >Crear un artículo con el N.° de parte «{{ buscado() }}»</a
               >
             }

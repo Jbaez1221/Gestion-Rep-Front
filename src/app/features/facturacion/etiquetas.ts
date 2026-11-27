@@ -35,8 +35,8 @@ export const ESTADO_COMPROBANTE: Record<EstadoComprobante, { texto: string; clas
   ENVIADO: { texto: 'Enviado, espera a SUNAT', clase: 'insignia-neutra' },
   ACEPTADO: { texto: 'Aceptado', clase: 'insignia-ok' },
   OBSERVADO: { texto: 'Aceptado con observaciones', clase: 'insignia-ok' },
-  RECHAZADO: { texto: 'Rechazado', clase: 'insignia bg-red-100 text-red-800' },
-  ERROR: { texto: 'Error de datos', clase: 'insignia bg-red-100 text-red-800' },
+  RECHAZADO: { texto: 'Rechazado', clase: 'insignia-peligro' },
+  ERROR: { texto: 'Error de datos', clase: 'insignia-peligro' },
   BAJA_EN_CURSO: { texto: 'Baja en curso', clase: 'insignia-alerta' },
   ANULADO: { texto: 'Anulado (baja SUNAT)', clase: 'insignia-neutra' },
 };

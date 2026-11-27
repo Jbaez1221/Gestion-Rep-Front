@@ -8,10 +8,10 @@ import { SesionService } from '../../core/auth/sesion.service';
 import { Problema, aProblema } from '../../core/http/problema';
 import { Compra } from '../../core/modelos/api.modelos';
 import { NotificacionesService } from '../../core/ui/notificaciones.service';
+import { DialogosService } from '../../shared/ui/dialogos';
 import { ErrorApi } from '../../shared/ui/error-api';
 import { ESTADO_SUNAT_COMPRA, NOMBRE_COMPROBANTE } from './calculo';
 import { ComprasApi } from './compras.api';
-import { pedirMotivo } from './lineas';
 
 @Component({
   selector: 'app-compra-detalle',
@@ -38,10 +38,7 @@ import { pedirMotivo } from './lineas';
 
       @if (compra(); as c) {
         @if (c.avisos.length > 0) {
-          <ul
-            class="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
-            role="status"
-          >
+          <ul class="aviso-caja" role="status">
             @for (a of c.avisos; track a) {
               <li>{{ a }}</li>
             }
@@ -54,24 +51,24 @@ import { pedirMotivo } from './lineas';
           @if (c.sunat; as v) {
             <p>
               En SUNAT:
-              <span [class]="v.valido ? 'insignia-ok' : 'insignia bg-red-100 text-red-800'">{{
+              <span [class]="v.valido ? 'insignia-ok' : 'insignia-peligro'">{{
                 estadosSunat[v.estado]
               }}</span>
               @if (v.estadoRuc || v.condicionDomicilio) {
                 · proveedor {{ v.estadoRuc ?? '—' }} / {{ v.condicionDomicilio ?? '—' }}
               }
-              <span class="block text-xs text-slate-500">
+              <span class="block text-xs text-texto-suave">
                 Consultado el {{ v.fecha | date: 'dd/MM/yyyy HH:mm'
                 }}{{ v.mensaje ? ' · ' + v.mensaje : '' }}
               </span>
               @if (!v.valido) {
-                <span class="block text-xs text-red-700">
+                <span class="block text-xs text-peligro-texto">
                   Un comprobante que no existe, está anulado o no autorizado no da crédito fiscal.
                 </span>
               }
             </p>
           } @else {
-            <p class="text-slate-600">El comprobante aún no se validó en SUNAT.</p>
+            <p class="text-texto-2">El comprobante aún no se validó en SUNAT.</p>
           }
           @if (c.estado === 'REGISTRADA' && sesion.tiene(permisos.comprasRegistrar)) {
             <button
@@ -126,7 +123,7 @@ import { pedirMotivo } from './lineas';
               <p class="etiqueta">Orden de compra</p>
               <a
                 [routerLink]="['/compras/orden', o.id]"
-                class="font-mono text-marca-700 hover:underline"
+                class="font-mono text-texto-acento hover:underline"
                 >{{ o.numero }}</a
               >
             </div>
@@ -136,7 +133,7 @@ import { pedirMotivo } from './lineas';
               <p class="etiqueta">Modifica</p>
               <a
                 [routerLink]="['/compras/documento', r.id]"
-                class="font-mono text-marca-700 hover:underline"
+                class="font-mono text-texto-acento hover:underline"
                 >{{ r.numero }}</a
               >
             </div>
@@ -170,7 +167,7 @@ import { pedirMotivo } from './lineas';
                 <th scope="col" class="text-right">Costo S/</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
+            <tbody class="divide-y divide-borde">
               @for (l of c.lineas; track l.linea) {
                 <tr>
                   <td>
@@ -189,7 +186,7 @@ import { pedirMotivo } from './lineas';
                   <td class="text-right">
                     {{ l.costoSoles + l.costoAdicional | number: '1.2-2' }}
                     @if (l.costoAdicional) {
-                      <span class="block text-xs text-slate-500"
+                      <span class="block text-xs text-texto-suave"
                         >incluye {{ l.costoAdicional | number: '1.2-2' }} de flete</span
                       >
                     }
@@ -209,7 +206,7 @@ import { pedirMotivo } from './lineas';
                   <li>
                     <a
                       [routerLink]="['/compras/recepcion', r.id]"
-                      class="font-mono text-marca-700 hover:underline"
+                      class="font-mono text-texto-acento hover:underline"
                       >{{ r.numero }}</a
                     >
                     · guía {{ r.guia ?? '—' }}
@@ -224,7 +221,7 @@ import { pedirMotivo } from './lineas';
                   <li>
                     <a
                       [routerLink]="['/compras/documento', n.id]"
-                      class="text-marca-700 hover:underline"
+                      class="text-texto-acento hover:underline"
                     >
                       {{ nombres[n.tipoComprobante] }} {{ n.comprobante }}</a
                     >
@@ -236,7 +233,7 @@ import { pedirMotivo } from './lineas';
                 }
               </ul>
             }
-            <p class="text-xs text-slate-500">
+            <p class="text-xs text-texto-suave">
               Registrada por {{ c.creadoPor ?? '—' }}
               @if (c.anuladoPor) {
                 · anulada por {{ c.anuladoPor }} el
@@ -292,6 +289,7 @@ import { pedirMotivo } from './lineas';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CompraDetalle implements OnInit {
+  private readonly dialogos = inject(DialogosService);
   private readonly api = inject(ComprasApi);
   private readonly avisos = inject(NotificacionesService);
   protected readonly sesion = inject(SesionService);
@@ -340,9 +338,12 @@ export class CompraDetalle implements OnInit {
   }
 
   protected async anular(): Promise<void> {
-    const motivo = pedirMotivo(
-      '¿Por qué se anula? Se revierte el ingreso al almacén, las imputaciones y lo recibido de la orden.',
-    );
+    const motivo = await this.dialogos.pedirTexto({
+      titulo: 'Anular compra',
+      mensaje: 'Se revierte el ingreso al almacén, las imputaciones y lo recibido de la orden.',
+      aceptar: 'Anular compra',
+      peligro: true,
+    });
     if (!motivo) return;
     try {
       this.error.set(null);

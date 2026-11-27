@@ -13,10 +13,7 @@
   <app-error-api [problema]="error()" />
 
   @if (socio()?.avisos?.length) {
-    <ul
-      class="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
-      role="status"
-    >
+    <ul class="aviso-caja" role="status">
       @for (aviso of socio()?.avisos ?? []; track aviso) {
         <li>{{ aviso }}</li>
       }
@@ -57,7 +54,7 @@
 
       @if (existente(); as e) {
         <p
-          class="rounded-md border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900"
+          class="rounded-md border border-info-texto/30 bg-info-suave p-3 text-sm text-info-texto"
           role="status"
         >
           Ya está registrado como {{ e.nombre }}.
@@ -70,13 +67,13 @@
           class="rounded-md border p-3 text-sm"
           [class]="
             c.tipo === 'ok'
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
-              : 'border-slate-200 bg-slate-50 text-slate-700'
+              ? 'border-exito/40 bg-exito-suave text-exito-texto'
+              : 'border-borde bg-superficie-2 text-texto-2'
           "
         >
           <p>{{ c.mensaje }}</p>
           @for (a of c.advertencias; track a) {
-            <p class="mt-1 font-semibold text-amber-800">{{ a }}</p>
+            <p class="mt-1 font-semibold text-aviso-texto">{{ a }}</p>
           }
         </div>
       }
@@ -344,7 +341,7 @@
           }
         </fieldset>
       } @else {
-        <p class="text-sm text-slate-500">
+        <p class="text-sm text-texto-suave">
           Correo, teléfono, contactos y cuentas bancarias son datos personales: necesita permiso
           para verlos.
         </p>
@@ -373,19 +370,19 @@
           <section class="tarjeta space-y-2" aria-labelledby="titulo-sunat">
             <h2 id="titulo-sunat" class="font-semibold">SUNAT</h2>
             <dl class="grid grid-cols-2 gap-1 text-sm">
-              <dt class="text-slate-500">Estado</dt>
+              <dt class="text-texto-suave">Estado</dt>
               <dd>{{ s.estadoSunat ?? '—' }}</dd>
-              <dt class="text-slate-500">Condición</dt>
-              <dd [class.text-red-700]="s.condicionSunat && s.condicionSunat !== 'HABIDO'">
+              <dt class="text-texto-suave">Condición</dt>
+              <dd [class.text-peligro-texto]="s.condicionSunat && s.condicionSunat !== 'HABIDO'">
                 {{ s.condicionSunat ?? '—' }}
               </dd>
-              <dt class="text-slate-500">Agente de retención</dt>
+              <dt class="text-texto-suave">Agente de retención</dt>
               <dd>{{ indicador(s.agenteRetencion) }}</dd>
-              <dt class="text-slate-500">Agente de percepción</dt>
+              <dt class="text-texto-suave">Agente de percepción</dt>
               <dd>{{ indicador(s.agentePercepcion) }}</dd>
-              <dt class="text-slate-500">Buen contribuyente</dt>
+              <dt class="text-texto-suave">Buen contribuyente</dt>
               <dd>{{ indicador(s.buenContribuyente) }}</dd>
-              <dt class="text-slate-500">Consultado</dt>
+              <dt class="text-texto-suave">Consultado</dt>
               <dd>{{ s.fechaConsultaSunat ? s.fechaConsultaSunat.slice(0, 10) : 'Nunca' }}</dd>
             </dl>
             @if (sesion.tiene(permisos.sociosEditar) && sesion.tiene(permisos.sociosConsultar)) {
@@ -420,7 +417,7 @@
           }
         </form>
 
-        <p class="text-xs text-slate-500">
+        <p class="text-xs text-texto-suave">
           Registrado por {{ s.creadoPor ?? '—' }} · modificado por {{ s.modificadoPor ?? '—' }}
         </p>
       </div>

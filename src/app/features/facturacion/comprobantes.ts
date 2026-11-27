@@ -32,7 +32,7 @@ import { FacturacionApi, RUTA_REGISTRO_VENTAS } from './facturacion.api';
       <div class="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h1 class="titulo-pagina">Comprobantes de venta</h1>
-          <p class="mt-1 text-sm text-slate-600">
+          <p class="mt-1 text-sm text-texto-2">
             Boletas, facturas y notas de crédito emitidas en caja, con su estado en SUNAT. Se envían
             solas al facturador electrónico; las que fallan se reintentan.
           </p>
@@ -46,7 +46,7 @@ import { FacturacionApi, RUTA_REGISTRO_VENTAS } from './facturacion.api';
           <a routerLink="/facturacion/guias" class="btn-enlace">Guías de remisión</a>
         </div>
       </div>
-      <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
+      <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="barra-filtros">
         <div class="min-w-64">
           <label for="fc-texto" class="etiqueta">Buscar</label>
           <input
@@ -91,13 +91,13 @@ import { FacturacionApi, RUTA_REGISTRO_VENTAS } from './facturacion.api';
               <th scope="col">Estado</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100">
+          <tbody class="divide-y divide-borde">
             @for (c of pagina()?.contenido ?? []; track c.id) {
               <tr>
                 <td>
                   <a
                     [routerLink]="['/facturacion/comprobante', c.id]"
-                    class="text-marca-700 hover:underline"
+                    class="text-texto-acento hover:underline"
                   >
                     {{ tipos[c.tipo] }}
                     <span class="font-mono">{{ c.comprobante }}</span>
@@ -106,7 +106,7 @@ import { FacturacionApi, RUTA_REGISTRO_VENTAS } from './facturacion.api';
                 <td>{{ c.fechaEmision | date: 'dd/MM/yyyy' }}</td>
                 <td>
                   {{ c.clienteNombre }}
-                  <span class="block font-mono text-xs text-slate-500">{{
+                  <span class="block font-mono text-xs text-texto-suave">{{
                     c.clienteDocumento
                   }}</span>
                 </td>
@@ -118,7 +118,7 @@ import { FacturacionApi, RUTA_REGISTRO_VENTAS } from './facturacion.api';
               </tr>
             } @empty {
               <tr>
-                <td colspan="6" class="py-6 text-center text-slate-500">
+                <td colspan="6" class="py-6 text-center text-texto-suave">
                   No hay comprobantes con esos filtros.
                 </td>
               </tr>

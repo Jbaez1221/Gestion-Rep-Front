@@ -68,10 +68,10 @@ import { MEDIOS_DINERO, NOMBRE_MEDIO, centimos } from './medios';
             </span>
           </p>
           @if (c.devuelto > 0) {
-            <p class="text-xs text-slate-600">Ya devuelto: S/ {{ c.devuelto | number: '1.2-2' }}</p>
+            <p class="text-xs text-texto-2">Ya devuelto: S/ {{ c.devuelto | number: '1.2-2' }}</p>
           }
           @if (!c.serieNota) {
-            <p class="text-xs text-red-700" role="alert">
+            <p class="text-xs text-peligro-texto" role="alert">
               La caja no tiene serie de nota de crédito para este comprobante: configúrela en Cajas
               y series.
             </p>
@@ -96,12 +96,12 @@ import { MEDIOS_DINERO, NOMBRE_MEDIO, centimos } from './medios';
           </div>
           @if (valores().motivo === '01') {
             @if (porBaja()) {
-              <p class="text-xs text-slate-600" role="status">
+              <p class="text-xs text-texto-2" role="status">
                 Se dará de baja ante SUNAT, sin nota de crédito. Si SUNAT no la acepta, el sistema
                 emitirá la nota de crédito de anulación.
               </p>
             } @else {
-              <p class="text-xs text-slate-600" role="status">
+              <p class="text-xs text-texto-2" role="status">
                 Se anulará con nota de crédito: {{ c.impedimentoBaja }}
               </p>
             }
@@ -124,12 +124,12 @@ import { MEDIOS_DINERO, NOMBRE_MEDIO, centimos } from './medios';
                 <th scope="col" class="text-right">Devuelve</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
+            <tbody class="divide-y divide-borde">
               @for (l of c.lineas; track l.linea; let i = $index) {
                 <tr>
                   <td>
                     <span class="font-mono">{{ l.codigo }}</span> · {{ l.descripcion }}
-                    <span class="block text-xs text-slate-500">
+                    <span class="block text-xs text-texto-suave">
                       {{ l.precioUnitario | number: '1.2-2' }} c/u
                     </span>
                   </td>
@@ -158,7 +158,7 @@ import { MEDIOS_DINERO, NOMBRE_MEDIO, centimos } from './medios';
             {{ porBaja() ? 'Se anula por' : 'Nota de crédito por aprox.' }}
             <span class="font-semibold">S/ {{ estimado() | number: '1.2-2' }}</span>
             @if (c.alCredito > 0) {
-              <span class="block text-xs text-slate-600">
+              <span class="block text-xs text-texto-2">
                 Se vendió al crédito: primero se descuenta de la deuda del cliente y el resto se
                 reembolsa.
               </span>

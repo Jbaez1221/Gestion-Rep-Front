@@ -60,7 +60,7 @@ interface GrupoEditable {
         </div>
         <button type="button" class="btn-secundario" (click)="calcular()">Calcular</button>
       </div>
-      <p class="text-sm text-slate-600">
+      <p class="text-sm text-texto-2">
         Artículos en su punto de reposición (o mínimo), contando lo ya pedido. Se sugiere llegar al
         máximo en la unidad y al precio (sin IGV) de la última compra; sin máximo, al doble del
         punto de reposición.
@@ -73,7 +73,7 @@ interface GrupoEditable {
             @if (g.grupo.proveedor; as p) {
               <h2 class="font-semibold">
                 {{ p.nombre }}
-                <span class="font-mono text-sm text-slate-500">{{ p.documento }}</span> ·
+                <span class="font-mono text-sm text-texto-suave">{{ p.documento }}</span> ·
                 {{ g.grupo.moneda }}
               </h2>
             } @else {
@@ -94,7 +94,7 @@ interface GrupoEditable {
             @if (g.orden; as o) {
               <a
                 [routerLink]="['/compras/orden', o.id]"
-                class="font-mono text-marca-700 hover:underline"
+                class="font-mono text-texto-acento hover:underline"
                 >{{ o.numero }}</a
               >
             }
@@ -111,7 +111,7 @@ interface GrupoEditable {
                   <th scope="col" class="text-right">Precio sin IGV</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-slate-100">
+              <tbody class="divide-y divide-borde">
                 @for (e of g.lineas; track e.l.articuloId; let li = $index) {
                   <tr>
                     <td>
@@ -127,7 +127,7 @@ interface GrupoEditable {
                     <td>
                       <span class="font-mono">{{ e.l.codigo }}</span> · {{ e.l.descripcion }}
                       @if (e.l.ultimaCompra) {
-                        <span class="block text-xs text-slate-500">
+                        <span class="block text-xs text-texto-suave">
                           Última compra: {{ e.l.ultimaCompra | date: 'dd/MM/yyyy' }}
                         </span>
                       }
@@ -186,9 +186,7 @@ interface GrupoEditable {
         </section>
       } @empty {
         @if (calculado()) {
-          <p class="tarjeta text-sm text-slate-600">
-            No hay artículos por reponer en este almacén.
-          </p>
+          <p class="tarjeta text-sm text-texto-2">No hay artículos por reponer en este almacén.</p>
         }
       }
     </div>

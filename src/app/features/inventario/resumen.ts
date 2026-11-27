@@ -65,7 +65,7 @@ import { InventarioApi, urlExcel } from './inventario.api';
               <th scope="col" class="text-right">Valor final</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100">
+          <tbody class="divide-y divide-borde">
             @for (f of r.filas; track f.articulo.id) {
               <tr>
                 <td>
@@ -80,7 +80,7 @@ import { InventarioApi, urlExcel } from './inventario.api';
               </tr>
             } @empty {
               <tr>
-                <td colspan="6" class="py-6 text-center text-slate-500">
+                <td colspan="6" class="py-6 text-center text-texto-suave">
                   Sin movimientos ni stock en el período.
                 </td>
               </tr>

@@ -56,13 +56,13 @@ import { CajaApi } from './caja.api';
                   <th scope="col" class="text-right">Total</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-slate-100">
+              <tbody class="divide-y divide-borde">
                 @for (c of s.detalleCobros; track c.id) {
                   <tr>
                     <td class="font-mono">
                       <a
                         [routerLink]="['/facturacion/comprobante', c.comprobanteId]"
-                        class="text-marca-700 hover:underline"
+                        class="text-texto-acento hover:underline"
                         >{{ c.comprobante }}</a
                       >
                     </td>
@@ -79,7 +79,7 @@ import { CajaApi } from './caja.api';
                   </tr>
                 } @empty {
                   <tr>
-                    <td colspan="5" class="py-6 text-center text-slate-500">Sin cobros.</td>
+                    <td colspan="5" class="py-6 text-center text-texto-suave">Sin cobros.</td>
                   </tr>
                 }
               </tbody>
@@ -110,13 +110,13 @@ import { CajaApi } from './caja.api';
                 <dt>Contado</dt>
                 <dd class="text-right">{{ s.efectivoContado | number: '1.2-2' }}</dd>
                 <dt>Diferencia</dt>
-                <dd class="text-right" [class.text-red-700]="(s.diferencia ?? 0) < 0">
+                <dd class="text-right" [class.text-peligro-texto]="(s.diferencia ?? 0) < 0">
                   {{ s.diferencia | number: '1.2-2' }}
                 </dd>
               }
             </dl>
             @if (s.observacionCierre) {
-              <p class="text-xs text-slate-600">{{ s.observacionCierre }}</p>
+              <p class="text-xs text-texto-2">{{ s.observacionCierre }}</p>
             }
             @if (s.detalleAbonos.length > 0) {
               <h3 class="font-semibold">Abonos de crédito</h3>
@@ -137,7 +137,7 @@ import { CajaApi } from './caja.api';
                     @if (d.notaId) {
                       <a
                         [routerLink]="['/facturacion/comprobante', d.notaId]"
-                        class="font-mono text-marca-700 hover:underline"
+                        class="font-mono text-texto-acento hover:underline"
                         >{{ d.nota }}</a
                       >
                       de {{ d.comprobante }}
