@@ -587,6 +587,8 @@ describe('ComprasApi (contrato)', () => {
     espera('GET', '/api/v1/compras/ordenes?proveedorId=p1&estado=EMITIDA');
     api.orden('oc1').subscribe();
     espera('GET', '/api/v1/compras/ordenes/oc1');
+    api.sugerencia('al1').subscribe();
+    espera('GET', '/api/v1/compras/ordenes/sugerencia?almacenId=al1');
     api.crearOrden({} as never).subscribe();
     espera('POST', '/api/v1/compras/ordenes');
     api.actualizarOrden('oc1', {} as never).subscribe();
@@ -626,6 +628,7 @@ describe('Compras · listas', () => {
     expect([...html.querySelectorAll('nav a')].map((a) => a.textContent?.trim())).toEqual([
       'Compras',
       'Órdenes de compra',
+      'Sugerencia de compra',
       'Recepciones con guía',
       'Tipo de cambio',
     ]);

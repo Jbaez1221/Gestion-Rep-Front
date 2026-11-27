@@ -1165,6 +1165,40 @@ export interface AlmacenCompraRef {
   readonly sucursal: string;
 }
 
+/**
+ * Artículo por reponer. proyectado, umbral, maximo y sugeridoBase en unidad base; cantidad y
+ * precioUnitario (sin IGV, de la última compra) en unidad. sinMaximo: se sugiere el doble del umbral.
+ */
+export interface LineaSugerida {
+  readonly articuloId: string;
+  readonly codigo: string;
+  readonly descripcion: string;
+  readonly unidadBase: string;
+  readonly proyectado: number;
+  readonly umbral: number;
+  readonly maximo: number | null;
+  readonly sugeridoBase: number;
+  readonly unidad: string;
+  readonly factor: number;
+  readonly cantidad: number;
+  readonly precioUnitario: number | null;
+  readonly ultimaCompra: string | null;
+  readonly sinMaximo: boolean;
+}
+
+/** Por proveedor y moneda de la última compra; proveedor null: artículos nunca comprados. */
+export interface GrupoSugerido {
+  readonly proveedor: ProveedorRef | null;
+  readonly moneda: Moneda;
+  readonly lineas: LineaSugerida[];
+  readonly subtotal: number;
+}
+
+export interface SugerenciaCompra {
+  readonly almacen: AlmacenCompraRef;
+  readonly grupos: GrupoSugerido[];
+}
+
 export interface ReferenciaDocumento {
   readonly id: string;
   readonly numero: string;

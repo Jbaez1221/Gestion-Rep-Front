@@ -19,6 +19,7 @@ import {
   Recepcion,
   RecepcionGuardar,
   RecepcionListado,
+  SugerenciaCompra,
   TipoCambio,
   TipoComprobante,
 } from '../../core/modelos/api.modelos';
@@ -103,6 +104,13 @@ export class ComprasApi {
         hasta: f.hasta,
         pagina: f.pagina,
       }),
+    });
+  }
+
+  /** Lo que conviene pedir para el almacén, agrupado por proveedor. */
+  sugerencia(almacenId: string): Observable<SugerenciaCompra> {
+    return this.http.get<SugerenciaCompra>(`${BASE}/ordenes/sugerencia`, {
+      params: aParametros({ almacenId }),
     });
   }
 

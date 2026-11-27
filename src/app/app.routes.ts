@@ -233,6 +233,11 @@ export const routes: Routes = [
               import('./features/compras/ordenes-lista').then((m) => m.OrdenesLista),
           },
           {
+            path: 'sugerencia',
+            loadComponent: () =>
+              import('./features/compras/sugerencia-compra').then((m) => m.SugerenciaCompraPagina),
+          },
+          {
             path: 'recepciones',
             loadComponent: () =>
               import('./features/compras/recepciones-lista').then((m) => m.RecepcionesLista),
