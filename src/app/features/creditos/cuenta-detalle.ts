@@ -1,17 +1,22 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, inject, input, signal } from '@angular/core';
+import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
+import { PERMISOS } from '../../core/auth/permisos';
+import { SesionService } from '../../core/auth/sesion.service';
 import { Problema, aProblema } from '../../core/http/problema';
 import { CuentaPorCobrar, EstadoCredito } from '../../core/modelos/api.modelos';
+import { NotificacionesService } from '../../core/ui/notificaciones.service';
 import { ErrorApi } from '../../shared/ui/error-api';
+import { hoyEnLima } from '../centros/arbol';
 import { CreditosApi } from './creditos.api';
 
 /** La cuenta con sus abonos y el estado de crédito del cliente (límite, usado, vencido). */
 @Component({
   selector: 'app-cuenta-detalle',
-  imports: [RouterLink, DatePipe, DecimalPipe, ErrorApi],
+  imports: [RouterLink, ReactiveFormsModule, DatePipe, DecimalPipe, ErrorApi],
   template: `
     <div class="space-y-4">
       <div class="flex flex-wrap items-center justify-between gap-2">
@@ -85,6 +90,54 @@ import { CreditosApi } from './creditos.api';
                 <li class="py-4 text-center text-slate-500">Aún no hay abonos.</li>
               }
             </ul>
+            @if (c.saldo > 0 && sesion.tiene(permisos.creditosRetencion)) {
+              <form
+                [formGroup]="retencion"
+                (ngSubmit)="registrarRetencion()"
+                class="space-y-2 border-t border-slate-100 pt-3"
+                aria-label="Comprobante de retención"
+                novalidate
+              >
+                <h3 class="text-sm font-semibold">Comprobante de retención del cliente</h3>
+                <div class="flex flex-wrap items-end gap-2">
+                  <div>
+                    <label for="rt-serie" class="etiqueta">Serie</label>
+                    <input
+                      id="rt-serie"
+                      class="campo w-20 font-mono uppercase"
+                      maxlength="4"
+                      placeholder="R001"
+                      formControlName="serie"
+                    />
+                  </div>
+                  <div>
+                    <label for="rt-numero" class="etiqueta">Número</label>
+                    <input
+                      id="rt-numero"
+                      class="campo w-28 font-mono"
+                      maxlength="8"
+                      formControlName="numero"
+                    />
+                  </div>
+                  <div>
+                    <label for="rt-fecha" class="etiqueta">Fecha</label>
+                    <input id="rt-fecha" type="date" class="campo" formControlName="fecha" />
+                  </div>
+                  <div>
+                    <label for="rt-monto" class="etiqueta">Monto retenido</label>
+                    <input
+                      id="rt-monto"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      class="campo w-28 text-right"
+                      formControlName="monto"
+                    />
+                  </div>
+                  <button type="submit" class="btn-secundario">Registrar</button>
+                </div>
+              </form>
+            }
           </section>
           @if (estado(); as e) {
             <section class="tarjeta space-y-2 self-start text-sm" aria-label="Crédito del cliente">
@@ -121,13 +174,53 @@ export class CuentaDetalle implements OnInit {
     ABONO: 'Abono',
     NOTA_CREDITO: 'Nota de crédito',
     ANULACION: 'Baja ante SUNAT',
+    RETENCION: 'Retención del IGV',
   };
+  private readonly avisos = inject(NotificacionesService);
+  private readonly fb = inject(NonNullableFormBuilder);
+  protected readonly sesion = inject(SesionService);
+  protected readonly permisos = PERMISOS;
+  protected readonly retencion = this.fb.group({
+    serie: ['', [Validators.required, Validators.pattern(/^[Rr][A-Za-z0-9]{3}$/)]],
+    numero: ['', [Validators.required, Validators.pattern(/^\d{1,8}$/)]],
+    fecha: [hoyEnLima(), Validators.required],
+    monto: [null as number | null, [Validators.required, Validators.min(0.01)]],
+  });
   protected readonly cuenta = signal<CuentaPorCobrar | null>(null);
   protected readonly estado = signal<EstadoCredito | null>(null);
   protected readonly error = signal<Problema | null>(null);
 
   ngOnInit(): void {
     void this.cargar();
+  }
+
+  protected async registrarRetencion(): Promise<void> {
+    if (this.retencion.invalid) {
+      this.retencion.markAllAsTouched();
+      this.error.set({
+        status: 400,
+        title: 'Comprobante de retención incompleto',
+        detail: 'Serie que empieza con R (R001), número, fecha y monto retenido.',
+      });
+      return;
+    }
+    const v = this.retencion.getRawValue();
+    try {
+      this.error.set(null);
+      const c = await firstValueFrom(
+        this.api.registrarRetencion(this.id(), {
+          serie: v.serie.toUpperCase(),
+          numero: v.numero,
+          fecha: v.fecha,
+          monto: Number(v.monto),
+        }),
+      );
+      this.cuenta.set(c);
+      this.retencion.reset({ serie: '', numero: '', fecha: hoyEnLima(), monto: null });
+      this.avisos.exito('Retención registrada: el saldo se descontó.');
+    } catch (e) {
+      this.error.set(aProblema(e));
+    }
   }
 
   private async cargar(): Promise<void> {

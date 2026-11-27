@@ -666,6 +666,34 @@ describe('Caja', () => {
     expect(html.textContent).toContain('Al crédito: S/ 33.20');
   });
 
+  it('retiene el 3 % a un cliente agente de retención en facturas de más de S/ 700', async () => {
+    const { api } = configurar();
+    const { boton, estable } = await crear(CajaOperar);
+    boton('Cobrar')?.click();
+    await estable();
+    expect(boton('Cliente agente de retención')).toBeUndefined();
+
+    api.pendientes.mockReturnValue(of([{ ...PENDIENTE, total: 830 }]));
+    const grande = await crear(CajaOperar);
+    grande.boton('Cobrar')?.click();
+    await grande.estable();
+    grande.boton('Cliente agente de retención')?.click();
+    await grande.estable();
+    expect(grande.html.textContent).toContain('S/ 24.90 retenidos quedan por cobrar');
+    expect(grande.html.querySelector('#cj-ref-1')).toBeNull();
+    grande.boton('Cobrar y emitir')?.click();
+    await grande.estable();
+    expect(api.cobrar).toHaveBeenLastCalledWith(
+      'se1',
+      'p2',
+      [
+        { medio: 'EFECTIVO', monto: 805.1, referencia: null },
+        { medio: 'RETENCION', monto: 24.9, referencia: null },
+      ],
+      false,
+    );
+  });
+
   it('sin permiso de créditos no ofrece autorizar ni devolver', async () => {
     configurar(['caja:read', 'caja:operar']);
     const { html, boton, escribir, estable } = await crear(CajaOperar);

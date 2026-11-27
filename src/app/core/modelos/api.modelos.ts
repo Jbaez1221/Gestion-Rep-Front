@@ -1845,7 +1845,9 @@ export interface GuiaRemision {
 // --- Caja ---
 
 /** CREDITO: la parte vendida al crédito, que queda como cuenta por cobrar del cliente. */
-export type MedioPago = 'EFECTIVO' | 'TARJETA' | 'YAPE_PLIN' | 'TRANSFERENCIA' | 'CREDITO';
+/** RETENCION: el 3 % que retiene un cliente agente de retención; queda por cobrar. */
+export type MedioPago =
+  'EFECTIVO' | 'TARJETA' | 'YAPE_PLIN' | 'TRANSFERENCIA' | 'CREDITO' | 'RETENCION';
 /** Catálogo 09: 01 anulación de la operación, 06 devolución total, 07 devolución por ítem. */
 export type MotivoNotaCredito = '01' | '06' | '07';
 
@@ -2054,7 +2056,7 @@ export interface CuentaPorCobrar {
     readonly id: string;
     readonly fecha: string;
     readonly monto: number;
-    readonly tipo: 'ABONO' | 'NOTA_CREDITO' | 'ANULACION';
+    readonly tipo: 'ABONO' | 'NOTA_CREDITO' | 'ANULACION' | 'RETENCION';
     readonly detalle: string;
     readonly usuario: string;
   }[];
@@ -2194,6 +2196,14 @@ export interface CuentaProveedorCaja {
   readonly vencida: boolean;
   /** Bajo el umbral de bancarización: se puede pagar en efectivo. */
   readonly efectivo: boolean;
+}
+
+/** Comprobante de retención del IGV que entrega el cliente (serie R…). */
+export interface RetencionGuardar {
+  serie: string;
+  numero: string;
+  fecha: string;
+  monto: number;
 }
 
 export interface PagoProveedorCaja {
