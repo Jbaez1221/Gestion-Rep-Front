@@ -1,6 +1,7 @@
 import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
 import { PERMISOS } from '../../core/auth/permisos';
@@ -19,6 +20,7 @@ import { NotificacionesService } from '../../core/ui/notificaciones.service';
 import { ErrorApi } from '../../shared/ui/error-api';
 import { Paginador } from '../../shared/ui/paginador';
 import { BuscadorArticulo } from '../articulos/buscador-articulo';
+import { TransporteGuiaForm, datosGuia, formTransporte } from '../facturacion/transporte-guia';
 import { hoyEnLima } from '../centros/arbol';
 import { DetalleStock, controlesDetalle, detalleDe } from './detalle-stock';
 import { ESTADOS_TRASLADO } from './etiquetas';
@@ -28,7 +30,16 @@ type Accion = 'enviar' | 'recibir' | null;
 
 @Component({
   selector: 'app-traslados',
-  imports: [ReactiveFormsModule, DecimalPipe, ErrorApi, Paginador, BuscadorArticulo, DetalleStock],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    DecimalPipe,
+    ErrorApi,
+    Paginador,
+    BuscadorArticulo,
+    DetalleStock,
+    TransporteGuiaForm,
+  ],
   templateUrl: './traslados.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -68,6 +79,9 @@ export class Traslados implements OnInit {
     devolverDiferencia: [false],
     lineas: this.fb.array([] as ReturnType<Traslados['lineaPaso']>[]),
   });
+
+  /** Transporte de la guía de remisión (envío entre sucursales). */
+  protected readonly transporte = formTransporte(this.fb);
 
   ngOnInit(): void {
     void this.iniciar();
@@ -187,6 +201,7 @@ export class Traslados implements OnInit {
     const t = this.traslado();
     if (!t) return;
     this.paso.reset({ fecha: hoyEnLima(), observacion: '', devolverDiferencia: false });
+    this.transporte.reset();
     this.paso.controls.lineas.clear();
     t.lineas.forEach((l) =>
       this.paso.controls.lineas.push(
@@ -228,7 +243,13 @@ export class Traslados implements OnInit {
       this.error.set(null);
       const r =
         this.accion() === 'enviar'
-          ? await firstValueFrom(this.api.enviarTraslado(t.id, { fecha: v.fecha, lineas }))
+          ? await firstValueFrom(
+              this.api.enviarTraslado(t.id, {
+                fecha: v.fecha,
+                lineas,
+                ...(t.requiereGuia ? { guia: datosGuia(this.transporte.getRawValue()) } : {}),
+              }),
+            )
           : await firstValueFrom(
               this.api.recibirTraslado(t.id, {
                 fecha: v.fecha,
@@ -239,7 +260,7 @@ export class Traslados implements OnInit {
             );
       this.avisos.exito(
         this.accion() === 'enviar'
-          ? `Traslado ${r.numero} enviado.`
+          ? `Traslado ${r.numero} enviado${r.guia ? ` con la guía ${r.guia}` : ''}.`
           : `Traslado ${r.numero} recibido.`,
       );
       this.mostrar(r);

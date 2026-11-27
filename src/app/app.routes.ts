@@ -1,7 +1,9 @@
+import { inject } from '@angular/core';
 import { Routes } from '@angular/router';
 
 import { autenticadoGuard, invitadoGuard, permisoGuard } from './core/auth/guards';
 import { PERMISOS } from './core/auth/permisos';
+import { SesionService } from './core/auth/sesion.service';
 
 export const routes: Routes = [
   {
@@ -304,6 +306,59 @@ export const routes: Routes = [
               import('./features/caja/configuracion-caja').then((m) => m.ConfiguracionCaja),
           },
         ],
+      },
+      {
+        path: 'creditos/cuenta/:id',
+        title: 'Cuenta por cobrar · Repuestos',
+        data: { permisos: [PERMISOS.creditosLeer] },
+        loadComponent: () =>
+          import('./features/creditos/cuenta-detalle').then((m) => m.CuentaDetalle),
+      },
+      {
+        path: 'creditos/pagar/:id',
+        title: 'Cuenta por pagar · Repuestos',
+        data: { permisos: [PERMISOS.creditosPagarLeer] },
+        loadComponent: () =>
+          import('./features/creditos/cuenta-pagar-detalle').then((m) => m.CuentaPagarDetalle),
+      },
+      {
+        path: 'creditos',
+        title: 'Créditos · Repuestos',
+        data: { permisos: [PERMISOS.creditosLeer, PERMISOS.creditosPagarLeer] },
+        loadComponent: () => import('./features/creditos/creditos').then((m) => m.CreditosPagina),
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            redirectTo: () =>
+              inject(SesionService).tiene(PERMISOS.creditosLeer) ? 'cobrar' : 'pagar',
+          },
+          {
+            path: 'cobrar',
+            data: { permisos: [PERMISOS.creditosLeer] },
+            loadComponent: () =>
+              import('./features/creditos/cuentas-cobrar').then((m) => m.CuentasCobrar),
+          },
+          {
+            path: 'pagar',
+            data: { permisos: [PERMISOS.creditosPagarLeer] },
+            loadComponent: () =>
+              import('./features/creditos/cuentas-pagar').then((m) => m.CuentasPagar),
+          },
+        ],
+      },
+      {
+        path: 'facturacion/guia/:id',
+        title: 'Guía de remisión · Repuestos',
+        data: { permisos: [PERMISOS.facturacionLeer] },
+        loadComponent: () =>
+          import('./features/facturacion/guia-detalle').then((m) => m.GuiaDetalle),
+      },
+      {
+        path: 'facturacion/guias',
+        title: 'Guías de remisión · Repuestos',
+        data: { permisos: [PERMISOS.facturacionLeer] },
+        loadComponent: () => import('./features/facturacion/guias').then((m) => m.Guias),
       },
       {
         path: 'facturacion/comprobante/:id',

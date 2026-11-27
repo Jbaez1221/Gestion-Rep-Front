@@ -12,6 +12,8 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
+import { PERMISOS } from '../../core/auth/permisos';
+import { SesionService } from '../../core/auth/sesion.service';
 import { Problema, aProblema } from '../../core/http/problema';
 import {
   Caja,
@@ -23,23 +25,29 @@ import {
 } from '../../core/modelos/api.modelos';
 import { NotificacionesService } from '../../core/ui/notificaciones.service';
 import { ErrorApi } from '../../shared/ui/error-api';
+import { AbonoCajaPanel } from './abono-caja';
 import { CajaApi } from './caja.api';
+import { DevolucionCajaPanel } from './devolucion-caja';
+import { PagoProveedorCajaPanel } from './pago-proveedor-caja';
+import { NOMBRE_MEDIO, centimos } from './medios';
 
-export const NOMBRE_MEDIO: Record<MedioPago, string> = {
-  EFECTIVO: 'Efectivo',
-  TARJETA: 'Tarjeta',
-  YAPE_PLIN: 'Yape / Plin',
-  TRANSFERENCIA: 'Transferencia',
-};
+export { NOMBRE_MEDIO } from './medios';
 
-function centimos(n: number): number {
-  return Math.round((n + Number.EPSILON) * 100) / 100;
-}
+type Seccion = 'pedidos' | 'abonos' | 'devoluciones' | 'proveedores';
 
 /** El turno del cajero: abrir, cobrar los pedidos en caja, mover efectivo y cerrar con arqueo. */
 @Component({
   selector: 'app-caja-operar',
-  imports: [ReactiveFormsModule, RouterLink, DatePipe, DecimalPipe, ErrorApi],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    DatePipe,
+    DecimalPipe,
+    ErrorApi,
+    AbonoCajaPanel,
+    DevolucionCajaPanel,
+    PagoProveedorCajaPanel,
+  ],
   templateUrl: './caja-operar.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -47,6 +55,7 @@ export class CajaOperar implements OnInit {
   private readonly api = inject(CajaApi);
   private readonly avisos = inject(NotificacionesService);
   private readonly fb = inject(NonNullableFormBuilder);
+  private readonly permisos = inject(SesionService);
   protected readonly medios = NOMBRE_MEDIO;
   protected readonly listaMedios = Object.keys(NOMBRE_MEDIO) as MedioPago[];
 
@@ -57,6 +66,15 @@ export class CajaOperar implements OnInit {
   protected readonly cobrando = signal<PedidoPendiente | null>(null);
   protected readonly ultimoCobro = signal<Cobro | null>(null);
   protected readonly error = signal<Problema | null>(null);
+  protected readonly seccion = signal<Seccion>('pedidos');
+  protected readonly autorizarCredito = signal(false);
+  protected readonly puedeAutorizar = computed(() =>
+    this.permisos.tiene(PERMISOS.creditosAutorizar),
+  );
+  protected readonly puedeDevolver = computed(() => this.permisos.tiene(PERMISOS.cajaDevolver));
+  protected readonly puedePagarProveedores = computed(() =>
+    this.permisos.tiene(PERMISOS.cajaPagarProveedores),
+  );
   protected readonly cajasLibres = computed(() =>
     this.cajas().filter((c) => c.activo && !c.sesionAbierta),
   );
@@ -89,6 +107,13 @@ export class CajaOperar implements OnInit {
     const total = this.cobrando()?.total ?? 0;
     return Math.max(0, centimos(this.recibido() - total));
   });
+  protected readonly alCredito = computed(() =>
+    centimos(
+      (this.valoresPagos() ?? [])
+        .filter((p) => p.medio === 'CREDITO')
+        .reduce((s, p) => s + Number(p.monto ?? 0), 0),
+    ),
+  );
   protected readonly falta = computed(() => {
     const total = this.cobrando()?.total ?? 0;
     return Math.max(0, centimos(total - this.recibido()));
@@ -147,6 +172,10 @@ export class CajaOperar implements OnInit {
     }
   }
 
+  protected creditoDe(c: Cobro): number {
+    return c.pagos.filter((p) => p.medio === 'CREDITO').reduce((s, p) => s + p.monto, 0);
+  }
+
   protected async actualizar(): Promise<void> {
     await this.cargar();
   }
@@ -154,6 +183,7 @@ export class CajaOperar implements OnInit {
   protected empezarCobro(p: PedidoPendiente): void {
     this.cobrando.set(p);
     this.ultimoCobro.set(null);
+    this.autorizarCredito.set(false);
     this.pagos.clear();
     this.pagos.push(this.nuevoPago('EFECTIVO', p.total));
   }
@@ -178,8 +208,9 @@ export class CajaOperar implements OnInit {
           this.pagos.getRawValue().map((x) => ({
             medio: x.medio,
             monto: Number(x.monto),
-            referencia: x.referencia || null,
+            referencia: x.medio === 'CREDITO' ? null : x.referencia || null,
           })),
+          this.autorizarCredito(),
         ),
       );
       this.ultimoCobro.set(cobro);

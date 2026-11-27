@@ -8,10 +8,11 @@ import { Problema, aProblema } from '../../core/http/problema';
 import {
   ComprobanteVentaListado,
   Pagina,
-  TipoComprobanteVenta,
+  TipoComprobanteEmitido,
 } from '../../core/modelos/api.modelos';
 import { ErrorApi } from '../../shared/ui/error-api';
 import { Paginador } from '../../shared/ui/paginador';
+import { ESTADO_COMPROBANTE, NOMBRE_TIPO } from './etiquetas';
 import { FacturacionApi } from './facturacion.api';
 
 @Component({
@@ -19,12 +20,15 @@ import { FacturacionApi } from './facturacion.api';
   imports: [ReactiveFormsModule, RouterLink, DatePipe, DecimalPipe, ErrorApi, Paginador],
   template: `
     <section class="space-y-4">
-      <div>
-        <h1 class="titulo-pagina">Comprobantes de venta</h1>
-        <p class="mt-1 text-sm text-slate-600">
-          Boletas y facturas emitidas en caja. Quedan pendientes de envío hasta conectar el
-          facturador electrónico.
-        </p>
+      <div class="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h1 class="titulo-pagina">Comprobantes de venta</h1>
+          <p class="mt-1 text-sm text-slate-600">
+            Boletas, facturas y notas de crédito emitidas en caja, con su estado en SUNAT. Se envían
+            solas al facturador electrónico; las que fallan se reintentan.
+          </p>
+        </div>
+        <a routerLink="/facturacion/guias" class="btn-enlace">Guías de remisión</a>
       </div>
       <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
         <div class="min-w-64">
@@ -43,6 +47,7 @@ import { FacturacionApi } from './facturacion.api';
             <option value="">Todos</option>
             <option value="BOLETA">Boletas</option>
             <option value="FACTURA">Facturas</option>
+            <option value="NOTA_CREDITO">Notas de crédito</option>
           </select>
         </div>
         <div>
@@ -76,7 +81,7 @@ import { FacturacionApi } from './facturacion.api';
                     [routerLink]="['/facturacion/comprobante', c.id]"
                     class="text-marca-700 hover:underline"
                   >
-                    {{ c.tipo === 'FACTURA' ? 'Factura' : 'Boleta' }}
+                    {{ tipos[c.tipo] }}
                     <span class="font-mono">{{ c.comprobante }}</span>
                   </a>
                 </td>
@@ -89,7 +94,9 @@ import { FacturacionApi } from './facturacion.api';
                 </td>
                 <td class="font-mono">{{ c.origenNumero }}</td>
                 <td class="text-right">{{ c.total | number: '1.2-2' }}</td>
-                <td><span class="insignia-alerta">Pendiente de envío</span></td>
+                <td>
+                  <span [class]="estados[c.estado].clase">{{ estados[c.estado].texto }}</span>
+                </td>
               </tr>
             } @empty {
               <tr>
@@ -108,12 +115,14 @@ import { FacturacionApi } from './facturacion.api';
 })
 export class Comprobantes implements OnInit {
   private readonly api = inject(FacturacionApi);
+  protected readonly tipos = NOMBRE_TIPO;
+  protected readonly estados = ESTADO_COMPROBANTE;
   private readonly fb = inject(NonNullableFormBuilder);
   protected readonly pagina = signal<Pagina<ComprobanteVentaListado> | null>(null);
   protected readonly error = signal<Problema | null>(null);
   protected readonly filtros = this.fb.group({
     texto: [''],
-    tipo: ['' as TipoComprobanteVenta | ''],
+    tipo: ['' as TipoComprobanteEmitido | ''],
     desde: [''],
     hasta: [''],
   });
