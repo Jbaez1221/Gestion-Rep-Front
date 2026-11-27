@@ -96,6 +96,7 @@ export const SIMBOLO: Record<string, string> = { PEN: 'S/', USD: 'US$' };
           Detracción por depositar
         </label>
         <button type="submit" class="btn-secundario">Buscar</button>
+        <a class="btn-enlace" [href]="excel()" download>Exportar Excel</a>
       </form>
       <app-error-api [problema]="error()" />
       <div class="tarjeta overflow-x-auto p-0 sm:p-0">
@@ -177,6 +178,11 @@ export const SIMBOLO: Record<string, string> = { PEN: 'S/', USD: 'US$' };
 })
 export class CuentasPagar implements OnInit {
   private readonly api = inject(CreditosApi);
+
+  /** El Excel de la búsqueda, con los filtros puestos. */
+  protected excel(): string {
+    return this.api.cuentasPagarExcel(this.filtros.getRawValue());
+  }
   private readonly fb = inject(NonNullableFormBuilder);
   protected readonly simbolo = SIMBOLO;
   protected readonly pagina = signal<Pagina<CuentaPagarListado> | null>(null);

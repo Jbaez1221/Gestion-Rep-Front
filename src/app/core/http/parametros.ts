@@ -13,6 +13,12 @@ export function aParametros(valores: Record<string, ValorParametro>): HttpParams
   return params;
 }
 
+/** URL con sus query params (los vacíos ya filtrados por {@link aParametros}). */
+export function conParametros(url: string, params: HttpParams): string {
+  const consulta = params.toString();
+  return consulta ? `${url}?${consulta}` : url;
+}
+
 /** Inicio del día en hora de Lima (UTC-5), como instante UTC para la API. */
 export function inicioDelDiaLima(fecha: string): string | null {
   return fecha ? new Date(`${fecha}T00:00:00-05:00`).toISOString() : null;

@@ -14,6 +14,9 @@ import { CajaApi } from './caja.api';
   imports: [RouterLink, DatePipe, DecimalPipe, ErrorApi, Paginador],
   template: `
     <div class="space-y-4">
+      <div class="flex justify-end">
+        <a class="btn-enlace" [href]="excel" download>Exportar Excel</a>
+      </div>
       <app-error-api [problema]="error()" />
       <div class="tarjeta overflow-x-auto p-0 sm:p-0">
         <table class="tabla">
@@ -66,6 +69,7 @@ import { CajaApi } from './caja.api';
 })
 export class SesionesLista implements OnInit {
   private readonly api = inject(CajaApi);
+  protected readonly excel = this.api.sesionesExcel();
   protected readonly pagina = signal<Pagina<SesionListado> | null>(null);
   protected readonly error = signal<Problema | null>(null);
 

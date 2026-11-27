@@ -1,4 +1,4 @@
-import { AfectacionCompra, EstadoPedido } from '../../core/modelos/api.modelos';
+import { AfectacionCompra, EstadoCotizacion, EstadoPedido } from '../../core/modelos/api.modelos';
 
 const TASA_IGV = 0.18;
 
@@ -34,6 +34,19 @@ export const NOMBRE_ESTADO_PEDIDO: Record<EstadoPedido, string> = {
 export function claseEstadoPedido(estado: EstadoPedido): string {
   if (estado === 'ENVIADO') return 'insignia-alerta';
   if (estado === 'COBRADO') return 'insignia-ok';
+  return 'insignia-neutra';
+}
+
+export const NOMBRE_ESTADO_COTIZACION: Record<EstadoCotizacion, string> = {
+  VIGENTE: 'Vigente',
+  ACEPTADA: 'Aceptada',
+  VENCIDA: 'Vencida',
+  ANULADA: 'Anulada',
+};
+
+export function claseEstadoCotizacion(estado: EstadoCotizacion): string {
+  if (estado === 'VIGENTE') return 'insignia-alerta';
+  if (estado === 'ACEPTADA') return 'insignia-ok';
   return 'insignia-neutra';
 }
 

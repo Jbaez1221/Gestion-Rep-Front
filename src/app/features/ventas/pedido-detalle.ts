@@ -26,6 +26,8 @@ import {
   AlmacenOpcion,
   ArticuloVenta,
   ClienteRef,
+  Cotizacion,
+  CotizacionGuardar,
   Mostrador,
   PedidoGuardar,
   PedidoVenta,
@@ -38,7 +40,9 @@ import { ErrorApi } from '../../shared/ui/error-api';
 import { InventarioApi } from '../inventario/inventario.api';
 import { BuscadorCliente } from './buscador-cliente';
 import {
+  NOMBRE_ESTADO_COTIZACION,
   NOMBRE_ESTADO_PEDIDO,
+  claseEstadoCotizacion,
   claseEstadoPedido,
   conDescuento,
   importeVenta,
@@ -46,7 +50,10 @@ import {
 } from './calculo-venta';
 import { VentasApi } from './ventas.api';
 
-/** Mostrador: busca, agrega al pedido con el precio de la lista del cliente y lo pasa a caja. */
+/**
+ * Mostrador: busca, agrega al pedido con el precio de la lista del cliente y lo pasa a caja. En modo
+ * cotización arma la proforma con la misma búsqueda y la convierte en pedido cuando el cliente acepta.
+ */
 @Component({
   selector: 'app-pedido-detalle',
   imports: [ReactiveFormsModule, RouterLink, DecimalPipe, ErrorApi, BuscadorCliente],
@@ -64,10 +71,19 @@ export class PedidoDetalle implements OnInit {
   protected readonly nombres = NOMBRE_ESTADO_PEDIDO;
   protected readonly clase = claseEstadoPedido;
   protected readonly sigla = siglaDocumento;
+  protected readonly nombresCotizacion = NOMBRE_ESTADO_COTIZACION;
+  protected readonly claseCotizacion = claseEstadoCotizacion;
 
   readonly id = input<string>();
+  /** Viene de la ruta: las de cotización lo fijan en 'cotizacion'. */
+  readonly modo = input<'pedido' | 'cotizacion'>('pedido');
 
   protected readonly pedido = signal<PedidoVenta | null>(null);
+  protected readonly cotizacion = signal<Cotizacion | null>(null);
+  protected readonly esCotizacion = computed(() => this.modo() === 'cotizacion');
+  protected readonly documento = computed(() =>
+    this.esCotizacion() ? this.cotizacion() : this.pedido(),
+  );
   /** null: clientes varios (boleta sin identificar, hasta S/ 700). */
   protected readonly cliente = signal<ClienteRef | null>(null);
   protected readonly almacenes = signal<AlmacenOpcion[]>([]);
@@ -75,10 +91,12 @@ export class PedidoDetalle implements OnInit {
   protected readonly error = signal<Problema | null>(null);
   protected readonly guardando = signal(false);
 
-  protected readonly editable = computed(
-    () =>
-      (this.pedido()?.estado ?? 'BORRADOR') === 'BORRADOR' &&
-      this.sesion.tiene(PERMISOS.ventasPedido),
+  protected readonly editable = computed(() =>
+    this.esCotizacion()
+      ? (this.cotizacion()?.estado ?? 'VIGENTE') === 'VIGENTE' &&
+        this.sesion.tiene(PERMISOS.ventasCotizar)
+      : (this.pedido()?.estado ?? 'BORRADOR') === 'BORRADOR' &&
+        this.sesion.tiene(PERMISOS.ventasPedido),
   );
 
   protected readonly busqueda = this.fb.control('');
@@ -86,6 +104,8 @@ export class PedidoDetalle implements OnInit {
     almacenId: ['', Validators.required],
     tipoComprobante: ['BOLETA' as TipoComprobanteVenta],
     observacion: ['', Validators.maxLength(250)],
+    diasValidez: [7, [Validators.required, Validators.min(1), Validators.max(60)]],
+    condiciones: ['', Validators.maxLength(500)],
   });
   protected readonly lineas = this.fb.array([] as ReturnType<PedidoDetalle['nuevaLinea']>[]);
   private readonly valores = toSignal(this.lineas.valueChanges, {
@@ -173,7 +193,11 @@ export class PedidoDetalle implements OnInit {
 
   private async cargar(id: string): Promise<void> {
     try {
-      this.mostrar(await firstValueFrom(this.api.pedido(id)));
+      if (this.esCotizacion()) {
+        this.mostrarCotizacion(await firstValueFrom(this.api.cotizacion(id)));
+      } else {
+        this.mostrar(await firstValueFrom(this.api.pedido(id)));
+      }
     } catch (e) {
       this.error.set(aProblema(e));
     }
@@ -181,6 +205,17 @@ export class PedidoDetalle implements OnInit {
 
   private mostrar(p: PedidoVenta): void {
     this.pedido.set(p);
+    this.llenar(p);
+  }
+
+  private mostrarCotizacion(c: Cotizacion): void {
+    this.cotizacion.set(c);
+    const dias = Math.round((Date.parse(c.validaHasta) - Date.parse(c.fecha)) / 86_400_000);
+    this.cabecera.patchValue({ diasValidez: dias, condiciones: c.condiciones ?? '' });
+    this.llenar(c);
+  }
+
+  private llenar(p: PedidoVenta | Cotizacion): void {
     this.cliente.set(p.cliente.tipoDocumento === '0' ? null : p.cliente);
     this.cabecera.patchValue({
       almacenId: p.almacen?.id ?? '',
@@ -322,6 +357,15 @@ export class PedidoDetalle implements OnInit {
   protected async guardar(enviar = false): Promise<void> {
     const datos = this.datos();
     if (!datos) return;
+    if (this.esCotizacion()) {
+      const v = this.cabecera.getRawValue();
+      await this.guardarCotizacion({
+        ...datos,
+        diasValidez: Number(v.diasValidez),
+        condiciones: v.condiciones || null,
+      });
+      return;
+    }
     this.guardando.set(true);
     try {
       this.error.set(null);
@@ -344,6 +388,45 @@ export class PedidoDetalle implements OnInit {
     }
   }
 
+  private async guardarCotizacion(datos: CotizacionGuardar): Promise<void> {
+    this.guardando.set(true);
+    try {
+      this.error.set(null);
+      const id = this.id() ?? this.cotizacion()?.id;
+      const c = id
+        ? await firstValueFrom(this.api.actualizarCotizacion(id, datos))
+        : await firstValueFrom(this.api.crearCotizacion(datos));
+      this.avisos.exito(`Cotización ${c.numero} guardada: vale hasta el ${c.validaHasta}.`);
+      this.mostrarCotizacion(c);
+      if (!this.id()) await this.router.navigate(['/ventas/cotizacion', c.id]);
+    } catch (e) {
+      this.error.set(aProblema(e));
+    } finally {
+      this.guardando.set(false);
+    }
+  }
+
+  /** El cliente aceptó: genera el pedido con los precios cotizados y lo abre. */
+  protected async convertir(): Promise<void> {
+    const c = this.cotizacion();
+    if (!c) return;
+    this.guardando.set(true);
+    try {
+      this.error.set(null);
+      const p = await firstValueFrom(this.api.convertirCotizacion(c.id));
+      this.avisos.exito(`Pedido ${p.numero} generado desde la cotización ${c.numero}.`);
+      await this.router.navigate(['/ventas/pedido', p.id]);
+    } catch (e) {
+      this.error.set(aProblema(e));
+    } finally {
+      this.guardando.set(false);
+    }
+  }
+
+  protected excelCotizacion(id: string): string {
+    return this.api.cotizacionExcel(id);
+  }
+
   protected async devolver(): Promise<void> {
     const p = this.pedido();
     if (!p) return;
@@ -357,6 +440,10 @@ export class PedidoDetalle implements OnInit {
   }
 
   protected async anular(): Promise<void> {
+    if (this.esCotizacion()) {
+      await this.anularCotizacion();
+      return;
+    }
     const p = this.pedido();
     const motivo = window.prompt('¿Por qué se anula el pedido?')?.trim();
     if (!p || !motivo) return;
@@ -364,6 +451,19 @@ export class PedidoDetalle implements OnInit {
       this.error.set(null);
       this.mostrar(await firstValueFrom(this.api.anular(p.id, motivo)));
       this.avisos.exito('Pedido anulado.');
+    } catch (e) {
+      this.error.set(aProblema(e));
+    }
+  }
+
+  private async anularCotizacion(): Promise<void> {
+    const c = this.cotizacion();
+    const motivo = window.prompt('¿Por qué se anula la cotización?')?.trim();
+    if (!c || !motivo) return;
+    try {
+      this.error.set(null);
+      this.mostrarCotizacion(await firstValueFrom(this.api.anularCotizacion(c.id, motivo)));
+      this.avisos.exito('Cotización anulada.');
     } catch (e) {
       this.error.set(aProblema(e));
     }

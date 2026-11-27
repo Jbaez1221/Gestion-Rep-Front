@@ -11,13 +11,22 @@ import {
   TipoComprobanteEmitido,
 } from '../../core/modelos/api.modelos';
 import { ErrorApi } from '../../shared/ui/error-api';
+import { DescargaRegistro } from '../../shared/ui/descarga-registro';
 import { Paginador } from '../../shared/ui/paginador';
 import { ESTADO_COMPROBANTE, NOMBRE_TIPO } from './etiquetas';
-import { FacturacionApi } from './facturacion.api';
+import { FacturacionApi, RUTA_REGISTRO_VENTAS } from './facturacion.api';
 
 @Component({
   selector: 'app-comprobantes',
-  imports: [ReactiveFormsModule, RouterLink, DatePipe, DecimalPipe, ErrorApi, Paginador],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    DatePipe,
+    DecimalPipe,
+    ErrorApi,
+    Paginador,
+    DescargaRegistro,
+  ],
   template: `
     <section class="space-y-4">
       <div class="flex flex-wrap items-end justify-between gap-2">
@@ -28,7 +37,14 @@ import { FacturacionApi } from './facturacion.api';
             solas al facturador electrónico; las que fallan se reintentan.
           </p>
         </div>
-        <a routerLink="/facturacion/guias" class="btn-enlace">Guías de remisión</a>
+        <div class="flex flex-wrap items-end gap-4">
+          <app-descarga-registro
+            id="fc-registro"
+            etiqueta="Registro de ventas (14.1)"
+            [ruta]="rutaRegistro"
+          />
+          <a routerLink="/facturacion/guias" class="btn-enlace">Guías de remisión</a>
+        </div>
       </div>
       <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
         <div class="min-w-64">
@@ -48,6 +64,7 @@ import { FacturacionApi } from './facturacion.api';
             <option value="BOLETA">Boletas</option>
             <option value="FACTURA">Facturas</option>
             <option value="NOTA_CREDITO">Notas de crédito</option>
+            <option value="NOTA_DEBITO">Notas de débito</option>
           </select>
         </div>
         <div>
@@ -59,6 +76,7 @@ import { FacturacionApi } from './facturacion.api';
           <input id="fc-hasta" type="date" class="campo" formControlName="hasta" />
         </div>
         <button type="submit" class="btn-secundario">Buscar</button>
+        <a class="btn-enlace" [href]="excel()" download>Exportar Excel</a>
       </form>
       <app-error-api [problema]="error()" />
       <div class="tarjeta overflow-x-auto p-0 sm:p-0">
@@ -115,8 +133,14 @@ import { FacturacionApi } from './facturacion.api';
 })
 export class Comprobantes implements OnInit {
   private readonly api = inject(FacturacionApi);
+
+  /** El Excel de la búsqueda, con los filtros puestos. */
+  protected excel(): string {
+    return this.api.comprobantesExcel(this.filtros.getRawValue());
+  }
   protected readonly tipos = NOMBRE_TIPO;
   protected readonly estados = ESTADO_COMPROBANTE;
+  protected readonly rutaRegistro = RUTA_REGISTRO_VENTAS;
   private readonly fb = inject(NonNullableFormBuilder);
   protected readonly pagina = signal<Pagina<ComprobanteVentaListado> | null>(null);
   protected readonly error = signal<Problema | null>(null);

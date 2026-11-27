@@ -252,6 +252,20 @@ export const routes: Routes = [
           import('./features/ventas/pedido-detalle').then((m) => m.PedidoDetalle),
       },
       {
+        path: 'ventas/cotizacion/nueva',
+        title: 'Nueva cotización · Repuestos',
+        data: { permisos: [PERMISOS.ventasCotizar], modo: 'cotizacion' },
+        loadComponent: () =>
+          import('./features/ventas/pedido-detalle').then((m) => m.PedidoDetalle),
+      },
+      {
+        path: 'ventas/cotizacion/:id',
+        title: 'Cotización · Repuestos',
+        data: { permisos: [PERMISOS.ventasLeer], modo: 'cotizacion' },
+        loadComponent: () =>
+          import('./features/ventas/pedido-detalle').then((m) => m.PedidoDetalle),
+      },
+      {
         path: 'ventas/pedido/:id',
         title: 'Pedido · Repuestos',
         data: { permisos: [PERMISOS.ventasLeer] },
@@ -269,6 +283,11 @@ export const routes: Routes = [
             path: 'pedidos',
             loadComponent: () =>
               import('./features/ventas/pedidos-lista').then((m) => m.PedidosLista),
+          },
+          {
+            path: 'cotizaciones',
+            loadComponent: () =>
+              import('./features/ventas/cotizaciones-lista').then((m) => m.CotizacionesLista),
           },
           {
             path: 'listas',
@@ -366,6 +385,13 @@ export const routes: Routes = [
         data: { permisos: [PERMISOS.facturacionLeer] },
         loadComponent: () =>
           import('./features/facturacion/comprobante-detalle').then((m) => m.ComprobanteDetalle),
+      },
+      {
+        path: 'reportes/ventas',
+        title: 'Reporte de ventas · Repuestos',
+        data: { permisos: [PERMISOS.reportesVentas] },
+        loadComponent: () =>
+          import('./features/reportes/reporte-ventas').then((m) => m.ReporteVentasPagina),
       },
       {
         path: 'facturacion',

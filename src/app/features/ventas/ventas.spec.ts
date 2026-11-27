@@ -8,6 +8,7 @@ import { of, throwError } from 'rxjs';
 import {
   Articulo,
   ArticuloVenta,
+  Cotizacion,
   ListaPrecios,
   Mostrador,
   PedidoVenta,
@@ -18,7 +19,14 @@ import { ArticulosApi } from '../articulos/articulos.api';
 import { InventarioApi } from '../inventario/inventario.api';
 import { SociosApi } from '../socios/socios.api';
 import { BuscadorCliente } from './buscador-cliente';
-import { claseEstadoPedido, conDescuento, importeVenta, siglaDocumento } from './calculo-venta';
+import {
+  claseEstadoCotizacion,
+  claseEstadoPedido,
+  conDescuento,
+  importeVenta,
+  siglaDocumento,
+} from './calculo-venta';
+import { CotizacionesLista } from './cotizaciones-lista';
 import { ListasPrecios } from './listas-precios';
 import { PedidoDetalle } from './pedido-detalle';
 import { PedidosLista } from './pedidos-lista';
@@ -28,6 +36,7 @@ import { VentasApi } from './ventas.api';
 const TODOS = [
   'ventas:read',
   'ventas.pedido:create',
+  'ventas.cotizacion:create',
   'ventas.pedido:anular',
   'ventas.precios:update',
 ];
@@ -88,6 +97,7 @@ const PEDIDO: PedidoVenta = {
   descuento: 0,
   autorizadoPor: null,
   observacion: null,
+  cotizacionId: null,
   cobroId: null,
   fechaCierre: null,
   cerradoPor: null,
@@ -116,6 +126,37 @@ const PEDIDO: PedidoVenta = {
   fechaCreacion: null,
 };
 
+const COTIZACION: Cotizacion = {
+  id: 'ct1',
+  numero: 'CT-00000001',
+  sucursalId: 's1',
+  almacen: PEDIDO.almacen,
+  vendedor: 'ana',
+  cliente: PEDIDO.cliente,
+  lista: PEDIDO.lista,
+  tipoComprobante: 'BOLETA',
+  estado: 'VIGENTE',
+  fecha: '2026-11-15',
+  validaHasta: '2026-11-22',
+  gravado: 28.14,
+  exonerado: 0,
+  inafecto: 0,
+  igv: 5.06,
+  total: 33.2,
+  descuento: 0,
+  autorizadoPor: null,
+  observacion: null,
+  condiciones: 'Contado',
+  pedido: null,
+  fechaCierre: null,
+  cerradoPor: null,
+  motivoAnulacion: null,
+  lineas: PEDIDO.lineas,
+  avisos: ['De FIL-000001 solo hay 1 NIU disponibles hoy: la cotización no reserva stock.'],
+  creadoPor: 'ana',
+  fechaCreacion: null,
+};
+
 const LISTA: ListaPrecios = {
   id: 'l1',
   codigo: 'MOSTRADOR',
@@ -130,6 +171,7 @@ const LISTA: ListaPrecios = {
 function configurar(permisos = TODOS) {
   const api = {
     mostrador: vi.fn(() => of(MOSTRADOR)),
+    pedidosExcel: vi.fn(() => '/api/v1/ventas/pedidos/excel'),
     pedidos: vi.fn(() =>
       of(
         pagina([
@@ -157,6 +199,33 @@ function configurar(permisos = TODOS) {
       ),
     ),
     pedido: vi.fn(() => of(PEDIDO)),
+    cotizaciones: vi.fn(() =>
+      of(
+        pagina([
+          {
+            id: 'ct1',
+            numero: 'CT-00000001',
+            fecha: '2026-11-15',
+            validaHasta: '2026-11-22',
+            cliente: PEDIDO.cliente,
+            vendedor: 'ana',
+            tipoComprobante: 'BOLETA',
+            total: 33.2,
+            estado: 'ACEPTADA',
+            pedidoNumero: 'PV-00000009',
+          },
+        ]),
+      ),
+    ),
+    cotizacionesExcel: vi.fn(() => '/api/v1/ventas/cotizaciones/excel'),
+    cotizacionExcel: vi.fn((id: string) => `/api/v1/ventas/cotizaciones/${id}/excel`),
+    cotizacion: vi.fn(() => of(COTIZACION)),
+    crearCotizacion: vi.fn(() => of(COTIZACION)),
+    actualizarCotizacion: vi.fn(() => of(COTIZACION)),
+    anularCotizacion: vi.fn(() =>
+      of({ ...COTIZACION, estado: 'ANULADA', motivoAnulacion: 'Sin respuesta', avisos: [] }),
+    ),
+    convertirCotizacion: vi.fn(() => of({ ...PEDIDO, id: 'p9', cotizacionId: 'ct1' })),
     crear: vi.fn(() => of(PEDIDO)),
     actualizar: vi.fn(() => of(PEDIDO)),
     enviar: vi.fn(() => of({ ...PEDIDO, estado: 'ENVIADO', avisos: [] })),
@@ -303,6 +372,9 @@ describe('cálculo de ventas', () => {
     expect(claseEstadoPedido('ENVIADO')).toBe('insignia-alerta');
     expect(claseEstadoPedido('COBRADO')).toBe('insignia-ok');
     expect(claseEstadoPedido('ANULADO')).toBe('insignia-neutra');
+    expect(claseEstadoCotizacion('VIGENTE')).toBe('insignia-alerta');
+    expect(claseEstadoCotizacion('ACEPTADA')).toBe('insignia-ok');
+    expect(claseEstadoCotizacion('VENCIDA')).toBe('insignia-neutra');
   });
 });
 
@@ -312,6 +384,9 @@ describe('VentasApi (contrato)', () => {
       providers: [provideHttpClient(), provideHttpClientTesting()],
     });
     const api = TestBed.inject(VentasApi);
+    expect(api.pedidosExcel({ estado: 'COBRADO', propios: true, pagina: 2 })).toBe(
+      '/api/v1/ventas/pedidos/excel?estado=COBRADO&propios=true',
+    );
     const http = TestBed.inject(HttpTestingController);
     const espera = (metodo: string, url: string, cuerpo?: unknown) => {
       const r = http.expectOne((x) => x.urlWithParams === url);
@@ -335,6 +410,22 @@ describe('VentasApi (contrato)', () => {
     espera('POST', '/api/v1/ventas/pedidos/p1/devolver');
     api.anular('p1', 'x').subscribe();
     espera('POST', '/api/v1/ventas/pedidos/p1/anular', { motivo: 'x' });
+    expect(api.cotizacionesExcel({ estado: 'VIGENTE', pagina: 3 })).toBe(
+      '/api/v1/ventas/cotizaciones/excel?estado=VIGENTE',
+    );
+    expect(api.cotizacionExcel('ct1')).toBe('/api/v1/ventas/cotizaciones/ct1/excel');
+    api.cotizaciones({ texto: ' CT ', propios: true, pagina: 1 }).subscribe();
+    espera('GET', '/api/v1/ventas/cotizaciones?texto=CT&propios=true&pagina=1');
+    api.cotizacion('ct1').subscribe();
+    espera('GET', '/api/v1/ventas/cotizaciones/ct1');
+    api.crearCotizacion({} as never).subscribe();
+    espera('POST', '/api/v1/ventas/cotizaciones');
+    api.actualizarCotizacion('ct1', {} as never).subscribe();
+    espera('PUT', '/api/v1/ventas/cotizaciones/ct1');
+    api.anularCotizacion('ct1', 'x').subscribe();
+    espera('POST', '/api/v1/ventas/cotizaciones/ct1/anular', { motivo: 'x' });
+    api.convertirCotizacion('ct1').subscribe();
+    espera('POST', '/api/v1/ventas/cotizaciones/ct1/pedido');
     api.listas().subscribe();
     espera('GET', '/api/v1/ventas/listas');
     api.crearLista({} as never).subscribe();
@@ -478,6 +569,113 @@ describe('Ventas · pedidos', () => {
     nuevo.html.querySelector('#pv-buscar')?.closest('form')?.dispatchEvent(new Event('submit'));
     await nuevo.estable();
     expect(nuevo.html.querySelector('[role=alert]')).not.toBeNull();
+  });
+});
+
+describe('Ventas · cotizaciones', () => {
+  it('lista las cotizaciones con su pedido y filtros', async () => {
+    const api = configurar();
+    const tabs = await crear(Ventas);
+    expect(tabs.html.querySelector('a[href="/ventas/cotizacion/nueva"]')).not.toBeNull();
+    expect(tabs.html.textContent).toContain('Cotizaciones');
+    const { html, boton, estable } = await crear(CotizacionesLista);
+    expect(html.textContent).toContain('CT-00000001');
+    expect(html.textContent).toContain('Aceptada');
+    expect(html.textContent).toContain('PV-00000009');
+    expect(html.querySelector('a[download]')?.getAttribute('href')).toBe(
+      '/api/v1/ventas/cotizaciones/excel',
+    );
+    html.querySelector<HTMLInputElement>('input[formcontrolname=propios]')?.click();
+    boton('Buscar')?.click();
+    await estable();
+    expect(api.cotizaciones).toHaveBeenLastCalledWith(expect.objectContaining({ propios: true }));
+    api.cotizaciones.mockReturnValue(throwError(() => new Error('x')));
+    boton('Buscar')?.click();
+    await estable();
+    expect(html.querySelector('[role=alert]')).not.toBeNull();
+  });
+
+  it('arma una cotización con su validez y condiciones', async () => {
+    const api = configurar();
+    const { html, boton, escribir, estable } = await crear(PedidoDetalle, { modo: 'cotizacion' });
+    const navegar = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    expect(html.textContent).toContain('Nueva cotización');
+    expect(boton('Enviar a caja')).toBeUndefined();
+    escribir('#pv-buscar', 'filtro');
+    html.querySelector('#pv-buscar')?.closest('form')?.dispatchEvent(new Event('submit'));
+    await estable();
+    boton('+ NIU · S/ 16.60')?.click();
+    escribir('#pv-validez', '15');
+    escribir('#pv-condiciones', 'Contado');
+    await estable();
+    boton('Guardar cotización')?.click();
+    await estable();
+    expect(api.crearCotizacion).toHaveBeenCalledWith({
+      almacenId: 'al1',
+      clienteId: null,
+      tipoComprobante: 'BOLETA',
+      observacion: null,
+      diasValidez: 15,
+      condiciones: 'Contado',
+      lineas: [{ articuloId: 'a1', unidad: 'NIU', cantidad: 1, descuento: 0 }],
+    });
+    expect(navegar).toHaveBeenCalledWith(['/ventas/cotizacion', 'ct1']);
+  });
+
+  it('abre una vigente, la descarga, la convierte en pedido o la anula', async () => {
+    const api = configurar();
+    const { html, boton, estable } = await crear(PedidoDetalle, { id: 'ct1', modo: 'cotizacion' });
+    const navegar = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    expect(html.textContent).toContain('CT-00000001');
+    expect(html.textContent).toContain('2026-11-22');
+    expect(html.textContent).toContain('no reserva stock');
+    expect(html.querySelector<HTMLInputElement>('#pv-validez')?.value).toBe('7');
+    expect(html.querySelector<HTMLTextAreaElement>('#pv-condiciones')?.value).toBe('Contado');
+    expect(html.querySelector('a[download]')?.getAttribute('href')).toBe(
+      '/api/v1/ventas/cotizaciones/ct1/excel',
+    );
+    boton('Guardar cotización')?.click();
+    await estable();
+    expect(api.actualizarCotizacion).toHaveBeenCalledWith(
+      'ct1',
+      expect.objectContaining({ diasValidez: 7, condiciones: 'Contado' }),
+    );
+    boton('Convertir en pedido')?.click();
+    await estable();
+    expect(api.convertirCotizacion).toHaveBeenCalledWith('ct1');
+    expect(navegar).toHaveBeenCalledWith(['/ventas/pedido', 'p9']);
+    vi.spyOn(window, 'prompt').mockReturnValueOnce('Sin respuesta');
+    boton('Anular')?.click();
+    await estable();
+    expect(api.anularCotizacion).toHaveBeenCalledWith('ct1', 'Sin respuesta');
+    expect(html.textContent).toContain('anulada: Sin respuesta');
+    expect(boton('Convertir en pedido')).toBeUndefined();
+  });
+
+  it('una aceptada solo se consulta y enlaza su pedido', async () => {
+    const api = configurar();
+    api.cotizacion.mockReturnValue(
+      of({ ...COTIZACION, estado: 'ACEPTADA', pedido: { id: 'p9', nombre: 'PV-00000009' } }),
+    );
+    const { html, boton } = await crear(PedidoDetalle, { id: 'ct1', modo: 'cotizacion' });
+    expect(html.querySelector('a[href="/ventas/pedido/p9"]')?.textContent).toContain('PV-00000009');
+    expect(html.querySelector<HTMLInputElement>('#pv-cant-0')?.disabled).toBe(true);
+    expect(boton('Guardar cotización')).toBeUndefined();
+    expect(boton('Convertir en pedido')).toBeUndefined();
+    api.pedido.mockReturnValue(of({ ...PEDIDO, cotizacionId: 'ct1' }));
+    const pedido = await crear(PedidoDetalle, { id: 'p1' });
+    expect(pedido.html.querySelector('a[href="/ventas/cotizacion/ct1"]')).not.toBeNull();
+  });
+
+  it('sin permiso de pedido no convierte y muestra los errores', async () => {
+    const api = configurar(['ventas:read', 'ventas.cotizacion:create']);
+    const { html, boton } = await crear(PedidoDetalle, { id: 'ct1', modo: 'cotizacion' });
+    expect(boton('Convertir en pedido')).toBeUndefined();
+    expect(boton('Guardar cotización')).not.toBeUndefined();
+    api.cotizacion.mockReturnValue(throwError(() => new Error('x')));
+    const fallida = await crear(PedidoDetalle, { id: 'ct9', modo: 'cotizacion' });
+    expect(fallida.html.querySelector('[role=alert]')).not.toBeNull();
+    expect(html.textContent).toContain('CT-00000001');
   });
 });
 
