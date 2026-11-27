@@ -33,14 +33,14 @@ let siguienteId = 0;
       />
       @if (resultados().length > 0) {
         <ul
-          class="absolute z-10 mt-1 max-h-72 w-full overflow-auto rounded-md border border-slate-200 bg-white shadow-lg"
+          class="absolute z-10 mt-1 max-h-72 w-full overflow-auto rounded-md border border-borde bg-superficie shadow-lg"
           aria-label="Proveedores encontrados"
         >
           @for (s of resultados(); track s.id) {
             <li>
               <button
                 type="button"
-                class="block w-full px-3 py-2 text-left text-sm hover:bg-slate-100"
+                class="block w-full px-3 py-2 text-left text-sm hover:bg-superficie-3"
                 (click)="elegir(s)"
               >
                 <span class="font-mono">{{ s.numeroDocumento }}</span> · {{ s.nombre }}
@@ -53,7 +53,7 @@ let siguienteId = 0;
         </ul>
       }
       @if (sinResultados()) {
-        <p class="mt-1 text-xs text-slate-500">No hay proveedores con ese nombre o RUC.</p>
+        <p class="mt-1 text-xs text-texto-suave">No hay proveedores con ese nombre o RUC.</p>
       }
     </div>
   `,

@@ -7,6 +7,7 @@ import { SesionService } from '../../core/auth/sesion.service';
 import { Problema, aProblema } from '../../core/http/problema';
 import { Permiso, Rol } from '../../core/modelos/api.modelos';
 import { NotificacionesService } from '../../core/ui/notificaciones.service';
+import { DialogosService } from '../../shared/ui/dialogos';
 import { ErrorApi } from '../../shared/ui/error-api';
 import { RolesApi } from './roles.api';
 
@@ -34,6 +35,7 @@ export function agruparPorModulo(permisos: Permiso[]): GrupoPermisos[] {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Roles {
+  private readonly dialogos = inject(DialogosService);
   private readonly api = inject(RolesApi);
   private readonly avisos = inject(NotificacionesService);
   private readonly fb = inject(NonNullableFormBuilder);
@@ -150,7 +152,14 @@ export class Roles {
 
   protected async eliminar(): Promise<void> {
     const r = this.seleccionado();
-    if (!r || !window.confirm(`¿Eliminar el rol ${r.nombre}?`)) {
+    if (
+      !r ||
+      !(await this.dialogos.confirmar({
+        titulo: `¿Eliminar el rol ${r.nombre}?`,
+        aceptar: 'Eliminar',
+        peligro: true,
+      }))
+    ) {
       return;
     }
     await this.ejecutar(async () => {

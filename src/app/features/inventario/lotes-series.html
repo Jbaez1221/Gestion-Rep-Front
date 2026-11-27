@@ -3,7 +3,7 @@
 <div class="grid gap-4 xl:grid-cols-2">
   <section class="space-y-3" aria-labelledby="titulo-lotes">
     <h2 id="titulo-lotes" class="font-semibold">Lotes con stock</h2>
-    <form [formGroup]="filtros" (ngSubmit)="buscarLotes(0)" class="flex flex-wrap items-end gap-3">
+    <form [formGroup]="filtros" (ngSubmit)="buscarLotes(0)" class="barra-filtros">
       <div>
         <label for="l-almacen" class="etiqueta">Almacén</label>
         <select id="l-almacen" class="campo" formControlName="almacenId">
@@ -36,9 +36,9 @@
             <th scope="col" class="text-right">Cantidad</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-100">
+        <tbody class="divide-y divide-borde">
           @for (l of lotes()?.contenido ?? []; track l.id) {
-            <tr [class.text-red-700]="(l.diasParaVencer ?? 1) < 0">
+            <tr [class.text-peligro-texto]="(l.diasParaVencer ?? 1) < 0">
               <td>
                 <span class="font-mono">{{ l.articulo.codigo }}</span> ·
                 {{ l.articulo.descripcion }}
@@ -61,7 +61,7 @@
             </tr>
           } @empty {
             <tr>
-              <td colspan="5" class="py-6 text-center text-slate-500">
+              <td colspan="5" class="py-6 text-center text-texto-suave">
                 No hay lotes con esos filtros.
               </td>
             </tr>
@@ -109,7 +109,7 @@
               <th scope="col"><span class="sr-only">Historia</span></th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100">
+          <tbody class="divide-y divide-borde">
             @for (s of lista; track s.id) {
               <tr>
                 <td class="font-mono">{{ s.numero }}</td>
@@ -123,7 +123,7 @@
               </tr>
             } @empty {
               <tr>
-                <td colspan="4" class="py-6 text-center text-slate-500">Sin series.</td>
+                <td colspan="4" class="py-6 text-center text-texto-suave">Sin series.</td>
               </tr>
             }
           </tbody>

@@ -1,25 +1,151 @@
 @import 'tailwindcss';
+@import '@angular/cdk/overlay-prebuilt.css';
 
-/* Identidad propia del sistema: tokens que usan todos los componentes. */
+/*
+ * Identidad del sistema en tokens semánticos: cada pieza de la interfaz usa estos colores (bg-superficie,
+ * text-texto-2, border-borde, bg-acento…), nunca la paleta de Tailwind directamente. El tema oscuro solo
+ * cambia los valores. Contraste verificado: 4.5:1 en textos y 3:1 en bordes de controles y foco (WCAG AA).
+ */
+:root {
+  color-scheme: light;
+  --fondo: oklch(0.975 0.004 255);
+  --superficie: oklch(1 0 0);
+  --superficie-2: oklch(0.965 0.005 255);
+  --superficie-3: oklch(0.93 0.008 255);
+  --borde: oklch(0.91 0.008 255);
+  --borde-fuerte: oklch(0.62 0.012 255);
+  --texto: oklch(0.22 0.015 260);
+  --texto-2: oklch(0.42 0.015 260);
+  --texto-suave: oklch(0.52 0.012 260);
+  --acento: oklch(0.5 0.15 258);
+  --acento-hover: oklch(0.44 0.14 258);
+  --acento-suave: oklch(0.955 0.025 258);
+  --texto-acento: oklch(0.47 0.15 258);
+  --sobre-acento: oklch(1 0 0);
+  --exito: oklch(0.52 0.12 155);
+  --exito-suave: oklch(0.955 0.04 155);
+  --exito-texto: oklch(0.42 0.1 155);
+  --aviso: oklch(0.75 0.15 75);
+  --aviso-suave: oklch(0.965 0.05 85);
+  --aviso-texto: oklch(0.47 0.1 60);
+  --peligro: oklch(0.53 0.19 27);
+  --peligro-suave: oklch(0.96 0.025 25);
+  --peligro-texto: oklch(0.48 0.18 27);
+  --info-suave: oklch(0.955 0.025 240);
+  --info-texto: oklch(0.45 0.12 240);
+  --foco: oklch(0.55 0.17 258);
+}
+
+/* Oscuro: por elección del usuario (clase en <html>) o, si no eligió, por la preferencia del sistema. */
+:root.oscuro {
+  color-scheme: dark;
+  --fondo: oklch(0.17 0.01 260);
+  --superficie: oklch(0.21 0.012 260);
+  --superficie-2: oklch(0.25 0.013 260);
+  --superficie-3: oklch(0.3 0.015 260);
+  --borde: oklch(0.31 0.014 260);
+  --borde-fuerte: oklch(0.55 0.015 260);
+  --texto: oklch(0.95 0.005 260);
+  --texto-2: oklch(0.82 0.01 260);
+  --texto-suave: oklch(0.7 0.012 260);
+  --acento: oklch(0.62 0.14 258);
+  --acento-hover: oklch(0.68 0.13 258);
+  --acento-suave: oklch(0.3 0.06 258);
+  --texto-acento: oklch(0.78 0.11 258);
+  --sobre-acento: oklch(0.15 0.02 260);
+  --exito: oklch(0.68 0.13 155);
+  --exito-suave: oklch(0.29 0.05 155);
+  --exito-texto: oklch(0.82 0.12 155);
+  --aviso: oklch(0.78 0.14 75);
+  --aviso-suave: oklch(0.31 0.05 75);
+  --aviso-texto: oklch(0.86 0.12 85);
+  --peligro: oklch(0.68 0.17 25);
+  --peligro-suave: oklch(0.3 0.07 25);
+  --peligro-texto: oklch(0.8 0.12 25);
+  --info-suave: oklch(0.29 0.05 240);
+  --info-texto: oklch(0.82 0.09 240);
+  --foco: oklch(0.72 0.13 258);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.claro) {
+    color-scheme: dark;
+    --fondo: oklch(0.17 0.01 260);
+    --superficie: oklch(0.21 0.012 260);
+    --superficie-2: oklch(0.25 0.013 260);
+    --superficie-3: oklch(0.3 0.015 260);
+    --borde: oklch(0.31 0.014 260);
+    --borde-fuerte: oklch(0.55 0.015 260);
+    --texto: oklch(0.95 0.005 260);
+    --texto-2: oklch(0.82 0.01 260);
+    --texto-suave: oklch(0.7 0.012 260);
+    --acento: oklch(0.62 0.14 258);
+    --acento-hover: oklch(0.68 0.13 258);
+    --acento-suave: oklch(0.3 0.06 258);
+    --texto-acento: oklch(0.78 0.11 258);
+    --sobre-acento: oklch(0.15 0.02 260);
+    --exito: oklch(0.68 0.13 155);
+    --exito-suave: oklch(0.29 0.05 155);
+    --exito-texto: oklch(0.82 0.12 155);
+    --aviso: oklch(0.78 0.14 75);
+    --aviso-suave: oklch(0.31 0.05 75);
+    --aviso-texto: oklch(0.86 0.12 85);
+    --peligro: oklch(0.68 0.17 25);
+    --peligro-suave: oklch(0.3 0.07 25);
+    --peligro-texto: oklch(0.8 0.12 25);
+    --info-suave: oklch(0.29 0.05 240);
+    --info-texto: oklch(0.82 0.09 240);
+    --foco: oklch(0.72 0.13 258);
+  }
+}
+
+@custom-variant dark (&:where(.oscuro, .oscuro *));
+
+@theme inline {
+  --color-fondo: var(--fondo);
+  --color-superficie: var(--superficie);
+  --color-superficie-2: var(--superficie-2);
+  --color-superficie-3: var(--superficie-3);
+  --color-borde: var(--borde);
+  --color-borde-fuerte: var(--borde-fuerte);
+  --color-texto: var(--texto);
+  --color-texto-2: var(--texto-2);
+  --color-texto-suave: var(--texto-suave);
+  --color-acento: var(--acento);
+  --color-acento-hover: var(--acento-hover);
+  --color-acento-suave: var(--acento-suave);
+  --color-texto-acento: var(--texto-acento);
+  --color-sobre-acento: var(--sobre-acento);
+  --color-exito: var(--exito);
+  --color-exito-suave: var(--exito-suave);
+  --color-exito-texto: var(--exito-texto);
+  --color-aviso: var(--aviso);
+  --color-aviso-suave: var(--aviso-suave);
+  --color-aviso-texto: var(--aviso-texto);
+  --color-peligro: var(--peligro);
+  --color-peligro-suave: var(--peligro-suave);
+  --color-peligro-texto: var(--peligro-texto);
+  --color-info-suave: var(--info-suave);
+  --color-info-texto: var(--info-texto);
+  --color-foco: var(--foco);
+}
+
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-
-  --color-marca-50: oklch(0.98 0.02 182);
-  --color-marca-100: oklch(0.95 0.05 181);
-  --color-marca-500: oklch(0.6 0.12 185);
-  --color-marca-600: oklch(0.51 0.1 186);
-  --color-marca-700: oklch(0.44 0.09 188);
-  --color-marca-900: oklch(0.31 0.06 190);
 }
 
 @layer base {
   html {
-    @apply bg-slate-50 text-slate-900 antialiased;
+    @apply bg-fondo text-texto antialiased;
   }
 
   /* Foco siempre visible al navegar con teclado (WCAG 2.2, 2.4.7 / 2.4.11). */
   :focus-visible {
-    @apply outline-2 outline-offset-2 outline-marca-600;
+    @apply outline-2 outline-offset-2 outline-foco;
+  }
+
+  ::placeholder {
+    @apply text-texto-suave;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -32,61 +158,156 @@
   }
 }
 
-/* Piezas de UI reutilizables (plantillas básicas). Con @utility se pueden componer entre sí. */
+/* Piezas de UI reutilizables. Con @utility se pueden componer entre sí. */
 @utility btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+  @apply inline-flex min-h-9 items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors select-none disabled:cursor-not-allowed disabled:opacity-50;
 }
 @utility btn-primario {
-  @apply btn bg-marca-600 text-white hover:bg-marca-700;
+  @apply btn bg-acento text-sobre-acento shadow-sm hover:bg-acento-hover;
 }
 @utility btn-secundario {
-  @apply btn border border-slate-300 bg-white text-slate-700 hover:bg-slate-50;
+  @apply btn border border-borde-fuerte/40 bg-superficie text-texto-2 shadow-sm hover:bg-superficie-2 hover:text-texto;
 }
 @utility btn-peligro {
-  @apply btn bg-red-600 text-white hover:bg-red-700;
+  @apply btn bg-peligro text-sobre-acento shadow-sm hover:opacity-90;
+}
+@utility btn-fantasma {
+  @apply btn text-texto-2 hover:bg-superficie-2 hover:text-texto;
 }
 @utility btn-enlace {
-  @apply text-sm font-medium text-marca-700 underline-offset-2 hover:underline;
+  @apply inline-flex items-center gap-1 rounded-sm text-sm font-medium text-texto-acento underline-offset-2 hover:underline;
 }
 @utility etiqueta {
-  @apply mb-1 block text-sm font-medium text-slate-700;
+  @apply mb-1 block text-sm font-medium text-texto-2;
 }
 @utility campo {
-  @apply block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-marca-500 focus:ring-1 focus:ring-marca-500 focus:outline-none aria-invalid:border-red-500;
+  @apply block min-h-9 w-full rounded-md border border-borde-fuerte/50 bg-superficie px-3 py-1.5 text-sm text-texto shadow-xs transition-colors focus:border-acento focus:ring-2 focus:ring-acento/25 focus:outline-none disabled:bg-superficie-2 disabled:text-texto-suave aria-invalid:border-peligro;
 }
 @utility error-campo {
-  @apply mt-1 text-xs text-red-700;
+  @apply mt-1 text-xs text-peligro-texto;
 }
 @utility tarjeta {
-  @apply rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-6;
+  @apply rounded-xl border border-borde bg-superficie p-4 shadow-xs sm:p-5;
 }
 @utility titulo-pagina {
-  @apply text-2xl font-semibold text-slate-900;
+  @apply text-xl font-semibold tracking-tight text-texto sm:text-2xl;
+}
+@utility subtitulo {
+  @apply text-sm text-texto-suave;
 }
 @utility tabla {
-  @apply min-w-full divide-y divide-slate-200 text-left text-sm;
+  @apply min-w-full divide-y divide-borde text-left text-sm;
 }
 @utility insignia {
-  @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
+  @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap;
 }
 @utility insignia-ok {
-  @apply insignia bg-emerald-100 text-emerald-800;
+  @apply insignia bg-exito-suave text-exito-texto;
 }
 @utility insignia-alerta {
-  @apply insignia bg-amber-100 text-amber-800;
+  @apply insignia bg-aviso-suave text-aviso-texto;
+}
+@utility insignia-peligro {
+  @apply insignia bg-peligro-suave text-peligro-texto;
+}
+@utility insignia-info {
+  @apply insignia bg-info-suave text-info-texto;
 }
 @utility insignia-neutra {
-  @apply insignia bg-slate-100 text-slate-700;
+  @apply insignia bg-superficie-3 text-texto-2;
+}
+@utility aviso-caja {
+  @apply rounded-lg border border-aviso/40 bg-aviso-suave p-3 text-sm text-aviso-texto;
+}
+@utility peligro-caja {
+  @apply rounded-lg border border-peligro/40 bg-peligro-suave p-3 text-sm text-peligro-texto;
+}
+@utility menu-flotante {
+  @apply z-50 min-w-44 rounded-lg border border-borde bg-superficie p-1 shadow-lg;
+}
+@utility menu-item {
+  @apply flex min-h-9 w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-texto-2 outline-none hover:bg-superficie-2 hover:text-texto focus:bg-superficie-2 aria-checked:font-semibold aria-checked:text-texto-acento;
+}
+@utility kpi {
+  @apply relative flex flex-col gap-1 rounded-xl border border-borde bg-superficie p-4 shadow-xs transition-colors hover:border-acento/50 sm:p-5;
+}
+@utility kpi-icono {
+  @apply mb-1 grid size-9 place-items-center rounded-lg bg-acento-suave text-texto-acento;
+}
+@utility kpi-etiqueta {
+  @apply text-sm font-medium text-texto-suave;
+}
+@utility kpi-valor {
+  @apply text-2xl font-semibold tracking-tight text-texto tabular-nums;
+}
+@utility kpi-detalle {
+  @apply text-sm text-texto-2;
+}
+@utility barra-filtros {
+  @apply flex flex-wrap items-end gap-3 rounded-xl border border-borde bg-superficie p-3 shadow-xs sm:p-4 [&_.btn-enlace]:min-h-9;
 }
 @utility pestana {
-  @apply -mb-px border-b-2 border-transparent px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-900;
+  @apply -mb-px inline-flex min-h-9 items-center border-b-2 border-transparent px-3 py-2 text-sm font-medium text-texto-suave hover:text-texto;
 }
 
 @layer components {
   .tabla th {
-    @apply bg-slate-50 px-3 py-2 font-semibold whitespace-nowrap text-slate-700;
+    @apply bg-superficie-2 px-3 py-2 text-xs font-semibold tracking-wide whitespace-nowrap text-texto-2 uppercase;
   }
   .tabla td {
-    @apply px-3 py-2 align-top text-slate-700;
+    @apply px-3 py-2 align-top text-texto-2;
+  }
+  .tabla tbody tr {
+    @apply transition-colors hover:bg-superficie-2/60;
+  }
+  /* Números de documento y códigos en una sola línea (PV-00000041, F001-00000123). */
+  .tabla td.font-mono,
+  .tabla td .font-mono {
+    @apply whitespace-nowrap;
+  }
+  .barra {
+    @apply h-2.5 w-full appearance-none overflow-hidden rounded-full bg-superficie-3;
+  }
+  .barra::-webkit-progress-bar {
+    @apply bg-superficie-3;
+  }
+  .barra::-webkit-progress-value {
+    @apply rounded-full bg-acento;
+  }
+  .barra::-moz-progress-bar {
+    @apply rounded-full bg-acento;
+  }
+  .fondo-dialogo {
+    @apply bg-black/50;
+  }
+  /* Pestaña activa: la marca routerLinkActive o aria-current. */
+  .pestana[aria-current='page'] {
+    @apply border-acento text-texto-acento;
+  }
+}
+
+/* Tablet y pantallas táctiles: áreas de toque de al menos 44 px (WCAG 2.5.8 recomienda 24; 44 es cómodo). */
+@media (pointer: coarse) {
+  .btn,
+  .btn-primario,
+  .btn-secundario,
+  .btn-peligro,
+  .btn-fantasma,
+  .campo,
+  .pestana,
+  .menu-item {
+    min-height: 2.75rem;
+  }
+  .btn-enlace {
+    min-height: 2.75rem;
+  }
+  .tabla td,
+  .tabla th {
+    padding-block: 0.75rem;
+  }
+  input[type='checkbox'],
+  input[type='radio'] {
+    width: 1.25rem;
+    height: 1.25rem;
   }
 }

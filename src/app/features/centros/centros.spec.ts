@@ -17,6 +17,7 @@ import { Imputaciones } from './imputaciones';
 import { Periodos } from './periodos';
 import { Presupuesto } from './presupuesto';
 import { ReportesCentros } from './reportes';
+import { DialogosService } from '../../shared/ui/dialogos';
 
 function centro(c: Partial<Centro> & Pick<Centro, 'id' | 'codigo'>): Centro {
   return {
@@ -448,7 +449,9 @@ describe('Periodos', () => {
     const api = configurar();
     const { html, estable, boton } = await crear(Periodos);
     expect(html.textContent).toContain('Por admin');
-    vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValue(true);
+    vi.spyOn(TestBed.inject(DialogosService), 'confirmar')
+      .mockResolvedValueOnce(false)
+      .mockResolvedValue(true);
     boton('Cerrar')?.click();
     await estable();
     expect(api.cerrarPeriodo).not.toHaveBeenCalled();
@@ -519,7 +522,9 @@ describe('Imputaciones', () => {
     expect(
       [...html.querySelectorAll('td button')].filter((b) => b.textContent?.includes('Extornar')),
     ).toHaveLength(1);
-    vi.spyOn(window, 'prompt').mockReturnValueOnce('').mockReturnValue('duplicado');
+    vi.spyOn(TestBed.inject(DialogosService), 'pedirTexto')
+      .mockResolvedValueOnce('')
+      .mockResolvedValue('duplicado');
     boton('Extornar')?.click();
     await estable();
     expect(api.extornar).not.toHaveBeenCalled();

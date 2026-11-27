@@ -10,11 +10,11 @@ import { SesionService } from '../../core/auth/sesion.service';
   template: `
     <section class="space-y-4">
       <h1 class="titulo-pagina">Auditoría</h1>
-      <nav class="flex gap-1 border-b border-slate-200" aria-label="Secciones de auditoría">
+      <nav class="flex gap-1 border-b border-borde" aria-label="Secciones de auditoría">
         @if (sesion.tiene(permisos.auditoriaLeer)) {
           <a
             routerLink="cambios"
-            routerLinkActive="border-marca-600 text-marca-700"
+            routerLinkActive="border-acento text-texto-acento"
             ariaCurrentWhenActive="page"
             class="pestana"
           >
@@ -24,7 +24,7 @@ import { SesionService } from '../../core/auth/sesion.service';
         @if (sesion.tiene(permisos.auditoriaEventos)) {
           <a
             routerLink="eventos"
-            routerLinkActive="border-marca-600 text-marca-700"
+            routerLinkActive="border-acento text-texto-acento"
             ariaCurrentWhenActive="page"
             class="pestana"
           >
@@ -34,7 +34,7 @@ import { SesionService } from '../../core/auth/sesion.service';
         @if (sesion.tiene(permisos.auditoriaLeer)) {
           <a
             routerLink="flujo"
-            routerLinkActive="border-marca-600 text-marca-700"
+            routerLinkActive="border-acento text-texto-acento"
             ariaCurrentWhenActive="page"
             class="pestana"
           >

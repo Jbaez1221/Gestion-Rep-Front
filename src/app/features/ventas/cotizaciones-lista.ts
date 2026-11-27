@@ -16,7 +16,7 @@ import { VentasApi } from './ventas.api';
   imports: [ReactiveFormsModule, RouterLink, ErrorApi, Paginador, DatePipe, DecimalPipe],
   template: `
     <div class="space-y-4">
-      <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
+      <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="barra-filtros">
         <div class="min-w-64">
           <label for="ct-texto" class="etiqueta">Buscar</label>
           <input
@@ -56,13 +56,13 @@ import { VentasApi } from './ventas.api';
               <th scope="col">Estado</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100">
+          <tbody class="divide-y divide-borde">
             @for (c of pagina()?.contenido ?? []; track c.id) {
               <tr>
                 <td class="font-mono">
                   <a
                     [routerLink]="['/ventas/cotizacion', c.id]"
-                    class="text-marca-700 hover:underline"
+                    class="text-texto-acento hover:underline"
                     >{{ c.numero }}</a
                   >
                 </td>
@@ -70,7 +70,7 @@ import { VentasApi } from './ventas.api';
                 <td>{{ c.validaHasta | date: 'dd/MM/yyyy' }}</td>
                 <td>
                   {{ c.cliente.nombre }}
-                  <span class="block font-mono text-xs text-slate-500"
+                  <span class="block font-mono text-xs text-texto-suave"
                     >{{ sigla(c.cliente.tipoDocumento) }} {{ c.cliente.documento }}</span
                   >
                 </td>
@@ -79,13 +79,15 @@ import { VentasApi } from './ventas.api';
                 <td>
                   <span [class]="clase(c.estado)">{{ nombres[c.estado] }}</span>
                   @if (c.pedidoNumero) {
-                    <span class="block font-mono text-xs text-slate-500">{{ c.pedidoNumero }}</span>
+                    <span class="block font-mono text-xs text-texto-suave">{{
+                      c.pedidoNumero
+                    }}</span>
                   }
                 </td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="7" class="py-6 text-center text-slate-500">
+                <td colspan="7" class="py-6 text-center text-texto-suave">
                   No hay cotizaciones con esos filtros.
                 </td>
               </tr>

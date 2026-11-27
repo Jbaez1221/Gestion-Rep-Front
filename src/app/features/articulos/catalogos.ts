@@ -26,6 +26,7 @@ import {
   UnidadMedida,
 } from '../../core/modelos/api.modelos';
 import { NotificacionesService } from '../../core/ui/notificaciones.service';
+import { DialogosService } from '../../shared/ui/dialogos';
 import { ErrorApi } from '../../shared/ui/error-api';
 import { indentar } from '../centros/arbol';
 import { CentrosApi } from '../centros/centros.api';
@@ -39,6 +40,7 @@ import { arbolDeCategorias, etiquetaCategoria } from './categorias';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CatalogosArticulos implements OnInit {
+  private readonly dialogos = inject(DialogosService);
   private readonly api = inject(ArticulosApi);
   private readonly centrosApi = inject(CentrosApi);
   private readonly avisos = inject(NotificacionesService);
@@ -144,7 +146,13 @@ export class CatalogosArticulos implements OnInit {
   }
 
   protected async renombrarMarca(m: Marca): Promise<void> {
-    const nombre = window.prompt('Nuevo nombre de la marca:', m.nombre);
+    const nombre = await this.dialogos.pedirTexto({
+      titulo: 'Renombrar marca',
+      etiqueta: 'Nuevo nombre',
+      valor: m.nombre,
+      aceptar: 'Guardar',
+      maximo: 60,
+    });
     if (nombre?.trim() && nombre.trim() !== m.nombre) {
       await this.ejecutar(
         () => firstValueFrom(this.api.renombrarMarca(m.id, nombre.trim())),

@@ -1,5 +1,5 @@
 <div class="flex flex-wrap items-end justify-between gap-3">
-  <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
+  <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="barra-filtros">
     <div>
       <label for="c-almacen" class="etiqueta">Almacén</label>
       <select id="c-almacen" class="campo" formControlName="almacenId">
@@ -54,13 +54,13 @@
       <input type="checkbox" formControlName="congelar" class="mt-1" />
       <span>
         Congelar los artículos mientras dure el conteo
-        <span class="block text-xs text-slate-500">
+        <span class="block text-xs text-texto-suave">
           Nadie podrá moverlos hasta aplicar o anular el conteo; la diferencia será exacta.
         </span>
       </span>
     </label>
     <div class="space-y-2">
-      <p class="text-sm text-slate-600">
+      <p class="text-sm text-texto-2">
         Sin artículos elegidos se cuenta todo lo que tiene stock en el almacén.
       </p>
       <ul class="flex flex-wrap gap-2">
@@ -112,7 +112,7 @@
             <span class="insignia-neutra">Congelado</span>
           }
         </h2>
-        <p class="text-sm text-slate-600">
+        <p class="text-sm text-texto-2">
           {{ c.fecha }} · {{ c.glosa }} · abierto por {{ c.creadoPor ?? '—' }}
           @if (c.aplicadoPor) {
             · aplicado por {{ c.aplicadoPor }}
@@ -133,7 +133,7 @@
             <th scope="col" class="text-right">Costo (solo sobrantes sin costo)</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-100">
+        <tbody class="divide-y divide-borde">
           @for (l of c.lineas; track l.articulo.id; let i = $index) {
             <tr>
               <td>
@@ -157,8 +157,8 @@
               </td>
               <td
                 class="text-right"
-                [class.text-red-700]="(l.diferencia ?? 0) < 0"
-                [class.text-green-700]="(l.diferencia ?? 0) > 0"
+                [class.text-peligro-texto]="(l.diferencia ?? 0) < 0"
+                [class.text-exito-texto]="(l.diferencia ?? 0) > 0"
               >
                 {{ l.diferencia === null ? '—' : (l.diferencia | number: '1.0-4') }}
               </td>
@@ -201,7 +201,7 @@
           <button type="button" class="btn-peligro" (click)="anular()">Anular conteo</button>
         }
       </div>
-      <p class="text-xs text-slate-500">
+      <p class="text-xs text-texto-suave">
         La diferencia se calcula contra el stock actual: guarde y aplique apenas termine de contar.
         Las líneas sin contar no se ajustan.
       </p>
@@ -221,7 +221,7 @@
         <th scope="col">Estado</th>
       </tr>
     </thead>
-    <tbody class="divide-y divide-slate-100">
+    <tbody class="divide-y divide-borde">
       @for (c of pagina()?.contenido ?? []; track c.id) {
         <tr>
           <td>
@@ -237,7 +237,7 @@
         </tr>
       } @empty {
         <tr>
-          <td colspan="6" class="py-6 text-center text-slate-500">No hay conteos.</td>
+          <td colspan="6" class="py-6 text-center text-texto-suave">No hay conteos.</td>
         </tr>
       }
     </tbody>

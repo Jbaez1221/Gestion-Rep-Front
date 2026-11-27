@@ -18,12 +18,12 @@ import { ComprasApi } from './compras.api';
   imports: [ReactiveFormsModule, RouterLink, ErrorApi, Paginador, DatePipe, DecimalPipe],
   template: `
     <div class="space-y-4">
-      <p class="text-sm text-slate-600">
+      <p class="text-sm text-texto-2">
         Mercadería que llegó con la guía del proveedor antes que la factura: ya está en el almacén
         al costo de la orden. Al registrar la factura, elija las recepciones que factura.
       </p>
       <div class="flex flex-wrap items-end justify-between gap-3">
-        <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
+        <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="barra-filtros">
           <div class="min-w-64">
             <label for="r-texto" class="etiqueta">Buscar</label>
             <input
@@ -63,13 +63,13 @@ import { ComprasApi } from './compras.api';
               <th scope="col">Estado</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100">
+          <tbody class="divide-y divide-borde">
             @for (r of pagina()?.contenido ?? []; track r.id) {
               <tr>
                 <td class="font-mono">
                   <a
                     [routerLink]="['/compras/recepcion', r.id]"
-                    class="text-marca-700 hover:underline"
+                    class="text-texto-acento hover:underline"
                     >{{ r.numero }}</a
                   >
                 </td>
@@ -84,7 +84,7 @@ import { ComprasApi } from './compras.api';
               </tr>
             } @empty {
               <tr>
-                <td colspan="7" class="py-6 text-center text-slate-500">
+                <td colspan="7" class="py-6 text-center text-texto-suave">
                   No hay recepciones con esos filtros.
                 </td>
               </tr>

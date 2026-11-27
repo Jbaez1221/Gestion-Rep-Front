@@ -30,6 +30,7 @@ import { InventarioApi, urlExcel } from './inventario.api';
 import { Kardex } from './kardex';
 import { Movimientos } from './movimientos';
 import { Valorizacion } from './valorizacion';
+import { DialogosService } from '../../shared/ui/dialogos';
 
 const ALM: AlmacenOpcion = {
   id: 'al1',
@@ -703,7 +704,9 @@ describe('Movimientos', () => {
     boton('MI-00000001')?.click();
     await estable();
     expect(html.textContent).toContain('tabla 12: 13');
-    vi.spyOn(window, 'prompt').mockReturnValueOnce('').mockReturnValueOnce('rotura mal registrada');
+    vi.spyOn(TestBed.inject(DialogosService), 'pedirTexto')
+      .mockResolvedValueOnce('')
+      .mockResolvedValueOnce('rotura mal registrada');
     boton('Anular')?.click();
     await estable();
     expect(api.anular).not.toHaveBeenCalled();
@@ -796,7 +799,9 @@ describe('Conteos', () => {
       { articuloId: 'a1', cantidadContada: 12, costoUnitario: null },
       { articuloId: 'a2', cantidadContada: 2, costoUnitario: null },
     ]);
-    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const confirmar = vi
+      .spyOn(TestBed.inject(DialogosService), 'confirmar')
+      .mockResolvedValue(true);
     boton('Aplicar ajustes')?.click();
     await estable();
     expect(api.aplicarConteo).toHaveBeenCalledWith('c1');
@@ -1026,7 +1031,9 @@ describe('Traslados', () => {
     const { html, boton, estable } = await crear(Traslados);
     boton('TR-000001')?.click();
     await estable();
-    vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
+    vi.spyOn(TestBed.inject(DialogosService), 'confirmar')
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true);
     boton('Anular')?.click();
     await estable();
     expect(api.anularTraslado).not.toHaveBeenCalled();

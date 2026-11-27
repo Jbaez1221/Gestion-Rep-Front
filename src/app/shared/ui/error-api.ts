@@ -7,13 +7,13 @@ import { Problema } from '../../core/http/problema';
   selector: 'app-error-api',
   template: `
     @if (problema(); as p) {
-      <div role="alert" class="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+      <div role="alert" class="peligro-caja">
         <p class="font-semibold">{{ p.title }}</p>
         @if (p.detail) {
           <p class="mt-1">{{ p.detail }}</p>
         }
         @if (p.requestId) {
-          <p class="mt-1 text-xs text-red-700">Código para soporte: {{ p.requestId }}</p>
+          <p class="mt-1 text-xs text-peligro-texto">Código para soporte: {{ p.requestId }}</p>
         }
       </div>
     }

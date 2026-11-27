@@ -28,7 +28,7 @@
   @if (passwordProvisional(); as clave) {
     <div
       role="alert"
-      class="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
+      class="rounded-md border border-aviso/40 bg-aviso-suave p-4 text-sm text-aviso-texto"
     >
       <p class="font-semibold">Contraseña provisional (se muestra una sola vez)</p>
       <p class="mt-2 font-mono text-lg select-all">{{ clave }}</p>
@@ -42,7 +42,7 @@
   }
 
   @if (esUnoMismo()) {
-    <p class="rounded-md bg-slate-100 p-3 text-sm text-slate-700">
+    <p class="rounded-md bg-superficie-3 p-3 text-sm text-texto-2">
       Este es su propio usuario: su rol, estado y sucursales los cambia otro administrador.
     </p>
   }
@@ -131,7 +131,7 @@
             {{ s.codigo }} · {{ s.nombre }}
           </label>
         } @empty {
-          <p class="text-sm text-slate-500">No hay sucursales disponibles.</p>
+          <p class="text-sm text-texto-suave">No hay sucursales disponibles.</p>
         }
       </div>
     </fieldset>

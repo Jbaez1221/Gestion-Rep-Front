@@ -30,13 +30,15 @@ import { CajaApi } from './caja.api';
               <th scope="col" class="text-right">Diferencia</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100">
+          <tbody class="divide-y divide-borde">
             @for (s of pagina()?.contenido ?? []; track s.id) {
               <tr>
                 <td class="font-mono">
-                  <a [routerLink]="['/caja/sesion', s.id]" class="text-marca-700 hover:underline">{{
-                    s.numero
-                  }}</a>
+                  <a
+                    [routerLink]="['/caja/sesion', s.id]"
+                    class="text-texto-acento hover:underline"
+                    >{{ s.numero }}</a
+                  >
                 </td>
                 <td>{{ s.caja ?? '—' }}</td>
                 <td>{{ s.cajero }}</td>
@@ -48,13 +50,13 @@ import { CajaApi } from './caja.api';
                     <span class="insignia-alerta">Abierta</span>
                   }
                 </td>
-                <td class="text-right" [class.text-red-700]="(s.diferencia ?? 0) < 0">
+                <td class="text-right" [class.text-peligro-texto]="(s.diferencia ?? 0) < 0">
                   {{ s.diferencia === null ? '—' : (s.diferencia | number: '1.2-2') }}
                 </td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="6" class="py-6 text-center text-slate-500">
+                <td colspan="6" class="py-6 text-center text-texto-suave">
                   Aún no hay sesiones de caja.
                 </td>
               </tr>

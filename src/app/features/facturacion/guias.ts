@@ -20,14 +20,14 @@ import { FacturacionApi } from './facturacion.api';
       <div class="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h1 class="titulo-pagina">Guías de remisión</h1>
-          <p class="mt-1 text-sm text-slate-600">
+          <p class="mt-1 text-sm text-texto-2">
             Sustentan el traslado de bienes: ventas con entrega (se emiten desde la factura o
             boleta) y traslados entre sucursales (se emiten al enviar el traslado).
           </p>
         </div>
         <a routerLink="/facturacion" class="btn-enlace">Comprobantes de venta</a>
       </div>
-      <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
+      <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="barra-filtros">
         <div class="min-w-64">
           <label for="gr-texto" class="etiqueta">Buscar</label>
           <input
@@ -70,13 +70,13 @@ import { FacturacionApi } from './facturacion.api';
               <th scope="col">Estado</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100">
+          <tbody class="divide-y divide-borde">
             @for (g of pagina()?.contenido ?? []; track g.id) {
               <tr>
                 <td>
                   <a
                     [routerLink]="['/facturacion/guia', g.id]"
-                    class="font-mono text-marca-700 hover:underline"
+                    class="font-mono text-texto-acento hover:underline"
                     >{{ g.guia }}</a
                   >
                 </td>
@@ -84,7 +84,7 @@ import { FacturacionApi } from './facturacion.api';
                 <td>{{ nombresMotivo[g.motivo] }}</td>
                 <td>
                   {{ g.destinatarioNombre }}
-                  <span class="block text-xs text-slate-500">{{ g.llegadaDireccion }}</span>
+                  <span class="block text-xs text-texto-suave">{{ g.llegadaDireccion }}</span>
                 </td>
                 <td class="font-mono">{{ g.origenNumero }}</td>
                 <td>
@@ -93,7 +93,7 @@ import { FacturacionApi } from './facturacion.api';
               </tr>
             } @empty {
               <tr>
-                <td colspan="6" class="py-6 text-center text-slate-500">
+                <td colspan="6" class="py-6 text-center text-texto-suave">
                   No hay guías con esos filtros.
                 </td>
               </tr>

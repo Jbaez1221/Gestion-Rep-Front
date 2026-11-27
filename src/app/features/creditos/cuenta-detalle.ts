@@ -38,13 +38,13 @@ import { CreditosApi } from './creditos.api';
             <p class="etiqueta">Comprobante</p>
             <a
               [routerLink]="['/facturacion/comprobante', c.comprobanteId]"
-              class="font-mono text-marca-700 hover:underline"
+              class="font-mono text-texto-acento hover:underline"
               >{{ c.comprobante }}</a
             >
           </div>
           <div>
             <p class="etiqueta">Emisión · vencimiento</p>
-            <p [class.text-red-700]="c.vencida">
+            <p [class.text-peligro-texto]="c.vencida">
               {{ c.fechaEmision | date: 'dd/MM/yyyy' }} ·
               {{ c.fechaVencimiento | date: 'dd/MM/yyyy' }}
             </p>
@@ -66,7 +66,7 @@ import { CreditosApi } from './creditos.api';
             <p>
               {{ c.creadoPor ?? '—' }}
               @if (c.autorizadoPor) {
-                <span class="block text-xs text-slate-500">Autorizó {{ c.autorizadoPor }}</span>
+                <span class="block text-xs text-texto-suave">Autorizó {{ c.autorizadoPor }}</span>
               }
             </p>
           </div>
@@ -74,27 +74,27 @@ import { CreditosApi } from './creditos.api';
         <div class="grid gap-4 lg:grid-cols-[1fr_20rem]">
           <section class="tarjeta space-y-2">
             <h2 class="font-semibold">Abonos y notas de crédito</h2>
-            <ul class="divide-y divide-slate-100 text-sm">
+            <ul class="divide-y divide-borde text-sm">
               @for (a of c.abonos; track a.id) {
                 <li class="flex justify-between gap-2 py-2">
                   <span>
                     {{ a.fecha | date: 'dd/MM/yyyy HH:mm' }} ·
                     {{ tiposAbono[a.tipo] }}
-                    <span class="block text-xs text-slate-500"
+                    <span class="block text-xs text-texto-suave"
                       >{{ a.detalle }} · {{ a.usuario }}</span
                     >
                   </span>
                   <span class="font-semibold">S/ {{ a.monto | number: '1.2-2' }}</span>
                 </li>
               } @empty {
-                <li class="py-4 text-center text-slate-500">Aún no hay abonos.</li>
+                <li class="py-4 text-center text-texto-suave">Aún no hay abonos.</li>
               }
             </ul>
             @if (c.saldo > 0 && sesion.tiene(permisos.creditosRetencion)) {
               <form
                 [formGroup]="retencion"
                 (ngSubmit)="registrarRetencion()"
-                class="space-y-2 border-t border-slate-100 pt-3"
+                class="space-y-2 border-t border-borde pt-3"
                 aria-label="Comprobante de retención"
                 novalidate
               >
@@ -154,11 +154,11 @@ import { CreditosApi } from './creditos.api';
                 <dt>Disponible</dt>
                 <dd class="text-right font-semibold">{{ e.disponible | number: '1.2-2' }}</dd>
                 <dt>Vencido</dt>
-                <dd class="text-right" [class.text-red-700]="e.vencido > 0">
+                <dd class="text-right" [class.text-peligro-texto]="e.vencido > 0">
                   {{ e.vencido | number: '1.2-2' }}
                 </dd>
               </dl>
-              <p class="text-xs text-slate-500">{{ e.cuentas.length }} cuentas pendientes.</p>
+              <p class="text-xs text-texto-suave">{{ e.cuentas.length }} cuentas pendientes.</p>
             </section>
           }
         </div>

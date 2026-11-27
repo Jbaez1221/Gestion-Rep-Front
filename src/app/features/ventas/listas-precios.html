@@ -143,7 +143,7 @@
                   <th scope="col"><span class="sr-only">Acciones</span></th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-slate-100">
+              <tbody class="divide-y divide-borde">
                 @for (p of precios(); track p.id) {
                   <tr>
                     <td class="font-mono">{{ p.articuloCodigo }}</td>
@@ -159,7 +159,7 @@
                   </tr>
                 } @empty {
                   <tr>
-                    <td colspan="4" class="py-4 text-center text-slate-500">
+                    <td colspan="4" class="py-4 text-center text-texto-suave">
                       Sin precios fijos: todo se calcula con el margen.
                     </td>
                   </tr>

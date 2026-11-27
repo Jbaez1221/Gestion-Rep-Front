@@ -1,221 +1,155 @@
 <section class="space-y-6">
-  <div>
-    <h1 class="titulo-pagina">Repuestos</h1>
+  <header>
     @if (sesion.perfil(); as p) {
-      <p class="mt-1 text-slate-600">Hola, {{ p.nombres }}. Rol: {{ p.rol }}.</p>
+      <h1 class="titulo-pagina">{{ saludo() }}, {{ p.nombres }}</h1>
+    } @else {
+      <h1 class="titulo-pagina">Inicio</h1>
     }
-  </div>
+    <p class="subtitulo mt-1 first-letter:uppercase">{{ hoy | date: "EEEE d 'de' MMMM" }}</p>
+  </header>
 
   <app-error-api [problema]="error()" />
 
   @if (panel(); as p) {
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Indicadores">
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4" aria-label="Indicadores">
       @if (p.ventas; as v) {
-        <a routerLink="/facturacion" class="tarjeta hover:border-marca-500" aria-label="Ventas">
-          <p class="etiqueta">Ventas de hoy (con IGV)</p>
-          <p class="text-2xl font-semibold">S/ {{ v.hoy | number: '1.2-2' }}</p>
-          <p class="text-sm text-slate-600">{{ v.comprobantesHoy }} comprobantes</p>
+        <a routerLink="/facturacion" class="kpi" aria-label="Ventas">
+          <span class="kpi-icono"><app-icono nombre="ventas" /></span>
+          <span class="kpi-etiqueta">Ventas de hoy (con IGV)</span>
+          <span class="kpi-valor">S/ {{ v.hoy | number: '1.2-2' }}</span>
+          <span class="kpi-detalle">{{ v.comprobantesHoy }} comprobantes</span>
         </a>
-        <div class="tarjeta" aria-label="Ventas del mes">
-          <p class="etiqueta">Ventas del mes</p>
-          <p class="text-2xl font-semibold">S/ {{ v.mes | number: '1.2-2' }}</p>
-          <p class="text-sm text-slate-600">
+        <div class="kpi" aria-label="Ventas del mes">
+          <span class="kpi-icono"><app-icono nombre="reportes" /></span>
+          <span class="kpi-etiqueta">Ventas del mes</span>
+          <span class="kpi-valor">S/ {{ v.mes | number: '1.2-2' }}</span>
+          <span class="kpi-detalle">
             Mes anterior al mismo día: S/ {{ v.mesAnteriorAlDia | number: '1.2-2' }}
             @if (variacion(); as d) {
-              ({{ d }})
+              <span [class]="d.startsWith('-') ? 'insignia-peligro' : 'insignia-ok'"
+                >({{ d }})</span
+              >
             }
-          </p>
+          </span>
         </div>
-        <a routerLink="/facturacion" class="tarjeta hover:border-marca-500" aria-label="SUNAT">
-          <p class="etiqueta">Comprobantes en SUNAT</p>
-          <p class="text-sm">{{ v.pendientesSunat }} sin respuesta</p>
-          <p class="text-sm" [class.text-red-700]="v.conProblemas > 0">
+        <a routerLink="/facturacion" class="kpi" aria-label="SUNAT">
+          <span class="kpi-icono"><app-icono nombre="comprobantes" /></span>
+          <span class="kpi-etiqueta">Comprobantes en SUNAT</span>
+          <span class="kpi-valor">{{ v.pendientesSunat }}</span>
+          <span class="kpi-detalle">{{ v.pendientesSunat }} sin respuesta</span>
+          <span class="kpi-detalle" [class.text-peligro-texto]="v.conProblemas > 0">
             {{ v.conProblemas }} rechazados o con error (30 días)
-          </p>
+          </span>
         </a>
       }
       @if (p.cobrar; as c) {
-        <a routerLink="/creditos" class="tarjeta hover:border-marca-500" aria-label="Por cobrar">
-          <p class="etiqueta">Por cobrar</p>
-          <p class="text-2xl font-semibold">S/ {{ c.saldo | number: '1.2-2' }}</p>
-          <p class="text-sm" [class.text-red-700]="c.cuentasVencidas > 0">
+        <a routerLink="/creditos" class="kpi" aria-label="Por cobrar">
+          <span class="kpi-icono"><app-icono nombre="creditos" /></span>
+          <span class="kpi-etiqueta">Por cobrar</span>
+          <span class="kpi-valor">S/ {{ c.saldo | number: '1.2-2' }}</span>
+          <span class="kpi-detalle" [class.text-peligro-texto]="c.cuentasVencidas > 0">
             Vencido S/ {{ c.vencido | number: '1.2-2' }} ({{ c.cuentasVencidas }} cuentas)
-          </p>
-          <p class="text-sm text-slate-600">
-            Vence en 7 días: S/ {{ c.venceEn7Dias | number: '1.2-2' }}
-          </p>
+          </span>
+          <span class="kpi-detalle"
+            >Vence en 7 días: S/ {{ c.venceEn7Dias | number: '1.2-2' }}</span
+          >
         </a>
       }
       @if (pagar(); as r) {
-        <a
-          routerLink="/creditos/pagar"
-          class="tarjeta hover:border-marca-500"
-          aria-label="Por pagar"
-        >
-          <p class="etiqueta">Por pagar a proveedores</p>
+        <a routerLink="/creditos/pagar" class="kpi" aria-label="Por pagar">
+          <span class="kpi-icono"><app-icono nombre="compras" /></span>
+          <span class="kpi-etiqueta">Por pagar a proveedores</span>
           @for (m of vencidoPagar(); track m.moneda) {
-            <p class="text-sm" [class.text-red-700]="m.vencido > 0">
+            <span class="kpi-detalle" [class.text-peligro-texto]="m.vencido > 0">
               Vencido {{ m.moneda }} {{ m.vencido | number: '1.2-2' }}
-            </p>
+            </span>
           }
-          <p class="text-sm text-slate-600">Vence en 7 días: {{ r.vencenEn7Dias }} cuentas</p>
-          <p class="text-sm" [class.text-red-700]="r.detraccionesVencidas > 0">
+          <span class="kpi-detalle">Vence en 7 días: {{ r.vencenEn7Dias }} cuentas</span>
+          <span class="kpi-detalle" [class.text-peligro-texto]="r.detraccionesVencidas > 0">
             Detracciones por depositar: {{ r.detraccionesPendientes }} ({{ r.detraccionesVencidas }}
             vencidas)
-          </p>
+          </span>
         </a>
       }
       @if (p.operacion; as o) {
-        <a routerLink="/ventas" class="tarjeta hover:border-marca-500" aria-label="Operación">
-          <p class="etiqueta">Ventas en curso</p>
-          <p class="text-sm">{{ o.pedidosEnCaja }} pedidos esperando en caja</p>
-          <p class="text-sm">{{ o.cotizacionesPorVencer }} cotizaciones vencen en 2 días</p>
+        <a routerLink="/ventas" class="kpi" aria-label="Operación">
+          <span class="kpi-icono"><app-icono nombre="caja" /></span>
+          <span class="kpi-etiqueta">Ventas en curso</span>
+          <span class="kpi-valor">{{ o.pedidosEnCaja }}</span>
+          <span class="kpi-detalle">{{ o.pedidosEnCaja }} pedidos esperando en caja</span>
+          <span class="kpi-detalle"
+            >{{ o.cotizacionesPorVencer }} cotizaciones vencen en 2 días</span
+          >
         </a>
       }
       @if (p.inventario; as i) {
-        <a routerLink="/inventario" class="tarjeta hover:border-marca-500" aria-label="Reposición">
-          <p class="etiqueta">Stock por reponer</p>
-          <p class="text-2xl font-semibold">{{ i.bajoReposicion }}</p>
-          <p class="text-sm text-slate-600">artículos en o bajo su punto de reposición</p>
+        <a routerLink="/inventario" class="kpi" aria-label="Reposición">
+          <span class="kpi-icono"><app-icono nombre="inventario" /></span>
+          <span class="kpi-etiqueta">Stock por reponer</span>
+          <span class="kpi-valor">{{ i.bajoReposicion }}</span>
+          <span class="kpi-detalle">artículos en o bajo su punto de reposición</span>
         </a>
       }
     </div>
 
-    @if (p.ventas; as v) {
-      @if (v.porDia.length) {
-        <section class="tarjeta" aria-label="Ventas por día">
-          <h2 class="font-semibold">Ventas del mes por día</h2>
-          <ul class="mt-2 space-y-1 text-sm">
-            @for (d of v.porDia; track d.fecha) {
-              <li class="grid grid-cols-[5rem_1fr_6rem] items-center gap-2">
-                <span>{{ d.fecha | date: 'dd/MM' }}</span>
-                <progress class="h-3 w-full" [value]="d.total" [max]="maximoDia()">
-                  {{ d.total }}
-                </progress>
-                <span class="text-right">{{ d.total | number: '1.2-2' }}</span>
-              </li>
-            }
-          </ul>
-        </section>
-      }
-    }
-
-    @if (p.inventario; as inv) {
-      @if (inv.masUrgentes.length) {
-        <section class="tarjeta overflow-x-auto" aria-label="Más urgentes de reponer">
-          <h2 class="font-semibold">Más urgentes de reponer</h2>
-          <table class="tabla mt-2">
-            <thead>
-              <tr>
-                <th scope="col">Artículo</th>
-                <th scope="col">Almacén</th>
-                <th scope="col" class="text-right">Disponible</th>
-                <th scope="col" class="text-right">Punto de reposición</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              @for (a of inv.masUrgentes; track a.codigo + a.almacen) {
-                <tr>
-                  <td>
-                    <span class="font-mono">{{ a.codigo }}</span> · {{ a.descripcion }}
-                  </td>
-                  <td>{{ a.almacen }}</td>
-                  <td class="text-right">{{ a.disponible | number: '1.0-2' }}</td>
-                  <td class="text-right">{{ a.puntoReposicion | number: '1.0-2' }}</td>
-                </tr>
+    <div class="grid gap-4 xl:grid-cols-2">
+      @if (p.ventas; as v) {
+        @if (v.porDia.length) {
+          <section class="tarjeta" aria-label="Ventas por día">
+            <h2 class="font-semibold text-texto">Ventas del mes por día</h2>
+            <ul class="mt-3 space-y-2 text-sm">
+              @for (d of v.porDia; track d.fecha) {
+                <li class="grid grid-cols-[3.5rem_1fr_6.5rem] items-center gap-3">
+                  <span class="text-texto-suave">{{ d.fecha | date: 'dd/MM' }}</span>
+                  <progress class="barra" [value]="d.total" [max]="maximoDia()">
+                    {{ d.total }}
+                  </progress>
+                  <span class="text-right font-medium text-texto tabular-nums">{{
+                    d.total | number: '1.2-2'
+                  }}</span>
+                </li>
               }
-            </tbody>
-          </table>
-        </section>
+            </ul>
+          </section>
+        }
       }
-    }
+
+      @if (p.inventario; as inv) {
+        @if (inv.masUrgentes.length) {
+          <section class="tarjeta overflow-x-auto" aria-label="Más urgentes de reponer">
+            <div class="flex items-center justify-between gap-2">
+              <h2 class="font-semibold text-texto">Más urgentes de reponer</h2>
+              @if (sesion.tiene(permisos.comprasLeer)) {
+                <a routerLink="/compras/sugerencia" class="btn-enlace">Sugerencia de compra</a>
+              }
+            </div>
+            <table class="tabla mt-3">
+              <thead>
+                <tr>
+                  <th scope="col">Artículo</th>
+                  <th scope="col">Almacén</th>
+                  <th scope="col" class="text-right">Disponible</th>
+                  <th scope="col" class="text-right">Reposición</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-borde">
+                @for (a of inv.masUrgentes; track a.codigo + a.almacen) {
+                  <tr>
+                    <td>
+                      <span class="font-mono">{{ a.codigo }}</span> · {{ a.descripcion }}
+                    </td>
+                    <td>{{ a.almacen }}</td>
+                    <td class="text-right tabular-nums">{{ a.disponible | number: '1.0-2' }}</td>
+                    <td class="text-right tabular-nums">
+                      {{ a.puntoReposicion | number: '1.0-2' }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </section>
+        }
+      }
+    </div>
   }
-
-  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-    @if (sesion.tiene(permisos.sucursalesLeer)) {
-      <a routerLink="/sucursales" class="tarjeta hover:border-marca-500">
-        <h2 class="font-semibold">Sucursales</h2>
-        <p class="mt-1 text-sm text-slate-600">Tiendas, almacenes y oficinas</p>
-      </a>
-    }
-    @if (sesion.tiene(permisos.usuariosLeer)) {
-      <a routerLink="/usuarios" class="tarjeta hover:border-marca-500">
-        <h2 class="font-semibold">Usuarios</h2>
-        <p class="mt-1 text-sm text-slate-600">Accesos, roles y sucursales</p>
-      </a>
-    }
-    @if (sesion.tiene(permisos.sociosLeer)) {
-      <a routerLink="/socios" class="tarjeta hover:border-marca-500">
-        <h2 class="font-semibold">Socios comerciales</h2>
-        <p class="mt-1 text-sm text-slate-600">Clientes y proveedores con datos de SUNAT</p>
-      </a>
-    }
-    @if (sesion.tiene(permisos.articulosLeer)) {
-      <a routerLink="/articulos" class="tarjeta hover:border-marca-500">
-        <h2 class="font-semibold">Artículos</h2>
-        <p class="mt-1 text-sm text-slate-600">Maestro, códigos, equivalencias y catálogos SUNAT</p>
-      </a>
-    }
-    @if (sesion.tiene(permisos.inventarioLeer)) {
-      <a routerLink="/inventario" class="tarjeta hover:border-marca-500">
-        <h2 class="font-semibold">Inventario</h2>
-        <p class="mt-1 text-sm text-slate-600">Stock, movimientos, kardex y conteos físicos</p>
-      </a>
-    }
-    @if (sesion.tiene(permisos.comprasLeer)) {
-      <a routerLink="/compras" class="tarjeta hover:border-marca-500">
-        <h2 class="font-semibold">Compras</h2>
-        <p class="mt-1 text-sm text-slate-600">Facturas de proveedores, órdenes y tipo de cambio</p>
-      </a>
-    }
-    @if (sesion.tiene(permisos.ventasLeer)) {
-      <a routerLink="/ventas" class="tarjeta hover:border-marca-500">
-        <h2 class="font-semibold">Ventas</h2>
-        <p class="mt-1 text-sm text-slate-600">Notas de pedido y listas de precios por cliente</p>
-      </a>
-    }
-    @if (sesion.tiene(permisos.cajaLeer)) {
-      <a routerLink="/caja" class="tarjeta hover:border-marca-500">
-        <h2 class="font-semibold">Caja</h2>
-        <p class="mt-1 text-sm text-slate-600">Cobro de pedidos, apertura y cierre con arqueo</p>
-      </a>
-    }
-    @if (sesion.tiene(permisos.facturacionLeer)) {
-      <a routerLink="/facturacion" class="tarjeta hover:border-marca-500">
-        <h2 class="font-semibold">Comprobantes</h2>
-        <p class="mt-1 text-sm text-slate-600">Boletas y facturas emitidas</p>
-      </a>
-    }
-    @if (sesion.tiene(permisos.reportesVentas)) {
-      <a routerLink="/reportes/ventas" class="tarjeta hover:border-marca-500">
-        <h2 class="font-semibold">Reporte de ventas</h2>
-        <p class="mt-1 text-sm text-slate-600">
-          Venta, costo y margen por artículo, vendedor o cliente
-        </p>
-      </a>
-    }
-    @if (sesion.tiene(permisos.centrosLeer)) {
-      <a routerLink="/centros" class="tarjeta hover:border-marca-500">
-        <h2 class="font-semibold">Centros de costo</h2>
-        <p class="mt-1 text-sm text-slate-600">Gastos por área y resultado por negocio</p>
-      </a>
-    }
-    @if (sesion.tiene(permisos.rolesLeer)) {
-      <a routerLink="/roles" class="tarjeta hover:border-marca-500">
-        <h2 class="font-semibold">Roles y permisos</h2>
-        <p class="mt-1 text-sm text-slate-600">Qué puede hacer cada rol</p>
-      </a>
-    }
-    @if (sesion.tieneAlguno(permisos.auditoriaLeer, permisos.auditoriaEventos)) {
-      <a routerLink="/auditoria" class="tarjeta hover:border-marca-500">
-        <h2 class="font-semibold">Auditoría</h2>
-        <p class="mt-1 text-sm text-slate-600">Quién, qué y cuándo</p>
-      </a>
-    }
-  </div>
-
-  <div class="tarjeta">
-    <h2 class="font-semibold">Mi cuenta</h2>
-    <a routerLink="/cambiar-password" class="btn-enlace mt-2 inline-block">Cambiar mi contraseña</a>
-  </div>
 </section>

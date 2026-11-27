@@ -1,5 +1,5 @@
 <div class="flex flex-wrap items-end justify-between gap-3">
-  <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
+  <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="barra-filtros">
     <div>
       <label for="m-almacen" class="etiqueta">Almacén</label>
       <select id="m-almacen" class="campo" formControlName="almacenId">
@@ -144,7 +144,7 @@
             }
           </select>
           @if (centros().length === 0) {
-            <p class="text-xs text-slate-500">Necesita permiso para ver centros de costo.</p>
+            <p class="text-xs text-texto-suave">Necesita permiso para ver centros de costo.</p>
           }
         </div>
       }
@@ -168,7 +168,7 @@
               <th scope="col"><span class="sr-only">Quitar</span></th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100">
+          <tbody class="divide-y divide-borde">
             @for (l of formulario.controls.lineas.controls; track l; let i = $index) {
               <tr [formGroupName]="i">
                 <td>
@@ -273,7 +273,7 @@
             <span class="insignia-alerta">Anulado</span>
           }
         </h2>
-        <p class="text-sm text-slate-600">
+        <p class="text-sm text-texto-2">
           {{ d.fecha }} · {{ d.almacen.codigo }} · {{ d.glosa }}
           @if (d.referencia) {
             · {{ d.referencia }}
@@ -300,21 +300,21 @@
             <th scope="col" class="text-right">Saldo valor (S/)</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-100">
+        <tbody class="divide-y divide-borde">
           @for (l of d.lineas; track l.linea) {
             <tr>
               <td>
                 <span class="font-mono">{{ l.articulo.codigo }}</span> ·
                 {{ l.articulo.descripcion }}
                 @for (lote of l.lotes; track lote.codigo) {
-                  <span class="block text-xs text-slate-500">
+                  <span class="block text-xs text-texto-suave">
                     Lote {{ lote.codigo
                     }}{{ lote.fechaVencimiento ? ' · vence ' + lote.fechaVencimiento : '' }}:
                     {{ lote.cantidad | number: '1.0-4' }}
                   </span>
                 }
                 @if (l.series.length > 0) {
-                  <span class="block font-mono text-xs text-slate-500"
+                  <span class="block font-mono text-xs text-texto-suave"
                     >Series: {{ l.series.join(', ') }}</span
                   >
                 }
@@ -352,9 +352,9 @@
         <th scope="col">Usuario</th>
       </tr>
     </thead>
-    <tbody class="divide-y divide-slate-100">
+    <tbody class="divide-y divide-borde">
       @for (m of pagina()?.contenido ?? []; track m.id) {
-        <tr [class.text-slate-400]="m.anulado">
+        <tr [class.text-texto-suave]="m.anulado">
           <td class="font-mono whitespace-nowrap">
             <button type="button" class="btn-enlace font-mono" (click)="ver(m.id)">
               {{ m.numero }}
@@ -363,7 +363,7 @@
           <td class="whitespace-nowrap">{{ m.fecha }}</td>
           <td>
             {{ tipos[m.tipo] }}
-            <span class="block text-xs text-slate-500">
+            <span class="block text-xs text-texto-suave">
               {{ m.entrada ? 'Entrada' : 'Salida' }} · {{ m.codigoSunat }}
               @if (m.anulaA) {
                 · anulación
@@ -380,7 +380,7 @@
         </tr>
       } @empty {
         <tr>
-          <td colspan="7" class="py-6 text-center text-slate-500">
+          <td colspan="7" class="py-6 text-center text-texto-suave">
             No hay movimientos con esos filtros.
           </td>
         </tr>

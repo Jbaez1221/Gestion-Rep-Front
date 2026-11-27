@@ -16,7 +16,7 @@ import { VentasApi } from './ventas.api';
   imports: [ReactiveFormsModule, RouterLink, ErrorApi, Paginador, DatePipe, DecimalPipe],
   template: `
     <div class="space-y-4">
-      <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
+      <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="barra-filtros">
         <div class="min-w-64">
           <label for="pv-texto" class="etiqueta">Buscar</label>
           <input
@@ -56,20 +56,20 @@ import { VentasApi } from './ventas.api';
               <th scope="col">Estado</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100">
+          <tbody class="divide-y divide-borde">
             @for (p of pagina()?.contenido ?? []; track p.id) {
               <tr>
                 <td class="font-mono">
                   <a
                     [routerLink]="['/ventas/pedido', p.id]"
-                    class="text-marca-700 hover:underline"
+                    class="text-texto-acento hover:underline"
                     >{{ p.numero }}</a
                   >
                 </td>
                 <td>{{ p.fecha | date: 'dd/MM/yyyy' }}</td>
                 <td>
                   {{ p.cliente.nombre }}
-                  <span class="block font-mono text-xs text-slate-500"
+                  <span class="block font-mono text-xs text-texto-suave"
                     >{{ sigla(p.cliente.tipoDocumento) }} {{ p.cliente.documento }}</span
                   >
                 </td>
@@ -82,7 +82,7 @@ import { VentasApi } from './ventas.api';
               </tr>
             } @empty {
               <tr>
-                <td colspan="7" class="py-6 text-center text-slate-500">
+                <td colspan="7" class="py-6 text-center text-texto-suave">
                   No hay pedidos con esos filtros.
                 </td>
               </tr>

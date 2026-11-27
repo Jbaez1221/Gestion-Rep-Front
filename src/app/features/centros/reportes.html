@@ -28,13 +28,13 @@
         <th scope="col" class="text-right">Ejecución</th>
       </tr>
     </thead>
-    <tbody class="divide-y divide-slate-100">
+    <tbody class="divide-y divide-borde">
       @for (f of costos(); track f.id) {
         <tr [class.font-semibold]="!f.imputable">
           <td [class]="indentar(f.nivel)">{{ f.codigo }} · {{ f.nombre }}</td>
           <td class="text-right">{{ f.presupuesto | currency }}</td>
           <td class="text-right">{{ f.real | currency }}</td>
-          <td class="text-right" [class.text-red-700]="f.diferencia < 0">
+          <td class="text-right" [class.text-peligro-texto]="f.diferencia < 0">
             {{ f.diferencia | currency }}
           </td>
           <td class="text-right">
@@ -64,14 +64,14 @@
         <th scope="col" class="text-right">Resultado</th>
       </tr>
     </thead>
-    <tbody class="divide-y divide-slate-100">
+    <tbody class="divide-y divide-borde">
       @for (f of resultado(); track f.id) {
         <tr [class.font-semibold]="!f.imputable">
           <td [class]="indentar(f.nivel)">{{ f.codigo }} · {{ f.nombre }}</td>
           <td class="text-right">{{ f.presupuestoIngresos | currency }}</td>
           <td class="text-right">{{ f.ingresos | currency }}</td>
           <td class="text-right">{{ f.costos | currency }}</td>
-          <td class="text-right" [class.text-red-700]="f.resultado < 0">
+          <td class="text-right" [class.text-peligro-texto]="f.resultado < 0">
             {{ f.resultado | currency }}
           </td>
         </tr>
@@ -87,7 +87,7 @@
       {{ e.anio }}
     </h2>
     <table class="tabla mt-2">
-      <tbody class="divide-y divide-slate-100">
+      <tbody class="divide-y divide-borde">
         <tr>
           <th scope="row">Ingresos</th>
           <td class="text-right">{{ e.ingresos | currency }}</td>
@@ -104,7 +104,7 @@
         </tr>
         <tr class="text-base">
           <th scope="row">Resultado</th>
-          <td class="text-right font-semibold" [class.text-red-700]="e.resultado < 0">
+          <td class="text-right font-semibold" [class.text-peligro-texto]="e.resultado < 0">
             {{ e.resultado | currency }}
           </td>
         </tr>

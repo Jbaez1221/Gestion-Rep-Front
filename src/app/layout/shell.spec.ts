@@ -1,3 +1,4 @@
+import { DOCUMENT } from '@angular/common';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
@@ -19,6 +20,10 @@ describe('Shell', () => {
       a.textContent?.trim(),
     );
     expect(enlaces).toEqual(['Inicio', 'Usuarios', 'Auditoría']);
+    expect(html.querySelector('a[href="#contenido"]')?.textContent).toContain(
+      'Saltar al contenido',
+    );
+    expect(html.querySelectorAll('main#contenido')).toHaveLength(1);
   });
 
   it('muestra el usuario y su rol, y permite cambiar de sucursal y salir', () => {
@@ -50,9 +55,38 @@ describe('Shell', () => {
     fixture.detectChanges();
     expect(menu?.getAttribute('aria-expanded')).toBe('true');
 
-    [...html.querySelectorAll('button')]
+    html.querySelector<HTMLButtonElement>('button[aria-label="Cuenta de Ana Pérez"]')?.click();
+    fixture.detectChanges();
+    const doc = TestBed.inject(DOCUMENT);
+    [...doc.querySelectorAll<HTMLElement>('[role=menuitem]')]
       .find((b) => b.textContent?.includes('Cerrar sesión'))
       ?.click();
     expect(falsa.logout).toHaveBeenCalled();
+  });
+
+  it('elige el tema y reduce el menú lateral', () => {
+    const { html, fixture } = crear([]);
+    const doc = TestBed.inject(DOCUMENT);
+    const elegir = (texto: string) => {
+      html.querySelector<HTMLButtonElement>('button[aria-label="Tema de colores"]')?.click();
+      fixture.detectChanges();
+      [...doc.querySelectorAll<HTMLElement>('[role=menuitemradio]')]
+        .find((b) => b.textContent?.includes(texto))
+        ?.click();
+      TestBed.tick();
+    };
+    elegir('Oscuro');
+    expect(doc.documentElement.classList.contains('oscuro')).toBe(true);
+    elegir('Claro');
+    expect(doc.documentElement.classList.contains('claro')).toBe(true);
+    expect(doc.documentElement.classList.contains('oscuro')).toBe(false);
+    elegir('Según el sistema');
+    expect(doc.documentElement.classList.contains('claro')).toBe(false);
+
+    const reducir = html.querySelector<HTMLButtonElement>('button[aria-pressed]');
+    const antes = reducir?.getAttribute('aria-pressed');
+    reducir?.click();
+    fixture.detectChanges();
+    expect(reducir?.getAttribute('aria-pressed')).not.toBe(antes);
   });
 });

@@ -11,14 +11,11 @@ import { SesionService } from '../../core/auth/sesion.service';
   template: `
     <section class="space-y-4">
       <h1 class="titulo-pagina">Créditos</h1>
-      <nav
-        class="flex flex-wrap gap-1 border-b border-slate-200"
-        aria-label="Secciones de créditos"
-      >
+      <nav class="flex flex-wrap gap-1 border-b border-borde" aria-label="Secciones de créditos">
         @for (p of pestanas(); track p.ruta) {
           <a
             [routerLink]="p.ruta"
-            routerLinkActive="border-marca-600 text-marca-700"
+            routerLinkActive="border-acento text-texto-acento"
             ariaCurrentWhenActive="page"
             class="pestana"
             >{{ p.texto }}</a

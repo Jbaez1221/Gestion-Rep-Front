@@ -47,6 +47,7 @@ import {
   UnidadMedida,
 } from '../../core/modelos/api.modelos';
 import { NotificacionesService } from '../../core/ui/notificaciones.service';
+import { DialogosService } from '../../shared/ui/dialogos';
 import { ErrorApi } from '../../shared/ui/error-api';
 import { CentrosApi } from '../centros/centros.api';
 import { hoyEnLima } from '../centros/arbol';
@@ -96,6 +97,7 @@ export function textoPropiedad(p: Propiedad, valor: string): string {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ArticuloDetalle implements OnInit {
+  private readonly dialogos = inject(DialogosService);
   private readonly api = inject(ArticulosApi);
   private readonly centrosApi = inject(CentrosApi);
   private readonly inventarioApi = inject(InventarioApi);
@@ -922,7 +924,15 @@ export class ArticuloDetalle implements OnInit {
 
   protected async eliminarAdjunto(adjunto: Adjunto): Promise<void> {
     const id = this.id();
-    if (!id || !window.confirm(`¿Eliminar ${adjunto.nombre}?`)) return;
+    if (
+      !id ||
+      !(await this.dialogos.confirmar({
+        titulo: `¿Eliminar ${adjunto.nombre}?`,
+        aceptar: 'Eliminar',
+        peligro: true,
+      }))
+    )
+      return;
     try {
       await firstValueFrom(this.api.eliminarAdjunto(id, adjunto.id));
       await this.recargarAdjuntos(id);

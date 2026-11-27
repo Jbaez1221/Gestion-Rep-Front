@@ -16,6 +16,7 @@ import { SesionService } from '../../core/auth/sesion.service';
 import { Problema, aProblema } from '../../core/http/problema';
 import { Centro, Imputacion, Moneda, Pagina, TipoImputacion } from '../../core/modelos/api.modelos';
 import { NotificacionesService } from '../../core/ui/notificaciones.service';
+import { DialogosService } from '../../shared/ui/dialogos';
 import { ErrorApi } from '../../shared/ui/error-api';
 import { Paginador } from '../../shared/ui/paginador';
 import { MESES, hoyEnLima } from './arbol';
@@ -28,6 +29,7 @@ import { CentrosApi } from './centros.api';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Imputaciones implements OnInit {
+  private readonly dialogos = inject(DialogosService);
   private readonly api = inject(CentrosApi);
   private readonly avisos = inject(NotificacionesService);
   private readonly fb = inject(NonNullableFormBuilder);
@@ -164,9 +166,12 @@ export class Imputaciones implements OnInit {
   }
 
   protected async extornar(i: Imputacion): Promise<void> {
-    const glosa = window.prompt(
-      'Motivo del extorno (revertirá la imputación completa con montos negativos):',
-    );
+    const glosa = await this.dialogos.pedirTexto({
+      titulo: 'Extornar imputación',
+      mensaje: 'Revertirá la imputación completa con montos negativos.',
+      aceptar: 'Extornar',
+      peligro: true,
+    });
     if (!glosa?.trim()) {
       return;
     }

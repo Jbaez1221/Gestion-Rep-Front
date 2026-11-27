@@ -31,6 +31,7 @@ import {
   SocioListado,
 } from '../../core/modelos/api.modelos';
 import { NotificacionesService } from '../../core/ui/notificaciones.service';
+import { DialogosService } from '../../shared/ui/dialogos';
 import { ErrorApi } from '../../shared/ui/error-api';
 import { ArticulosApi } from '../articulos/articulos.api';
 import { BuscadorArticulo } from '../articulos/buscador-articulo';
@@ -40,7 +41,7 @@ import { SociosApi } from '../socios/socios.api';
 import { BuscadorProveedor } from './buscador-proveedor';
 import { NOMBRE_ESTADO_ORDEN, claseEstadoOrden, importeLinea, totales } from './calculo';
 import { ComprasApi } from './compras.api';
-import { pedirMotivo, unidadesDe } from './lineas';
+import { unidadesDe } from './lineas';
 
 interface Proveedor {
   id: string;
@@ -63,6 +64,7 @@ interface Proveedor {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OrdenDetalle implements OnInit {
+  private readonly dialogos = inject(DialogosService);
   private readonly api = inject(ComprasApi);
   private readonly articulosApi = inject(ArticulosApi);
   private readonly sociosApi = inject(SociosApi);
@@ -299,7 +301,10 @@ export class OrdenDetalle implements OnInit {
   }
 
   protected async cerrar(): Promise<void> {
-    const motivo = pedirMotivo('¿Por qué se cierra lo pendiente de la orden?');
+    const motivo = await this.dialogos.pedirTexto({
+      titulo: 'Cerrar lo pendiente de la orden',
+      aceptar: 'Cerrar orden',
+    });
     if (motivo) {
       await this.accion(
         () => this.api.cerrarOrden(this.orden()?.id ?? '', motivo),
@@ -309,7 +314,11 @@ export class OrdenDetalle implements OnInit {
   }
 
   protected async anular(): Promise<void> {
-    const motivo = pedirMotivo('¿Por qué se anula la orden?');
+    const motivo = await this.dialogos.pedirTexto({
+      titulo: 'Anular orden',
+      aceptar: 'Anular orden',
+      peligro: true,
+    });
     if (motivo) {
       await this.accion(
         () => this.api.anularOrden(this.orden()?.id ?? '', motivo),

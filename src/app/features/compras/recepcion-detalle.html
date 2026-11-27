@@ -38,7 +38,7 @@
           <p class="etiqueta">Orden de compra</p>
           <a
             [routerLink]="['/compras/orden', o.id]"
-            class="font-mono text-marca-700 hover:underline"
+            class="font-mono text-texto-acento hover:underline"
             >{{ o.numero }}</a
           >
         </div>
@@ -48,7 +48,7 @@
           <p class="etiqueta">Facturada en</p>
           <a
             [routerLink]="['/compras/documento', c.id]"
-            class="font-mono text-marca-700 hover:underline"
+            class="font-mono text-texto-acento hover:underline"
             >{{ c.numero }}</a
           >
         </div>
@@ -72,7 +72,7 @@
             <th scope="col" class="text-right">Costo S/</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-100">
+        <tbody class="divide-y divide-borde">
           @for (l of r.lineas; track l.linea) {
             <tr>
               <td>
@@ -94,7 +94,7 @@
         </tfoot>
       </table>
     </div>
-    <p class="text-xs text-slate-500">
+    <p class="text-xs text-texto-suave">
       Registrada por {{ r.creadoPor ?? '—' }}
       @if (r.anuladoPor) {
         · anulada por {{ r.anuladoPor }}: {{ r.motivoAnulacion }}
@@ -209,7 +209,7 @@
 
       <fieldset class="space-y-2">
         <legend class="font-semibold">Lo que llegó</legend>
-        <p class="text-xs text-slate-500">
+        <p class="text-xs text-texto-suave">
           Costo sin IGV: el de la orden, o el que espera en la factura. La factura ajustará la
           diferencia.
         </p>
@@ -224,7 +224,7 @@
                 <th scope="col"><span class="sr-only">Acciones</span></th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
+            <tbody class="divide-y divide-borde">
               @for (l of lineas.controls; track l; let i = $index) {
                 <tr [formGroup]="l" class="align-top">
                   <td class="min-w-64 space-y-1">

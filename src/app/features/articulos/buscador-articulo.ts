@@ -42,18 +42,18 @@ let siguienteId = 0;
       @if (resultados().length > 0) {
         <ul
           [id]="idLista"
-          class="absolute z-10 mt-1 max-h-72 w-full overflow-auto rounded-md border border-slate-200 bg-white shadow-lg"
+          class="absolute z-10 mt-1 max-h-72 w-full overflow-auto rounded-md border border-borde bg-superficie shadow-lg"
           [attr.aria-label]="'Resultados de ' + etiqueta()"
         >
           @for (a of resultados(); track a.id) {
             <li>
               <button
                 type="button"
-                class="block w-full px-3 py-2 text-left text-sm hover:bg-slate-100"
+                class="block w-full px-3 py-2 text-left text-sm hover:bg-superficie-3"
                 (click)="elegir(a)"
               >
                 <span class="font-mono">{{ a.codigo }}</span> · {{ a.descripcion }}
-                <span class="block text-xs text-slate-500">
+                <span class="block text-xs text-texto-suave">
                   {{ a.numeroParte ?? 'sin N.° de parte' }} · {{ a.marca ?? 'sin marca' }} ·
                   {{ a.unidad }}
                 </span>
@@ -62,7 +62,7 @@ let siguienteId = 0;
           }
         </ul>
       } @else if (sinResultados()) {
-        <p class="mt-1 text-xs text-slate-500" role="status">Sin coincidencias.</p>
+        <p class="mt-1 text-xs text-texto-suave" role="status">Sin coincidencias.</p>
       }
       @if (error()) {
         <p class="error-campo" role="alert">{{ error() }}</p>

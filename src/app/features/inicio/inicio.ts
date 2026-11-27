@@ -15,12 +15,13 @@ import { SesionService } from '../../core/auth/sesion.service';
 import { Problema, aProblema } from '../../core/http/problema';
 import { Panel, ResumenPagar } from '../../core/modelos/api.modelos';
 import { ErrorApi } from '../../shared/ui/error-api';
+import { Icono } from '../../shared/ui/icono';
 import { CreditosApi } from '../creditos/creditos.api';
 import { ReportesApi } from '../reportes/reportes.api';
 
 @Component({
   selector: 'app-inicio',
-  imports: [RouterLink, DecimalPipe, DatePipe, ErrorApi],
+  imports: [RouterLink, DecimalPipe, DatePipe, ErrorApi, Icono],
   templateUrl: './inicio.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -32,6 +33,18 @@ export class Inicio implements OnInit {
   protected readonly panel = signal<Panel | null>(null);
   protected readonly pagar = signal<ResumenPagar | null>(null);
   protected readonly error = signal<Problema | null>(null);
+  protected readonly hoy = new Date();
+  /** Saludo según la hora de Lima. */
+  protected readonly saludo = computed(() => {
+    const hora = Number(
+      new Intl.DateTimeFormat('en-GB', {
+        hour: 'numeric',
+        hourCycle: 'h23',
+        timeZone: 'America/Lima',
+      }).format(this.hoy),
+    );
+    return hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches';
+  });
 
   /** Variación del mes frente al mes anterior al mismo día ("+12.5 %"); null sin base de comparación. */
   protected readonly variacion = computed(() => {

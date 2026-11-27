@@ -1,5 +1,5 @@
 <div class="flex flex-wrap items-end justify-between gap-3">
-  <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
+  <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="barra-filtros">
     <div>
       <label for="t-almacen" class="etiqueta">Almacén</label>
       <select id="t-almacen" class="campo" formControlName="almacenId">
@@ -118,7 +118,7 @@
             <span class="insignia-alerta">Con diferencias</span>
           }
         </h2>
-        <p class="text-sm text-slate-600">
+        <p class="text-sm text-texto-2">
           {{ t.glosa }} · solicitado por {{ t.creadoPor ?? '—' }}
           @if (t.fechaEnvio) {
             · enviado el {{ t.fechaEnvio }} por {{ t.enviadoPor }}
@@ -133,19 +133,19 @@
           </p>
         }
         @if (t.valorFaltante > 0) {
-          <p class="text-sm text-red-700">
+          <p class="text-sm text-peligro-texto">
             Faltante no devuelto: <strong>S/ {{ t.valorFaltante | number: '1.2-2' }}</strong>
           </p>
         }
         @if (t.observacionRecepcion) {
-          <p class="text-sm text-slate-600">Observación: {{ t.observacionRecepcion }}</p>
+          <p class="text-sm text-texto-2">Observación: {{ t.observacionRecepcion }}</p>
         }
         @if (t.guiaId) {
           <p class="text-sm">
             Guía de remisión:
             <a
               [routerLink]="['/facturacion/guia', t.guiaId]"
-              class="font-mono text-marca-700 hover:underline"
+              class="font-mono text-texto-acento hover:underline"
               >{{ t.guia }}</a
             >
           </p>
@@ -177,7 +177,7 @@
         [formGroup]="paso"
         (ngSubmit)="confirmar()"
         novalidate
-        class="space-y-3 rounded-md border border-slate-200 p-3"
+        class="space-y-3 rounded-md border border-borde p-3"
       >
         <h3 class="font-semibold">
           {{ a === 'enviar' ? 'Despacho desde el origen' : 'Recepción en el destino' }}
@@ -231,13 +231,13 @@
           }
         </div>
         @if (a === 'enviar' && t.requiereGuia) {
-          <p class="text-xs text-slate-500">
+          <p class="text-xs text-texto-suave">
             Entre sucursales el traslado va con guía de remisión (motivo 04): se emite al confirmar.
           </p>
           <app-transporte-guia [grupo]="transporte" prefijo="p-guia" />
         }
         @if (a === 'recibir') {
-          <p class="text-xs text-slate-500">
+          <p class="text-xs text-texto-suave">
             Si un artículo con lotes o series llega incompleto, indique cuáles llegaron; si llega
             completo, no hace falta.
           </p>
@@ -263,19 +263,19 @@
             <th scope="col" class="text-right">Valor enviado (S/)</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-100">
+        <tbody class="divide-y divide-borde">
           @for (l of t.lineas; track l.articulo.id) {
             <tr>
               <td>
                 <span class="font-mono">{{ l.articulo.codigo }}</span> ·
                 {{ l.articulo.descripcion }}
                 @for (lote of l.lotesEnviados; track lote.codigo) {
-                  <span class="block text-xs text-slate-500"
+                  <span class="block text-xs text-texto-suave"
                     >Lote {{ lote.codigo }}: {{ lote.cantidad | number: '1.0-4' }}</span
                   >
                 }
                 @if (l.seriesEnviadas.length > 0) {
-                  <span class="block font-mono text-xs text-slate-500">{{
+                  <span class="block font-mono text-xs text-texto-suave">{{
                     l.seriesEnviadas.join(', ')
                   }}</span>
                 }
@@ -287,7 +287,7 @@
               <td class="text-right">
                 {{ l.cantidadRecibida === null ? '—' : (l.cantidadRecibida | number: '1.0-4') }}
               </td>
-              <td class="text-right" [class.text-red-700]="(l.diferencia ?? 0) > 0">
+              <td class="text-right" [class.text-peligro-texto]="(l.diferencia ?? 0) > 0">
                 {{ l.diferencia === null ? '—' : (l.diferencia | number: '1.0-4') }}
               </td>
               <td class="text-right">
@@ -313,7 +313,7 @@
         <th scope="col">Recepción</th>
       </tr>
     </thead>
-    <tbody class="divide-y divide-slate-100">
+    <tbody class="divide-y divide-borde">
       @for (t of pagina()?.contenido ?? []; track t.id) {
         <tr>
           <td>
@@ -334,7 +334,7 @@
         </tr>
       } @empty {
         <tr>
-          <td colspan="6" class="py-6 text-center text-slate-500">No hay traslados.</td>
+          <td colspan="6" class="py-6 text-center text-texto-suave">No hay traslados.</td>
         </tr>
       }
     </tbody>

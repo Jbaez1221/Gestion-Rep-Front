@@ -39,7 +39,7 @@
         formControlName="codigo"
         aria-describedby="ayuda-codigo"
       />
-      <p id="ayuda-codigo" class="mt-1 text-xs text-slate-500">
+      <p id="ayuda-codigo" class="mt-1 text-xs text-texto-suave">
         Letras, números y guiones. No se puede cambiar después.
       </p>
       @if (formulario.controls.codigo.touched && formulario.controls.codigo.invalid) {
@@ -114,7 +114,7 @@
               <th scope="col"><span class="sr-only">Acciones</span></th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100">
+          <tbody class="divide-y divide-borde">
             @for (a of almacenes(); track a.id) {
               <tr>
                 <td class="font-mono">{{ a.codigo }}</td>
@@ -171,7 +171,7 @@
           [formGroup]="nuevoAlmacen"
           (ngSubmit)="agregarAlmacen()"
           novalidate
-          class="grid gap-3 border-t border-slate-100 pt-3 sm:grid-cols-3"
+          class="grid gap-3 border-t border-borde pt-3 sm:grid-cols-3"
         >
           <div>
             <label for="alm-codigo" class="etiqueta">Código del almacén</label>

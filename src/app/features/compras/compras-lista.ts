@@ -33,7 +33,7 @@ import { ComprasApi, RUTA_REGISTRO_COMPRAS } from './compras.api';
   template: `
     <div class="space-y-4">
       <div class="flex flex-wrap items-end justify-between gap-3">
-        <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
+        <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="barra-filtros">
           <div class="min-w-64">
             <label for="c-texto" class="etiqueta">Buscar</label>
             <input
@@ -98,23 +98,23 @@ import { ComprasApi, RUTA_REGISTRO_COMPRAS } from './compras.api';
               <th scope="col">Estado</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100">
+          <tbody class="divide-y divide-borde">
             @for (c of pagina()?.contenido ?? []; track c.id) {
               <tr>
                 <td class="whitespace-nowrap">{{ c.fechaEmision | date: 'dd/MM/yyyy' }}</td>
                 <td class="whitespace-nowrap">
                   <a
                     [routerLink]="['/compras/documento', c.id]"
-                    class="text-marca-700 hover:underline"
+                    class="text-texto-acento hover:underline"
                   >
                     {{ nombres[c.tipoComprobante] }}
                     <span class="font-mono">{{ c.comprobante }}</span>
                   </a>
-                  <span class="block font-mono text-xs text-slate-500">{{ c.numero }}</span>
+                  <span class="block font-mono text-xs text-texto-suave">{{ c.numero }}</span>
                 </td>
                 <td>
                   {{ c.proveedor.nombre }}
-                  <span class="block font-mono text-xs text-slate-500">{{
+                  <span class="block font-mono text-xs text-texto-suave">{{
                     c.proveedor.documento
                   }}</span>
                 </td>
@@ -132,15 +132,13 @@ import { ComprasApi, RUTA_REGISTRO_COMPRAS } from './compras.api';
                   @if (
                     c.estadoSunat && c.estadoSunat !== 'ACEPTADO' && c.estadoSunat !== 'AUTORIZADO'
                   ) {
-                    <span class="insignia bg-red-100 text-red-800"
-                      >SUNAT: {{ estadosSunat[c.estadoSunat] }}</span
-                    >
+                    <span class="insignia-peligro">SUNAT: {{ estadosSunat[c.estadoSunat] }}</span>
                   }
                 </td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="6" class="py-6 text-center text-slate-500">
+                <td colspan="6" class="py-6 text-center text-texto-suave">
                   No hay compras con esos filtros.
                 </td>
               </tr>

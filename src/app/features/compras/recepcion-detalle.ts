@@ -26,6 +26,7 @@ import {
   SocioListado,
 } from '../../core/modelos/api.modelos';
 import { NotificacionesService } from '../../core/ui/notificaciones.service';
+import { DialogosService } from '../../shared/ui/dialogos';
 import { ErrorApi } from '../../shared/ui/error-api';
 import { ArticulosApi } from '../articulos/articulos.api';
 import { BuscadorArticulo } from '../articulos/buscador-articulo';
@@ -36,7 +37,7 @@ import { SociosApi } from '../socios/socios.api';
 import { BuscadorProveedor } from './buscador-proveedor';
 import { NOMBRE_ESTADO_RECEPCION, centimos, claseEstadoRecepcion } from './calculo';
 import { ComprasApi } from './compras.api';
-import { pedirMotivo, unidadesDe } from './lineas';
+import { unidadesDe } from './lineas';
 
 /**
  * Recepción con guía: registra la mercadería que llegó antes que la factura (al costo de la orden o
@@ -58,6 +59,7 @@ import { pedirMotivo, unidadesDe } from './lineas';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RecepcionDetalle implements OnInit {
+  private readonly dialogos = inject(DialogosService);
   private readonly api = inject(ComprasApi);
   private readonly articulosApi = inject(ArticulosApi);
   private readonly sociosApi = inject(SociosApi);
@@ -301,7 +303,12 @@ export class RecepcionDetalle implements OnInit {
 
   protected async anular(): Promise<void> {
     const r = this.recepcion();
-    const motivo = pedirMotivo('¿Por qué se anula? La mercadería sale del almacén.');
+    const motivo = await this.dialogos.pedirTexto({
+      titulo: 'Anular recepción',
+      mensaje: 'La mercadería sale del almacén.',
+      aceptar: 'Anular recepción',
+      peligro: true,
+    });
     if (!r || !motivo) return;
     try {
       this.error.set(null);

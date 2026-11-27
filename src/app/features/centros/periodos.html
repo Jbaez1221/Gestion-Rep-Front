@@ -11,7 +11,7 @@
     />
   </div>
   <button type="button" class="btn-secundario" (click)="cargar()">Ver</button>
-  <p class="text-sm text-slate-600">
+  <p class="text-sm text-texto-2">
     Un mes cerrado no admite imputaciones ni cambios de presupuesto: se corrige en el período
     abierto.
   </p>
@@ -29,7 +29,7 @@
         }}</span>
       </div>
       @if (p.cerradoPor) {
-        <p class="text-xs text-slate-500">
+        <p class="text-xs text-texto-suave">
           Por {{ p.cerradoPor }} el {{ p.fechaCierre | date: 'dd/MM/yyyy HH:mm' }}
         </p>
       }

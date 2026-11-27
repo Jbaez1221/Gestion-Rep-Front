@@ -24,12 +24,12 @@ import { MEDIOS_DINERO, NOMBRE_MEDIO } from './medios';
         </div>
         <button type="submit" class="btn-secundario">Buscar</button>
       </form>
-      <ul class="divide-y divide-slate-100 text-sm">
+      <ul class="divide-y divide-borde text-sm">
         @for (c of cuentas(); track c.id) {
           <li class="flex flex-wrap items-center justify-between gap-2 py-2">
             <p>
               {{ c.clienteNombre }} · <span class="font-mono">{{ c.comprobante }}</span>
-              <span class="block text-xs" [class.text-red-700]="c.vencida">
+              <span class="block text-xs" [class.text-peligro-texto]="c.vencida">
                 Vence {{ c.fechaVencimiento | date: 'dd/MM/yyyy'
                 }}{{ c.vencida ? ' (vencida)' : '' }} · de S/ {{ c.monto | number: '1.2-2' }}
               </span>
@@ -41,7 +41,9 @@ import { MEDIOS_DINERO, NOMBRE_MEDIO } from './medios';
           </li>
         } @empty {
           @if (buscado()) {
-            <li class="py-4 text-center text-slate-500">No hay cuentas pendientes con ese dato.</li>
+            <li class="py-4 text-center text-texto-suave">
+              No hay cuentas pendientes con ese dato.
+            </li>
           }
         }
       </ul>

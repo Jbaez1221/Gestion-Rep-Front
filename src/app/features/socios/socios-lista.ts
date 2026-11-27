@@ -27,13 +27,13 @@ export const SIGLAS_DOCUMENTO: Record<string, string> = {
       <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 class="titulo-pagina">Socios comerciales</h1>
-          <p class="mt-1 text-sm text-slate-600">Clientes y proveedores, con sus datos de SUNAT.</p>
+          <p class="mt-1 text-sm text-texto-2">Clientes y proveedores, con sus datos de SUNAT.</p>
         </div>
         @if (sesion.tiene(permisos.sociosCrear)) {
           <a routerLink="nuevo" class="btn-primario">Nuevo socio</a>
         }
       </div>
-      <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="flex flex-wrap items-end gap-3">
+      <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="barra-filtros">
         <div class="min-w-64">
           <label for="s-texto" class="etiqueta">Buscar</label>
           <input
@@ -76,18 +76,18 @@ export const SIGLAS_DOCUMENTO: Record<string, string> = {
               <th scope="col">Estado</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100">
+          <tbody class="divide-y divide-borde">
             @for (s of pagina()?.contenido ?? []; track s.id) {
               <tr>
                 <td class="whitespace-nowrap font-mono">
-                  <a [routerLink]="s.id" class="text-marca-700 hover:underline">
+                  <a [routerLink]="s.id" class="text-texto-acento hover:underline">
                     {{ siglas[s.tipoDocumento] }} {{ s.numeroDocumento }}
                   </a>
                 </td>
                 <td>
                   {{ s.nombre }}
                   @if (s.nombreComercial) {
-                    <span class="block text-xs text-slate-500">{{ s.nombreComercial }}</span>
+                    <span class="block text-xs text-texto-suave">{{ s.nombreComercial }}</span>
                   }
                 </td>
                 <td class="space-x-1 whitespace-nowrap">
@@ -120,7 +120,7 @@ export const SIGLAS_DOCUMENTO: Record<string, string> = {
               </tr>
             } @empty {
               <tr>
-                <td colspan="5" class="py-6 text-center text-slate-500">
+                <td colspan="5" class="py-6 text-center text-texto-suave">
                   No hay socios con esos filtros.
                 </td>
               </tr>

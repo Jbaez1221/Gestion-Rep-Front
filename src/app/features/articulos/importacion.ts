@@ -16,10 +16,10 @@ const TAMANIO_MAXIMO = 5 * 1024 * 1024;
   template: `
     <section class="tarjeta space-y-3">
       <h2 class="font-semibold">Carga masiva de artículos</h2>
-      <ol class="list-decimal space-y-1 pl-5 text-sm text-slate-700">
+      <ol class="list-decimal space-y-1 pl-5 text-sm text-texto-2">
         <li>
           Descargue la
-          <a [href]="urlPlantilla" class="text-marca-700 underline" download>plantilla Excel</a>:
+          <a [href]="urlPlantilla" class="text-texto-acento underline" download>plantilla Excel</a>:
           trae las instrucciones y listas desplegables con sus categorías, unidades y marcas.
         </li>
         <li>Llénela desde la fila 2 (máximo 5.000 artículos) sin cambiar los encabezados.</li>
@@ -69,7 +69,9 @@ const TAMANIO_MAXIMO = 5 * 1024 * 1024;
         </button>
       </div>
       @if (!validadoSinErrores() && archivo()) {
-        <p class="text-xs text-slate-500">Valide el archivo sin errores para habilitar Importar.</p>
+        <p class="text-xs text-texto-suave">
+          Valide el archivo sin errores para habilitar Importar.
+        </p>
       }
     </section>
 
@@ -97,9 +99,9 @@ const TAMANIO_MAXIMO = 5 * 1024 * 1024;
                 <th scope="col">Resultado</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
+            <tbody class="divide-y divide-borde">
               @for (f of filas(); track f.fila) {
-                <tr [class.bg-red-50]="f.estado === 'ERROR'">
+                <tr [class.bg-peligro-suave]="f.estado === 'ERROR'">
                   <td class="text-right">{{ f.fila }}</td>
                   <td class="font-mono">{{ f.codigo || '(automático)' }}</td>
                   <td>{{ f.descripcion }}</td>
@@ -108,9 +110,11 @@ const TAMANIO_MAXIMO = 5 * 1024 * 1024;
                       etiquetas[f.estado]
                     }}</span>
                     @for (m of f.mensajes; track m) {
-                      <span class="block text-xs" [class.text-red-700]="f.estado === 'ERROR'">{{
-                        m
-                      }}</span>
+                      <span
+                        class="block text-xs"
+                        [class.text-peligro-texto]="f.estado === 'ERROR'"
+                        >{{ m }}</span
+                      >
                     }
                   </td>
                 </tr>

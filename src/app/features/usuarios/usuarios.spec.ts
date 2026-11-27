@@ -10,6 +10,7 @@ import { SucursalesApi } from '../sucursales/sucursales.api';
 import { UsuarioDetalle } from './usuario-detalle';
 import { UsuariosApi } from './usuarios.api';
 import { UsuariosLista } from './usuarios-lista';
+import { DialogosService } from '../../shared/ui/dialogos';
 
 const TODOS = [
   'usuarios:read',
@@ -145,7 +146,7 @@ describe('UsuarioDetalle', () => {
       expect.objectContaining({ nombres: 'Luis Alberto', activo: true, bloqueado: false }),
     );
 
-    vi.spyOn(window, 'prompt').mockReturnValue('cajero');
+    vi.spyOn(TestBed.inject(DialogosService), 'pedirTexto').mockResolvedValue('cajero');
     [...html.querySelectorAll('button')]
       .find((b) => b.textContent?.includes('Restablecer'))
       ?.click();
@@ -153,7 +154,7 @@ describe('UsuarioDetalle', () => {
     expect(api.restablecerPassword).toHaveBeenCalledWith('u-2', 'cajero');
     expect(html.textContent).toContain('Otra-provisional9');
 
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    vi.spyOn(TestBed.inject(DialogosService), 'confirmar').mockResolvedValue(true);
     [...html.querySelectorAll('button')]
       .find((b) => b.textContent?.includes('Desactivar'))
       ?.click();
@@ -163,8 +164,8 @@ describe('UsuarioDetalle', () => {
 
   it('cancelar las confirmaciones no hace nada', async () => {
     const { api, fixture, html } = await crear('u-2');
-    vi.spyOn(window, 'prompt').mockReturnValue(null);
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    vi.spyOn(TestBed.inject(DialogosService), 'pedirTexto').mockResolvedValue(null);
+    vi.spyOn(TestBed.inject(DialogosService), 'confirmar').mockResolvedValue(false);
     [...html.querySelectorAll('button')]
       .find((b) => b.textContent?.includes('Restablecer'))
       ?.click();

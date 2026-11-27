@@ -138,7 +138,7 @@ describe('Reporte de ventas', () => {
     );
     expect(html.textContent).toContain('FIL-1');
     expect(html.textContent).toContain('28.93');
-    expect(html.querySelector('td.text-red-700')?.textContent).toContain('-5.00');
+    expect(html.querySelector('td.text-peligro-texto')?.textContent).toContain('-5.00');
     expect(html.textContent).toContain('11.16');
     expect(html.querySelector('a[download]')?.getAttribute('href')).toBe(
       '/api/v1/reportes/ventas/excel?x',

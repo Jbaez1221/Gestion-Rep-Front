@@ -1,5 +1,5 @@
 <div class="flex flex-wrap items-center justify-between gap-2">
-  <p class="text-sm text-slate-600">
+  <p class="text-sm text-texto-2">
     @if (esCosto()) {
       Dónde se gasta. Cada centro imputable tiene su función PCGE y suma sus costos a un centro de
       beneficio.
@@ -30,9 +30,9 @@
           <th scope="col"><span class="sr-only">Acciones</span></th>
         </tr>
       </thead>
-      <tbody class="divide-y divide-slate-100">
+      <tbody class="divide-y divide-borde">
         @for (n of arbol(); track n.centro.id) {
-          <tr [class.bg-slate-50]="!n.centro.imputable">
+          <tr [class.bg-superficie-2]="!n.centro.imputable">
             <td class="font-mono whitespace-nowrap" [class]="indentar(n.nivel)">
               {{ n.centro.codigo }}
             </td>
@@ -68,7 +68,7 @@
           </tr>
         } @empty {
           <tr>
-            <td colspan="7" class="py-6 text-center text-slate-500">Aún no hay centros.</td>
+            <td colspan="7" class="py-6 text-center text-texto-suave">Aún no hay centros.</td>
           </tr>
         }
       </tbody>

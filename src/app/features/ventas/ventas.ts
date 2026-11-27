@@ -12,7 +12,7 @@ import { SesionService } from '../../core/auth/sesion.service';
       <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 class="titulo-pagina">Ventas</h1>
-          <p class="mt-1 text-sm text-slate-600">
+          <p class="mt-1 text-sm text-texto-2">
             Notas de pedido con el precio de la lista de cada cliente. Enviadas a caja reservan el
             stock hasta que se cobran o hasta el cierre del día.
           </p>
@@ -26,11 +26,11 @@ import { SesionService } from '../../core/auth/sesion.service';
           }
         </div>
       </div>
-      <nav class="flex flex-wrap gap-1 border-b border-slate-200" aria-label="Secciones de ventas">
+      <nav class="flex flex-wrap gap-1 border-b border-borde" aria-label="Secciones de ventas">
         @for (p of pestanas; track p.ruta) {
           <a
             [routerLink]="p.ruta"
-            routerLinkActive="border-marca-600 text-marca-700"
+            routerLinkActive="border-acento text-texto-acento"
             ariaCurrentWhenActive="page"
             class="pestana"
             >{{ p.texto }}</a
