@@ -90,6 +90,11 @@ export class ComprasApi {
     return this.http.post<Compra>(BASE, datos);
   }
 
+  /** Consulta en SUNAT el comprobante del proveedor y guarda el resultado. */
+  validarSunat(id: string): Observable<Compra> {
+    return this.http.post<Compra>(`${BASE}/${id}/validar-sunat`, {});
+  }
+
   anular(id: string, motivo: string): Observable<Compra> {
     return this.http.post<Compra>(`${BASE}/${id}/anular`, { motivo });
   }

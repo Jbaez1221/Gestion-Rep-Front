@@ -16,7 +16,7 @@ import {
 import { ErrorApi } from '../../shared/ui/error-api';
 import { DescargaRegistro } from '../../shared/ui/descarga-registro';
 import { Paginador } from '../../shared/ui/paginador';
-import { NOMBRE_COMPROBANTE } from './calculo';
+import { ESTADO_SUNAT_COMPRA, NOMBRE_COMPROBANTE } from './calculo';
 import { ComprasApi, RUTA_REGISTRO_COMPRAS } from './compras.api';
 
 @Component({
@@ -129,6 +129,13 @@ import { ComprasApi, RUTA_REGISTRO_COMPRAS } from './compras.api';
                   @if (!c.creditoFiscal && c.estado === 'REGISTRADA') {
                     <span class="insignia-alerta">Sin crédito fiscal</span>
                   }
+                  @if (
+                    c.estadoSunat && c.estadoSunat !== 'ACEPTADO' && c.estadoSunat !== 'AUTORIZADO'
+                  ) {
+                    <span class="insignia bg-red-100 text-red-800"
+                      >SUNAT: {{ estadosSunat[c.estadoSunat] }}</span
+                    >
+                  }
                 </td>
               </tr>
             } @empty {
@@ -154,6 +161,7 @@ export class ComprasLista implements OnInit {
     return this.api.excel(this.filtros.getRawValue());
   }
   private readonly fb = inject(NonNullableFormBuilder);
+  protected readonly estadosSunat = ESTADO_SUNAT_COMPRA;
   protected readonly sesion = inject(SesionService);
   protected readonly permisos = PERMISOS;
   protected readonly nombres = NOMBRE_COMPROBANTE;

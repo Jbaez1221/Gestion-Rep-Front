@@ -267,6 +267,7 @@ const COMPRA: Compra = {
   motivoAnulacion: null,
   creadoPor: 'admin',
   fechaCreacion: null,
+  sunat: null,
 };
 
 const CATALOGOS = {
@@ -315,6 +316,7 @@ function apiFalsa() {
             totalSoles: 1118.25,
             creditoFiscal: false,
             estado: 'REGISTRADA',
+            estadoSunat: 'NO_EXISTE',
           },
           {
             id: 'c2',
@@ -329,11 +331,25 @@ function apiFalsa() {
             totalSoles: 5,
             creditoFiscal: true,
             estado: 'ANULADA',
+            estadoSunat: null,
           },
         ]),
       ),
     ),
     obtener: vi.fn(() => of(COMPRA)),
+    validarSunat: vi.fn(() =>
+      of({
+        ...COMPRA,
+        sunat: {
+          estado: 'ANULADO' as const,
+          valido: false,
+          estadoRuc: 'ACTIVO',
+          condicionDomicilio: 'HABIDO',
+          mensaje: null,
+          fecha: '2026-11-27T15:00:00Z',
+        },
+      }),
+    ),
     registrar: vi.fn(() => of(COMPRA)),
     anular: vi.fn(() =>
       of({ ...COMPRA, estado: 'ANULADA', anuladoPor: 'admin', motivoAnulacion: 'x' }),
@@ -1060,6 +1076,36 @@ describe('CompraDetalle', () => {
     api.obtener.mockReturnValue(throwError(() => new Error('x')));
     const otra = await crear(CompraDetalle, { id: 'c3' });
     expect(otra.html.querySelector('[role=alert]')).not.toBeNull();
+  });
+});
+
+describe('Validación en SUNAT de la compra', () => {
+  it('valida el comprobante y avisa si no da crédito fiscal', async () => {
+    const { api } = configurar();
+    const { html, boton, estable } = await crear(CompraDetalle, { id: 'c1' });
+    expect(html.textContent).toContain('aún no se validó en SUNAT');
+    boton('Validar en SUNAT')?.click();
+    await estable();
+    expect(api.validarSunat).toHaveBeenCalledWith('c1');
+    expect(html.textContent).toContain('Anulado');
+    expect(html.textContent).toContain('proveedor ACTIVO / HABIDO');
+    expect(html.textContent).toContain('no da crédito fiscal');
+    expect(boton('Volver a validar')).toBeTruthy();
+
+    api.validarSunat.mockReturnValue(throwError(() => new Error('x')));
+    boton('Volver a validar')?.click();
+    await estable();
+    expect(html.querySelector('[role=alert]')).not.toBeNull();
+  });
+
+  it('marca en la lista la compra cuyo comprobante no está vigente y sin permiso no valida', async () => {
+    configurar();
+    const lista = await crear(ComprasLista);
+    expect(lista.html.textContent).toContain('SUNAT: No existe');
+    TestBed.resetTestingModule();
+    configurar(['compras:read']);
+    const detalle = await crear(CompraDetalle, { id: 'c1' });
+    expect(detalle.boton('Validar en SUNAT')).toBeUndefined();
   });
 });
 

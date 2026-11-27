@@ -1341,6 +1341,19 @@ export interface LineaCompra {
   readonly ordenLinea: number | null;
 }
 
+export type EstadoSunatCompra =
+  'ACEPTADO' | 'ANULADO' | 'NO_EXISTE' | 'AUTORIZADO' | 'NO_AUTORIZADO';
+
+/** Cómo figura en SUNAT el comprobante del proveedor (y el proveedor) al consultarlo. */
+export interface ValidacionSunat {
+  readonly estado: EstadoSunatCompra;
+  readonly valido: boolean;
+  readonly estadoRuc: string | null;
+  readonly condicionDomicilio: string | null;
+  readonly mensaje: string | null;
+  readonly fecha: string;
+}
+
 export interface Compra {
   readonly id: string;
   readonly numero: string;
@@ -1389,6 +1402,8 @@ export interface Compra {
   readonly motivoAnulacion: string | null;
   readonly creadoPor: string | null;
   readonly fechaCreacion: string | null;
+  /** Consulta integrada de SUNAT; null si no se consultó. */
+  readonly sunat: ValidacionSunat | null;
 }
 
 export interface CompraListado {
@@ -1404,6 +1419,7 @@ export interface CompraListado {
   readonly totalSoles: number;
   readonly creditoFiscal: boolean;
   readonly estado: EstadoCompra;
+  readonly estadoSunat: EstadoSunatCompra | null;
 }
 
 export interface CatalogosCompras {
